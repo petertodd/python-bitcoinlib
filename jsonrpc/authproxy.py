@@ -61,7 +61,11 @@ class AuthServiceProxy(object):
 	self.__idcnt = 0
 	authpair = "%s:%s" % (self.__url.username, self.__url.password)
 	self.__authhdr = "Basic %s" % (base64.b64encode(authpair))
-	self.__conn = httplib.HTTPConnection(self.__url.hostname, port, False,
+        if self.__url.scheme == 'https':
+            self.__conn = httplib.HTTPSConnection(self.__url.hostname, port, None, None,False,
+					     HTTP_TIMEOUT)
+        else:
+            self.__conn = httplib.HTTPConnection(self.__url.hostname, port, False,
 					     HTTP_TIMEOUT)
 
     def __getattr__(self, name):
