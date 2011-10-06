@@ -1,1 +1,1 @@
-from authproxy import AuthServiceProxy as ServiceProxy, JSONRPCException
+from .authproxy import AuthServiceProxy as ServiceProxy, JSONRPCException

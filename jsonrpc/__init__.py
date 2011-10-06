@@ -1,2 +1,2 @@
-from json import loads, dumps, JSONEncodeException, JSONDecodeException
-from proxy import ServiceProxy, JSONRPCException
+from .json import loads, dumps, JSONEncodeException, JSONDecodeException
+from jsonrpc.proxy import ServiceProxy, JSONRPCException
