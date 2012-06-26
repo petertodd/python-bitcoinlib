@@ -111,8 +111,6 @@ class AuthServiceProxy(object):
              return resp['result']
 
     def _batch(self, rpc_call_list):
-         self.__idcnt += 1
-
          postdata = json.dumps(list(rpc_call_list))
          self.__conn.request('POST', self.__url.path, postdata,
                  { 'Host' : self.__url.hostname,
