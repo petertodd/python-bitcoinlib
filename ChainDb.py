@@ -12,11 +12,18 @@ class ChainDb(object):
 	def __init__(self, datadir):
 		self.misc = anydbm.open(datadir + '/misc.dat', 'c')
 		self.blocks = anydbm.open(datadir + '/blocks.dat', 'c')
+		self.height = anydbm.open(datadir + '/height.dat', 'c')
 
-	def putblock(self, ser_hash, ser_block):
+		if 'height' not in self.misc:
+			self.misc['height'] = str(-1)
+
+	def putblock(self, ser_hash, block):
 		if ser_hash in self.blocks:
 			return False
 
-		self.blocks[ser_hash] = ser_block
+		self.blocks[ser_hash] = block.serialize()
 		return True
+
+	def getheight(self):
+		return int(self.misc['height'])
 

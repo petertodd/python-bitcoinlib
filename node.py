@@ -21,6 +21,8 @@ from Crypto.Hash import SHA256
 MY_VERSION = 312
 MY_SUBVERSION = "/pynode:0.0.1/"
 
+BLOCK0 = 0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26fL
+
 settings = {}
 chaindb = None
 
@@ -28,7 +30,7 @@ def new_block_event(block):
 	block.calc_sha256()
 	print "NEW BLOCK %064x" % (block.sha256, )
 
-	ok = chaindb.putblock(ser_uint256(block.sha256), block.serialize())
+	ok = chaindb.putblock(ser_uint256(block.sha256), block)
 	if not ok:
 		print "BLOCK %064x storage failed" % (block.sha256, )
 
@@ -655,6 +657,7 @@ class NodeConn(asyncore.dispatcher):
 		vt.addrTo.port = self.dstport
 		vt.addrFrom.ip = "0.0.0.0"
 		vt.addrFrom.port = 0
+		vt.nStartingHeight = chaindb.getheight()
 		self.send_message(vt, True)
 
 		print "connecting"
