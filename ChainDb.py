@@ -6,8 +6,11 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
 
+import string
+import cStringIO
 import gdbm
 from serialize import *
+from datatypes import *
 from defs import *
 
 class ChainDb(object):
@@ -20,7 +23,7 @@ class ChainDb(object):
 		self.height = gdbm.open(datadir + '/height.dat', 'c')
 
 		if 'height' not in self.misc:
-			print "INITIALIZING EMPTY BLOCKCHAIN DATABASE..."
+			print "INITIALIZING EMPTY BLOCKCHAIN DATABASE"
 			self.misc['height'] = str(-1)
 			self.misc['tophash'] = str(0L)
 
@@ -69,4 +72,46 @@ class ChainDb(object):
 		return int(self.misc['height'])
 	def gettophash(self):
 		return long(self.misc['tophash'])
+
+	def loadfile(self, filename):
+		f = open(filename, 'rb', 0)
+		print "IMPORTING DATA FROM ", filename
+		buf = ''
+		wanted = 4096
+		while True:
+			if wanted > 0:
+				if wanted < 4096:
+					wanted = 4096
+				s = f.read(wanted)
+				if len(s) == 0:
+					break
+
+				buf += s
+				wanted = 0
+
+			buflen = len(buf)
+			startpos = string.find(buf, MSG_START)
+			if startpos < 0:
+				wanted = 8
+				continue
+
+			sizepos = startpos + 4
+			blkpos = startpos + 8
+			if blkpos > buflen:
+				wanted = 8
+				continue
+
+			blksize = struct.unpack("<i", buf[sizepos:blkpos])[0]
+			if (blkpos + blksize) > buflen:
+				wanted = 8 + blksize
+				continue
+
+			ser_blk = buf[blkpos:blkpos+blksize]
+			buf = buf[blkpos+blksize:]
+
+			f = cStringIO.StringIO(ser_blk)
+			block = CBlock()
+			block.deserialize(f)
+
+			self.putblock(block)
 
