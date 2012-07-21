@@ -127,6 +127,62 @@ def ser_uint256_vector(l):
 		r += ser_uint256(i)
 	return r
 
+def deser_string_vector(f):
+	nit = struct.unpack("<B", f.read(1))[0]
+	if nit == 253:
+		nit = struct.unpack("<H", f.read(2))[0]
+	elif nit == 254:
+		nit = struct.unpack("<I", f.read(4))[0]
+	elif nit == 255:
+		nit = struct.unpack("<Q", f.read(8))[0]
+	r = []
+	for i in xrange(nit):
+		t = deser_string(f)
+		r.append(t)
+	return r
+
+def ser_string_vector(l):
+	r = ""
+	if len(l) < 253:
+		r = chr(len(l))
+	elif len(s) < 0x10000:
+		r = chr(253) + struct.pack("<H", len(l))
+	elif len(s) < 0x100000000L:
+		r = chr(254) + struct.pack("<I", len(l))
+	else:
+		r = chr(255) + struct.pack("<Q", len(l))
+	for sv in l:
+		r += ser_string(sv)
+	return r
+
+def deser_int_vector(f):
+	nit = struct.unpack("<B", f.read(1))[0]
+	if nit == 253:
+		nit = struct.unpack("<H", f.read(2))[0]
+	elif nit == 254:
+		nit = struct.unpack("<I", f.read(4))[0]
+	elif nit == 255:
+		nit = struct.unpack("<Q", f.read(8))[0]
+	r = []
+	for i in xrange(nit):
+		t = struct.unpack("<i", f.read(4))[0]
+		r.append(t)
+	return r
+
+def ser_int_vector(l):
+	r = ""
+	if len(l) < 253:
+		r = chr(len(l))
+	elif len(s) < 0x10000:
+		r = chr(253) + struct.pack("<H", len(l))
+	elif len(s) < 0x100000000L:
+		r = chr(254) + struct.pack("<I", len(l))
+	else:
+		r = chr(255) + struct.pack("<Q", len(l))
+	for i in l:
+		r += struct.pack("<i", i)
+	return r
+
 class CAddress(object):
 	def __init__(self):
 		self.nServices = 1
@@ -323,6 +379,69 @@ class CBlock(object):
 	def __repr__(self):
 		return "CBlock(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x nTime=%s nBits=%08x nNonce=%08x vtx=%s)" % (self.nVersion, self.hashPrevBlock, self.hashMerkleRoot, time.ctime(self.nTime), self.nBits, self.nNonce, repr(self.vtx))
 
+class CUnsignedAlert(object):
+	def __init__(self):
+		self.nVersion = 1
+		self.nRelayUntil = 0
+		self.nExpiration = 0
+		self.nID = 0
+		self.nCancel = 0
+		self.setCancel = []
+		self.nMinVer = 0
+		self.nMaxVer = 0
+		self.setSubVer = []
+		self.nPriority = 0
+		self.strComment = ""
+		self.strStatusBar = ""
+		self.strReserved = ""
+	def deserialize(self, f):
+		self.nVersion = struct.unpack("<i", f.read(4))[0]
+		self.nRelayUntil = struct.unpack("<q", f.read(8))[0]
+		self.nExpiration = struct.unpack("<q", f.read(8))[0]
+		self.nID = struct.unpack("<i", f.read(4))[0]
+		self.nCancel = struct.unpack("<i", f.read(4))[0]
+		self.setCancel = deser_int_vector(f)
+		self.nMinVer = struct.unpack("<i", f.read(4))[0]
+		self.nMaxVer = struct.unpack("<i", f.read(4))[0]
+		self.setSubVer = deser_string_vector(f)
+		self.nPriority = struct.unpack("<i", f.read(4))[0]
+		self.strComment = deser_string(f)
+		self.strStatusBar = deser_string(f)
+		self.strReserved = deser_string(f)
+	def serialize(self):
+		r = ""
+		r += struct.pack("<i", self.nVersion)
+		r += struct.pack("<q", self.nRelayUntil)
+		r += struct.pack("<q", self.nExpiration)
+		r += struct.pack("<i", self.nID)
+		r += struct.pack("<i", self.nCancel)
+		r += ser_int_vector(self.setCancel)
+		r += struct.pack("<i", self.nMinVer)
+		r += struct.pack("<i", self.nMaxVer)
+		r += ser_string_vector(self.setSubVer)
+		r += struct.pack("<i", self.nPriority)
+		r += ser_string(self.strComment)
+		r += ser_string(self.strStatusBar)
+		r += ser_string(self.strReserved)
+		return r
+	def __repr__(self):
+		return "CUnsignedAlert(nVersion %d, nRelayUntil %d, nExpiration %d, nID %d, nCancel %d, nMinVer %d, nMaxVer %d, nPriority %d, strComment %s, strStatusBar %s, strReserved %s)" % (self.nVersion, self.nRelayUntil, self.nExpiration, self.nID, self.nCancel, self.nMinVer, self.nMaxVer, self.nPriority, self.strComment, self.strStatusBar, self.strReserved)
+
+class CAlert(object):
+	def __init__(self):
+		self.vchMsg = ""
+		self.vchSig = ""
+	def deserialize(self, f):
+		self.vchMsg = deser_string(f)
+		self.vchSig = deser_string(f)
+	def serialize(self):
+		r = ""
+		r += ser_string(self.vchMsg)
+		r += ser_string(self.vchSig)
+		return r
+	def __repr__(self):
+		return "CAlert(vchMsg.sz %d, vchSig.sz %d)" % (len(self.vchMsg), len(self.vchSig))
+
 class msg_version(object):
 	command = "version"
 	def __init__(self):
@@ -391,6 +510,20 @@ class msg_addr(object):
 		return ser_vector(self.addrs)
 	def __repr__(self):
 		return "msg_addr(addrs=%s)" % (repr(self.addrs))
+
+class msg_alert(object):
+	command = "alert"
+	def __init__(self):
+		self.alert = CAlert()
+	def deserialize(self, f):
+		self.alert = CAlert()
+		self.alert.deserialize(f)
+	def serialize(self):
+		r = ""
+		r += self.alert.serialize()
+		return r
+	def __repr__(self):
+		return "msg_alert(alert=%s)" % (repr(self.alert), )
 
 class msg_inv(object):
 	command = "inv"
@@ -488,6 +621,7 @@ class NodeConn(asyncore.dispatcher):
 		"version": msg_version,
 		"verack": msg_verack,
 		"addr": msg_addr,
+		"alert": msg_alert,
 		"inv": msg_inv,
 		"getdata": msg_getdata,
 		"getblocks": msg_getblocks,
