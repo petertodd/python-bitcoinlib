@@ -23,8 +23,6 @@ from datatypes import *
 from serialize import *
 from messages import *
 
-BLOCK0 = 0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26fL
-
 settings = {}
 debugnet = False
 
@@ -74,6 +72,8 @@ class NodeConn(asyncore.dispatcher):
 		self.ver_send = 209
 		self.ver_recv = 209
 		self.last_sent = 0
+		self.last_block_rx = time.time()
+		self.remote_height = -1
 		self.state = "connecting"
 
 		#stuff version msg into sendbuf
@@ -181,6 +181,22 @@ class NodeConn(asyncore.dispatcher):
 		tmsg += data
 		self.sendbuf += tmsg
 		self.last_sent = time.time()
+
+	def send_getblocks(self):
+		our_height = self.chaindb.getheight()
+		if our_height < 0:
+			gd = msg_getdata()
+			inv = CInv()
+			inv.type = 2
+			inv.hash = BLOCK0
+			gd.inv.append(inv)
+			self.send_message(gd)
+		elif our_height < self.remote_height:
+			gb = msg_getblocks()
+			if our_height >= 0:
+				gb.locator.vHave.append(self.chaindb.gettophash())
+			self.send_message(gb)
+
 	def got_message(self, message):
 		if self.last_sent + 30 * 60 < time.time():
 			self.send_message(msg_ping())
@@ -189,9 +205,11 @@ class NodeConn(asyncore.dispatcher):
 			print "recv %s" % repr(message)
 
 		if message.command  == "version":
+			self.ver_send = min(MY_VERSION, message.nVersion)
+			self.remote_height = message.nStartingHeight
 			self.send_message(msg_verack())
 			self.send_message(msg_getaddr())
-			self.ver_send = min(MY_VERSION, message.nVersion)
+			self.send_getblocks()
 
 		elif message.command == "verack":
 			self.ver_recv = self.ver_send
@@ -214,7 +232,13 @@ class NodeConn(asyncore.dispatcher):
 
 		elif message.command == "block":
 			self.chaindb.putblock(message.block)
+			self.last_block_rx = time.time()
 
+		# if we haven't seen a 'block' message in a little while,
+		# and we're still not caught up, send another getblocks
+		last_blkmsg = time.time() - self.last_block_rx
+		if last_blkmsg > 5:
+			self.send_getblocks()
 
 if __name__ == '__main__':
 	if len(sys.argv) != 2:
