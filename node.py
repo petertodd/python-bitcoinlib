@@ -137,30 +137,21 @@ class NodeConn(asyncore.dispatcher):
 				return
 			if self.recvbuf[:4] != "\xf9\xbe\xb4\xd9":
 				raise ValueError("got garbage %s" % repr(self.recvbuf))
-			if self.ver_recv < 209:
-				if len(self.recvbuf) < 4 + 12 + 4:
-					return
-				command = self.recvbuf[4:4+12].split("\x00", 1)[0]
-				msglen = struct.unpack("<i", self.recvbuf[4+12:4+12+4])[0]
-				checksum = None
-				if len(self.recvbuf) < 4 + 12 + 4 + msglen:
-					return
-				msg = self.recvbuf[4+12+4:4+12+4+msglen]
-				self.recvbuf = self.recvbuf[4+12+4+msglen:]
-			else:
-				if len(self.recvbuf) < 4 + 12 + 4 + 4:
-					return
-				command = self.recvbuf[4:4+12].split("\x00", 1)[0]
-				msglen = struct.unpack("<i", self.recvbuf[4+12:4+12+4])[0]
-				checksum = self.recvbuf[4+12+4:4+12+4+4]
-				if len(self.recvbuf) < 4 + 12 + 4 + 4 + msglen:
-					return
-				msg = self.recvbuf[4+12+4+4:4+12+4+4+msglen]
-				th = SHA256.new(msg).digest()
-				h = SHA256.new(th).digest()
-				if checksum != h[:4]:
-					raise ValueError("got bad checksum %s" % repr(self.recvbuf))
-				self.recvbuf = self.recvbuf[4+12+4+4+msglen:]
+			# check checksum
+			if len(self.recvbuf) < 4 + 12 + 4 + 4:
+				return
+			command = self.recvbuf[4:4+12].split("\x00", 1)[0]
+			msglen = struct.unpack("<i", self.recvbuf[4+12:4+12+4])[0]
+			checksum = self.recvbuf[4+12+4:4+12+4+4]
+			if len(self.recvbuf) < 4 + 12 + 4 + 4 + msglen:
+				return
+			msg = self.recvbuf[4+12+4+4:4+12+4+4+msglen]
+			th = SHA256.new(msg).digest()
+			h = SHA256.new(th).digest()
+			if checksum != h[:4]:
+				raise ValueError("got bad checksum %s" % repr(self.recvbuf))
+			self.recvbuf = self.recvbuf[4+12+4+4+msglen:]
+
 			if command in self.messagemap:
 				f = cStringIO.StringIO(msg)
 				t = self.messagemap[command]()
@@ -181,10 +172,12 @@ class NodeConn(asyncore.dispatcher):
 		tmsg += command
 		tmsg += "\x00" * (12 - len(command))
 		tmsg += struct.pack("<I", len(data))
-		if self.ver_send >= 209:
-			th = SHA256.new(data).digest()
-			h = SHA256.new(th).digest()
-			tmsg += h[:4]
+
+		# add checksum
+		th = SHA256.new(data).digest()
+		h = SHA256.new(th).digest()
+		tmsg += h[:4]
+
 		tmsg += data
 		self.sendbuf += tmsg
 		self.last_sent = time.time()
@@ -196,12 +189,9 @@ class NodeConn(asyncore.dispatcher):
 			print "recv %s" % repr(message)
 
 		if message.command  == "version":
-			if message.nVersion >= 209:
-				self.send_message(msg_verack())
-				self.send_message(msg_getaddr())
+			self.send_message(msg_verack())
+			self.send_message(msg_getaddr())
 			self.ver_send = min(MY_VERSION, message.nVersion)
-			if message.nVersion < 209:
-				self.ver_recv = self.ver_send
 
 		elif message.command == "verack":
 			self.ver_recv = self.ver_send
