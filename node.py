@@ -491,10 +491,19 @@ class NodeConn(asyncore.dispatcher):
 		self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.sendbuf = ""
 		self.recvbuf = ""
-		self.ver_send = 0
-		self.ver_recv = 0
+		self.ver_send = 209
+		self.ver_recv = 209
 		self.last_sent = 0
 		self.state = "connecting"
+
+		#stuff version msg into sendbuf
+		vt = msg_version()
+		vt.addrTo.ip = self.dstaddr
+		vt.addrTo.port = self.dstport
+		vt.addrFrom.ip = "0.0.0.0"
+		vt.addrFrom.port = 0
+		self.send_message(vt, True)
+
 		print "connecting"
 		try:
 			self.connect((dstaddr, dstport))
@@ -504,12 +513,12 @@ class NodeConn(asyncore.dispatcher):
 		print "connected"
 		self.state = "connected"
 		#send version msg
-		t = msg_version()
-		t.addrTo.ip = self.dstaddr
-		t.addrTo.port = self.dstport
-		t.addrFrom.ip = "0.0.0.0"
-		t.addrFrom.port = 0
-		self.send_message(t)
+#		t = msg_version()
+#		t.addrTo.ip = self.dstaddr
+#		t.addrTo.port = self.dstport
+#		t.addrFrom.ip = "0.0.0.0"
+#		t.addrFrom.port = 0
+#		self.send_message(t)
 	def handle_close(self):
 		print "close"
 		self.state = "closed"
@@ -578,8 +587,8 @@ class NodeConn(asyncore.dispatcher):
 				self.got_message(t)
 			else:
 				print "UNKNOWN COMMAND", command, repr(msg)
-	def send_message(self, message):
-		if self.state != "connected":
+	def send_message(self, message, pushbuf=False):
+		if self.state != "connected" and not pushbuf:
 			return
 		print "send %s" % repr(message)
 		command = message.command
