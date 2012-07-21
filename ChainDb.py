@@ -36,7 +36,6 @@ class ChainDb(object):
 
 	def putblock(self, block):
 		block.calc_sha256()
-		hashstr = uint256_to_shortstr(block.sha256)
 		ser_hash = ser_uint256(block.sha256)
 
 		if not block.is_valid():
@@ -64,7 +63,7 @@ class ChainDb(object):
 		self.misc['tophash'] = str(block.sha256)
 		self.height[str(self.getheight())] = str(block.sha256)
 
-		print "ChainDb: block %s, height %d" % (hashstr, self.getheight())
+		print "ChainDb: block %064x, height %d" % (block.sha256, self.getheight())
 
 		return True
 
