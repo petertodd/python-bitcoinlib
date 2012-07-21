@@ -1,4 +1,10 @@
 #!/usr/bin/python
+#
+# node.py - Bitcoin P2P network half-a-node
+#
+# Distributed under the MIT/X11 software license, see the accompanying
+# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+#
 
 import struct
 import socket
@@ -6,12 +12,18 @@ import asyncore
 import binascii
 import time
 import sys
+import re
 import random
 import cStringIO
 from Crypto.Hash import SHA256
 
 MY_VERSION = 312
 MY_SUBVERSION = ".4"
+
+settings = {}
+
+def new_block_event():
+	print "New block noticed"
 
 def deser_string(f):
 	nit = struct.unpack("<B", f.read(1))[0]
@@ -632,7 +644,28 @@ class NodeConn(asyncore.dispatcher):
 			if not message.block.is_valid():
 				print "invalid block"
 			else:
-				print "WOOOOOO!!!!!  We have a block!"
+				new_block_event()
 
-c = NodeConn("127.0.0.1", 8333)
-asyncore.loop()
+if __name__ == '__main__':
+	if len(sys.argv) != 2:
+		print "Usage: node.py CONFIG-FILE"
+		sys.exit(1)
+
+	f = open(sys.argv[1])
+	for line in f:
+		m = re.search('^(\w+)\s*=\s*(\S.*)$', line)
+		if m is None:
+			continue
+		settings[m.group(1)] = m.group(2)
+	f.close()
+
+	if 'host' not in settings:
+		settings['host'] = '127.0.0.1'
+	if 'port' not in settings:
+		settings['port'] = 8333
+
+	settings['port'] = int(settings['port'])
+
+	c = NodeConn(settings['host'], settings['port'])
+	asyncore.loop()
+
