@@ -15,15 +15,22 @@ import sys
 import re
 import random
 import cStringIO
+import ChainDb
 from Crypto.Hash import SHA256
 
 MY_VERSION = 312
-MY_SUBVERSION = ".4"
+MY_SUBVERSION = "/pynode:0.0.1/"
 
 settings = {}
+chaindb = None
 
-def new_block_event():
-	print "New block noticed"
+def new_block_event(block):
+	block.calc_sha256()
+	print "NEW BLOCK %064x" % (block.sha256, )
+
+	ok = chaindb.putblock(ser_uint256(block.sha256), block.serialize())
+	if not ok:
+		print "BLOCK %064x storage failed" % (block.sha256, )
 
 def deser_string(f):
 	nit = struct.unpack("<B", f.read(1))[0]
@@ -778,7 +785,7 @@ class NodeConn(asyncore.dispatcher):
 			if not message.block.is_valid():
 				print "invalid block"
 			else:
-				new_block_event()
+				new_block_event(message.block)
 
 if __name__ == '__main__':
 	if len(sys.argv) != 2:
@@ -797,8 +804,12 @@ if __name__ == '__main__':
 		settings['host'] = '127.0.0.1'
 	if 'port' not in settings:
 		settings['port'] = 8333
+	if 'db' not in settings:
+		settings['db'] = '/tmp/chaindb'
 
 	settings['port'] = int(settings['port'])
+
+	chaindb = ChainDb.ChainDb(settings['db'])
 
 	c = NodeConn(settings['host'], settings['port'])
 	asyncore.loop()
