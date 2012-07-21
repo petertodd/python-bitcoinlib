@@ -18,6 +18,7 @@ import cStringIO
 from Crypto.Hash import SHA256
 
 import ChainDb
+import MemPool
 from datatypes import *
 from serialize import *
 from messages import *
@@ -25,18 +26,27 @@ from messages import *
 BLOCK0 = 0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26fL
 
 settings = {}
-chaindb = None
+debugnet = False
 
-def new_block_event(block):
-	block.calc_sha256()
-	print "NEW BLOCK %064x" % (block.sha256, )
+def verbose_sendmsg(message):
+	if debugnet:
+		return True
+	if message.command != 'getdata':
+		return True
+	return False
 
-	ok = chaindb.putblock(block)
-	if not ok:
-		print "BLOCK %064x storage failed" % (block.sha256, )
-
-
-
+def verbose_recvmsg(message):
+	skipmsg = {
+		'tx' : True,
+		'block' : True,
+		'inv' : True,
+		'addr' : True
+	}
+	if debugnet:
+		return True
+	if message.command in skipmsg:
+		return False
+	return True
 
 class NodeConn(asyncore.dispatcher):
 	messagemap = {
@@ -52,8 +62,10 @@ class NodeConn(asyncore.dispatcher):
 		"getaddr": msg_getaddr,
 		"ping": msg_ping
 	}
-	def __init__(self, dstaddr, dstport):
+	def __init__(self, dstaddr, dstport, mempool, chaindb):
 		asyncore.dispatcher.__init__(self)
+		self.mempool = mempool
+		self.chaindb = chaindb
 		self.dstaddr = dstaddr
 		self.dstport = dstport
 		self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -70,7 +82,7 @@ class NodeConn(asyncore.dispatcher):
 		vt.addrTo.port = self.dstport
 		vt.addrFrom.ip = "0.0.0.0"
 		vt.addrFrom.port = 0
-		vt.nStartingHeight = chaindb.getheight()
+		vt.nStartingHeight = self.chaindb.getheight()
 		self.send_message(vt, True)
 
 		print "connecting"
@@ -159,7 +171,10 @@ class NodeConn(asyncore.dispatcher):
 	def send_message(self, message, pushbuf=False):
 		if self.state != "connected" and not pushbuf:
 			return
-		print "send %s" % repr(message)
+
+		if verbose_sendmsg(message):
+			print "send %s" % repr(message)
+
 		command = message.command
 		data = message.serialize()
 		tmsg = "\xf9\xbe\xb4\xd9"
@@ -176,15 +191,24 @@ class NodeConn(asyncore.dispatcher):
 	def got_message(self, message):
 		if self.last_sent + 30 * 60 < time.time():
 			self.send_message(msg_ping())
-		print "recv %s" % repr(message)
+
+		if verbose_recvmsg(message):
+			print "recv %s" % repr(message)
+
 		if message.command  == "version":
 			if message.nVersion >= 209:
 				self.send_message(msg_verack())
+				self.send_message(msg_getaddr())
 			self.ver_send = min(MY_VERSION, message.nVersion)
 			if message.nVersion < 209:
 				self.ver_recv = self.ver_send
+
 		elif message.command == "verack":
 			self.ver_recv = self.ver_send
+
+		elif message.command == "addr":
+			print "Received %d new addresses" % (len(message.addrs),)
+
 		elif message.command == "inv":
 			want = msg_getdata()
 			for i in message.inv:
@@ -194,14 +218,13 @@ class NodeConn(asyncore.dispatcher):
 					want.inv.append(i)
 			if len(want.inv):
 				self.send_message(want)
+
 		elif message.command == "tx":
-			if not message.tx.is_valid():
-				print "invalid TX"
+			self.mempool.add(message.tx)
+
 		elif message.command == "block":
-			if not message.block.is_valid():
-				print "invalid block"
-			else:
-				new_block_event(message.block)
+			self.chaindb.putblock(message.block)
+
 
 if __name__ == '__main__':
 	if len(sys.argv) != 2:
@@ -225,8 +248,9 @@ if __name__ == '__main__':
 
 	settings['port'] = int(settings['port'])
 
-	chaindb = ChainDb.ChainDb(settings['db'])
+	mempool = MemPool.MemPool()
+	chaindb = ChainDb.ChainDb(settings['db'], mempool)
 
-	c = NodeConn(settings['host'], settings['port'])
+	c = NodeConn(settings['host'], settings['port'], mempool, chaindb)
 	asyncore.loop()
 

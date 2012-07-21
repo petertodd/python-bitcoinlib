@@ -53,6 +53,10 @@ def uint256_from_compact(c):
 	v = (c & 0xFFFFFFL) << (8 * (nbytes - 3))
 	return v
 
+def uint256_to_shortstr(u):
+	s = "%064x" % (u,)
+	return s[:16]
+
 def deser_vector(f, c):
 	nit = struct.unpack("<B", f.read(1))[0]
 	if nit == 253:
