@@ -42,7 +42,7 @@ class ChainDb(object):
 
 		if ser_txhash in self.tx:
 			l = self.gettxidx(txhash)
-			self.log.write("WARNING: puttxidx conflict (blk %064x, spent %x)" % (l[0], l[1]))
+			self.log.write("WARNING: overwriting duplicate TX %064x, height %d, oldblk %064x, oldspent %x, newblk %064x" % (txhash, self.getheight(), l[0], l[1], block.sha256))
 
 		self.tx[ser_txhash] = hex(block.sha256) + ' 0'
 
