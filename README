@@ -1,0 +1,36 @@
+
+This python script (node.py) is a client node for the bitcoin network.
+It is based on ArtForz' half-a-node at http://pastebin.com/ZSM7iHZw
+
+In its current form, node.py does nothing more than listen for new
+transactions and blocks, perform some simple verification checks on
+the data, and store them in a database.  It does not handle script
+verification or chain reorg, and is therefore not safe for general use.
+
+It might be useful as the base for a P2P monitoring node, or similar
+tasks.
+
+Command line usage:
+
+	./node.py my-config-file
+
+The configuration file is a key=value text file, with the following settings:
+
+	# hostname or IP address of network node to connect to
+	host=127.0.0.1
+
+	# port of network node to connect to (default: 8333)
+	port=8333
+
+	# database directory
+	db=/tmp/chaindb
+
+	# log filename, or '-' or no-value for standard output
+	log=/tmp/chaindb/node.log
+
+	# if present, import these blocks into the block database
+	loadblock=/tmp/blk0001.dat
+
+node.py connects to a single remote node, and does not accept incoming
+P2P connections.  If the connection is lost, node.py exits.
+
