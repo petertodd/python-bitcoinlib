@@ -21,6 +21,7 @@ class ChainDb(object):
 		self.misc = gdbm.open(datadir + '/misc.dat', 'c')
 		self.blocks = gdbm.open(datadir + '/blocks.dat', 'c')
 		self.height = gdbm.open(datadir + '/height.dat', 'c')
+		self.tx = gdbm.open(datadir + '/tx.dat', 'c')
 
 		if 'height' not in self.misc:
 			print "INITIALIZING EMPTY BLOCKCHAIN DATABASE"
@@ -33,6 +34,55 @@ class ChainDb(object):
 		if self.gettophash() == block.hashPrevBlock:
 			return True
 		return False
+
+	def puttxidx(self, block, tx):
+		txhash = tx.sha256
+		ser_txhash = ser_uint256(txhash)
+
+		if ser_txhash in self.tx:
+			l = self.gettxidx(txhash)
+			print "WARNING: puttxidx conflict (blk %064x, spent %x)" % (l[0], l[1])
+
+		self.tx[ser_txhash] = hex(block.sha256) + ' 0'
+
+		return True
+	
+	def gettxidx(self, txhash):
+		ser_txhash = ser_uint256(txhash)
+		if ser_txhash not in self.tx:
+			return None
+
+		ser_value = self.tx[ser_txhash]
+		pos = string.find(ser_value, ' ')
+		blkhash = long(ser_value[:pos], 16)
+		spentmask = long(ser_value[pos+1:], 16)
+
+		return (blkhash, spentmask)
+
+	def gettx(self, txhash):
+		l = self.gettxidx(txhash)
+		if l is None:
+			return None
+
+		block = self.getblock(l[0])
+		for tx in block.vtx:
+			tx.calc_sha256()
+			if tx.sha256 == txhash:
+				return tx
+
+		print "ERROR: Missing TX %064x in block %064x" % (txhash, l[0])
+		return None
+
+	def getblock(self, blkhash):
+		ser_hash = ser_uint256(blkhash)
+		if ser_hash not in self.blocks:
+			return None
+
+		f = cStringIO.StringIO(self.blocks[ser_hash])
+		block = CBlock()
+		block.deserialize(f)
+
+		return block
 
 	def putblock(self, block):
 		block.calc_sha256()
@@ -55,6 +105,10 @@ class ChainDb(object):
 		for tx in block.vtx:
 			if not self.mempool.remove(tx.sha256):
 				neverseen += 1
+
+			if not self.puttxidx(block, tx):
+				print "TxIndex failed %064x" % (tx.sha256,)
+				return False
 
 		print "MemPool: blk.vtx.sz %d, neverseen %d, poolsz %d" % (len(block.vtx), neverseen, self.mempool.size())
 
