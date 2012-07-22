@@ -86,6 +86,7 @@ class NodeConn(asyncore.dispatcher):
 		self.ver_recv = 209
 		self.last_sent = 0
 		self.last_block_rx = time.time()
+		self.last_getblocks = 0
 		self.remote_height = -1
 		self.state = "connecting"
 
@@ -196,6 +197,11 @@ class NodeConn(asyncore.dispatcher):
 		self.last_sent = time.time()
 
 	def send_getblocks(self):
+		now = time.time()
+		if (now - self.last_getblocks) < 5:
+			return
+		self.last_getblocks = now
+
 		our_height = self.chaindb.getheight()
 		if our_height < 0:
 			gd = msg_getdata()
