@@ -27,6 +27,17 @@ from messages import *
 settings = {}
 debugnet = False
 
+class Log(object):
+	def __init__(self, filename=None):
+		if filename is not None:
+			self.fh = open(filename, 'a+', 0)
+		else:
+			self.fh = sys.stdout
+
+	def write(self, msg):
+		line = "%s\n" % msg
+		self.fh.write(line)
+
 def verbose_sendmsg(message):
 	if debugnet:
 		return True
@@ -61,8 +72,9 @@ class NodeConn(asyncore.dispatcher):
 		"getaddr": msg_getaddr,
 		"ping": msg_ping
 	}
-	def __init__(self, dstaddr, dstport, mempool, chaindb):
+	def __init__(self, dstaddr, dstport, log, mempool, chaindb):
 		asyncore.dispatcher.__init__(self)
+		self.log = log
 		self.mempool = mempool
 		self.chaindb = chaindb
 		self.dstaddr = dstaddr
@@ -86,13 +98,13 @@ class NodeConn(asyncore.dispatcher):
 		vt.nStartingHeight = self.chaindb.getheight()
 		self.send_message(vt, True)
 
-		print "connecting"
+		self.log.write("connecting")
 		try:
 			self.connect((dstaddr, dstport))
 		except:
 			self.handle_close()
 	def handle_connect(self):
-		print "connected"
+		self.log.write("connected")
 		self.state = "connected"
 		#send version msg
 #		t = msg_version()
@@ -102,7 +114,7 @@ class NodeConn(asyncore.dispatcher):
 #		t.addrFrom.port = 0
 #		self.send_message(t)
 	def handle_close(self):
-		print "close"
+		self.log.write("close")
 		self.state = "closed"
 		self.recvbuf = ""
 		self.sendbuf = ""
@@ -159,13 +171,13 @@ class NodeConn(asyncore.dispatcher):
 				t.deserialize(f)
 				self.got_message(t)
 			else:
-				print "UNKNOWN COMMAND", command, repr(msg)
+				self.log.write("UNKNOWN COMMAND %s %s" % (command, repr(msg)))
 	def send_message(self, message, pushbuf=False):
 		if self.state != "connected" and not pushbuf:
 			return
 
 		if verbose_sendmsg(message):
-			print "send %s" % repr(message)
+			self.log.write("send %s" % repr(message))
 
 		command = message.command
 		data = message.serialize()
@@ -203,7 +215,7 @@ class NodeConn(asyncore.dispatcher):
 			self.send_message(msg_ping())
 
 		if verbose_recvmsg(message):
-			print "recv %s" % repr(message)
+			self.log.write("recv %s" % repr(message))
 
 		if message.command  == "version":
 			self.ver_send = min(MY_VERSION, message.nVersion)
@@ -216,7 +228,7 @@ class NodeConn(asyncore.dispatcher):
 			self.ver_recv = self.ver_send
 
 		elif message.command == "addr":
-			print "Received %d new addresses" % (len(message.addrs),)
+			self.log.write("Received %d new addresses" % (len(message.addrs),))
 
 		elif message.command == "inv":
 			want = msg_getdata()
@@ -260,15 +272,20 @@ if __name__ == '__main__':
 		settings['port'] = 8333
 	if 'db' not in settings:
 		settings['db'] = '/tmp/chaindb'
+	if 'log' not in settings or (settings['log'] == '-'):
+		settings['log'] = None
 
 	settings['port'] = int(settings['port'])
 
-	mempool = MemPool.MemPool()
-	chaindb = ChainDb.ChainDb(settings['db'], mempool)
+	log = Log(settings['log'])
+	mempool = MemPool.MemPool(log)
+	chaindb = ChainDb.ChainDb(settings['db'], log, mempool)
+
+	log.write("\n\n\n\n")
 
 	if 'loadblock' in settings:
 		chaindb.loadfile(settings['loadblock'])
 
-	c = NodeConn(settings['host'], settings['port'], mempool, chaindb)
+	c = NodeConn(settings['host'], settings['port'], log, mempool, chaindb)
 	asyncore.loop()
 

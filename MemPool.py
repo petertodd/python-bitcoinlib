@@ -9,8 +9,9 @@
 from serialize import uint256_to_shortstr
 
 class MemPool(object):
-	def __init__(self):
+	def __init__(self, log):
 		self.pool = {}
+		self.log = log
 	
 	def add(self, tx):
 		tx.calc_sha256()
@@ -18,15 +19,15 @@ class MemPool(object):
 		hashstr = uint256_to_shortstr(hash)
 
 		if hash in self.pool:
-			print "MemPool.add(%s): already known" % (hashstr, )
+			self.log.write("MemPool.add(%s): already known" % (hashstr,))
 			return False
 		if not tx.is_valid():
-			print "MemPool.add(%s): invalid TX" % (hashstr, )
+			self.log.write("MemPool.add(%s): invalid TX" % (hashstr, ))
 			return False
 
 		self.pool[hash] = tx
 
-		print "MemPool.add(%s), poolsz %d" % (hashstr, len(self.pool))
+		self.log.write("MemPool.add(%s), poolsz %d" % (hashstr, len(self.pool)))
 
 		return True
 
