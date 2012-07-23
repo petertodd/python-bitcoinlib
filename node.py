@@ -73,9 +73,10 @@ class NodeConn(asyncore.dispatcher):
 		self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.sendbuf = ""
 		self.recvbuf = ""
-		self.ver_send = 209
-		self.ver_recv = 209
+		self.ver_send = MIN_PROTO_VERSION
+		self.ver_recv = MIN_PROTO_VERSION
 		self.last_sent = 0
+		self.getblocks_ok = True
 		self.last_block_rx = time.time()
 		self.last_getblocks = 0
 		self.remote_height = -1
@@ -188,6 +189,8 @@ class NodeConn(asyncore.dispatcher):
 		self.last_sent = time.time()
 
 	def send_getblocks(self):
+		if not self.getblocks_ok:
+			return
 		now = time.time()
 		if (now - self.last_getblocks) < 5:
 			return
@@ -216,6 +219,14 @@ class NodeConn(asyncore.dispatcher):
 
 		if message.command  == "version":
 			self.ver_send = min(MY_VERSION, message.nVersion)
+			if self.ver_send < MIN_PROTO_VERSION:
+				self.log.write("Obsolete version %d, closing" % (self.ver_send,))
+				self.handle_close()
+				return
+
+			if self.ver_send >= NOBLKS_VERSION_START and self.ver_send <= NOBLKS_VERSION_END:
+				self.getblocks_ok = False
+
 			self.remote_height = message.nStartingHeight
 			self.send_message(msg_verack())
 			self.send_message(msg_getaddr())
