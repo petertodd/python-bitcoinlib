@@ -19,6 +19,7 @@ from Crypto.Hash import SHA256
 
 import ChainDb
 import MemPool
+import script
 from defs import *
 from datatypes import *
 from serialize import *
