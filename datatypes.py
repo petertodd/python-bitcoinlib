@@ -81,6 +81,8 @@ class COutPoint(object):
 		r += ser_uint256(self.hash)
 		r += struct.pack("<I", self.n)
 		return r
+	def is_null(self):
+		return ((self.hash == 0) and (self.n == 0xffffffff))
 	def __repr__(self):
 		return "COutPoint(hash=%064x n=%i)" % (self.hash, self.n)
 
@@ -146,6 +148,8 @@ class CTransaction(object):
 			if tout.nValue < 0 or tout.nValue > 21000000L * 100000000L:
 				return False
 		return True
+	def is_coinbase(self):
+		return len(self.vin) == 1 and self.vin[0].prevout.is_null()
 	def __repr__(self):
 		return "CTransaction(nVersion=%i vin=%s vout=%s nLockTime=%i)" % (self.nVersion, repr(self.vin), repr(self.vout), self.nLockTime)
 

@@ -13,6 +13,11 @@ from serialize import *
 from datatypes import *
 from defs import *
 
+class TxIdx(object):
+	def __init__(self, blkhash=0L, spentmask=0L):
+		self.blkhash = blkhash
+		self.spentmask = spentmask
+
 class ChainDb(object):
 	def __init__(self, datadir, log, mempool):
 		self.log = log
@@ -36,15 +41,14 @@ class ChainDb(object):
 			return True
 		return False
 
-	def puttxidx(self, block, tx):
-		txhash = tx.sha256
+	def puttxidx(self, blkhash, txhash, spentmask=0L):
 		ser_txhash = ser_uint256(txhash)
 
 		if ser_txhash in self.tx:
-			l = self.gettxidx(txhash)
-			self.log.write("WARNING: overwriting duplicate TX %064x, height %d, oldblk %064x, oldspent %x, newblk %064x" % (txhash, self.getheight(), l[0], l[1], block.sha256))
+			txidx = self.gettxidx(txhash)
+			self.log.write("WARNING: overwriting duplicate TX %064x, height %d, oldblk %064x, oldspent %x, newblk %064x" % (txhash, self.getheight(), txidx.blkhash, txidx.spentmask, blkhash))
 
-		self.tx[ser_txhash] = hex(block.sha256) + ' 0'
+		self.tx[ser_txhash] = hex(blkhash) + ' ' + hex(spentmask)
 
 		return True
 	
@@ -55,23 +59,25 @@ class ChainDb(object):
 
 		ser_value = self.tx[ser_txhash]
 		pos = string.find(ser_value, ' ')
-		blkhash = long(ser_value[:pos], 16)
-		spentmask = long(ser_value[pos+1:], 16)
 
-		return (blkhash, spentmask)
+		txidx = TxIdx()
+		txidx.blkhash = long(ser_value[:pos], 16)
+		txidx.spentmask = long(ser_value[pos+1:], 16)
+
+		return txidx
 
 	def gettx(self, txhash):
-		l = self.gettxidx(txhash)
-		if l is None:
+		txidx = self.gettxidx(txhash)
+		if txidx is None:
 			return None
 
-		block = self.getblock(l[0])
+		block = self.getblock(txidx.blkhash)
 		for tx in block.vtx:
 			tx.calc_sha256()
 			if tx.sha256 == txhash:
 				return tx
 
-		self.log.write("ERROR: Missing TX %064x in block %064x" % (txhash, l[0]))
+		self.log.write("ERROR: Missing TX %064x in block %064x" % (txhash, txidx.blkhash))
 		return None
 
 	def getblock(self, blkhash):
@@ -84,6 +90,71 @@ class ChainDb(object):
 		block.deserialize(f)
 
 		return block
+
+	def spend_txout(self, txhash, n_idx):
+		txidx = self.gettxidx(txhash)
+		if txidx is None:
+			return False
+
+		txidx.spentmask |= (1L << n_idx)
+		self.puttxidx(txidx.blkhash, txhash, txidx.spentmask)
+
+		return True
+
+	def unique_outpts(self, block):
+		outpts = {}
+		txmap = {}
+		for tx in block.vtx:
+			if tx.is_coinbase:
+				continue
+			txmap[tx.sha256] = tx
+			for txin in tx.vin:
+				v = (txin.prevout.hash, txin.prevout.n)
+				if v in outs:
+					return None
+
+				outpts[v] = False
+
+		return (outpts, txmap)
+
+	def spent_outpts(self, block):
+		# list of outpoints this block wants to spend
+		l = self.unique_outpts(block)
+		if l is None:
+			return None
+		outpts = l[0]
+		txmap = l[1]
+		spendlist = {}
+
+		# pass 1: if outpoint in db, make sure it is unspent
+		for k in outpts.iterkeys():
+			txidx = self.gettxidx(k[0])
+			if txidx is None:
+				continue
+
+			if k[1] > 100000:	# outpoint index sanity check
+				return None
+
+			if txidx.spentmask & (1L << k[1]):
+				return None
+
+			outpts[k] = True	# skip in pass 2
+
+		# pass 2: remaining outpoints must exist in this block
+		for k, v in outpts.iteritems():
+			if v:
+				continue
+
+			if k[0] not in txmap:	# validate txout hash
+				return None
+
+			tx = txmap[k[0]]	# validate txout index (n)
+			if k[1] >= len(tx.vout):
+				return None
+
+			# outpts[k] = True	# not strictly necessary
+
+		return outpts.keys()
 
 	def putblock(self, block):
 		block.calc_sha256()
@@ -102,16 +173,11 @@ class ChainDb(object):
 			self.log.write("Orphan block %064x (%d orphans)" % (block.sha256, len(self.orphans)))
 			return False
 
-		neverseen = 0
-		for tx in block.vtx:
-			if not self.mempool.remove(tx.sha256):
-				neverseen += 1
-
-			if not self.puttxidx(block, tx):
-				self.log.write("TxIndex failed %064x" % (tx.sha256,))
-				return False
-
-		self.log.write("MemPool: blk.vtx.sz %d, neverseen %d, poolsz %d" % (len(block.vtx), neverseen, self.mempool.size()))
+		# check TX connectivity
+		outpts = self.spent_outpts(block)
+		if outpts is None:
+			self.log.write("Unconnectable block %064x" % (block.sha256, ))
+			return False
 
 		self.blocks[ser_hash] = block.serialize()
 		self.misc['height'] = str(self.getheight() + 1)
@@ -119,6 +185,22 @@ class ChainDb(object):
 		self.height[str(self.getheight())] = str(block.sha256)
 
 		self.log.write("ChainDb: block %064x, height %d" % (block.sha256, self.getheight()))
+
+		# all TX's in block are connectable; index
+		neverseen = 0
+		for tx in block.vtx:
+			if not self.mempool.remove(tx.sha256):
+				neverseen += 1
+
+			if not self.puttxidx(block.sha256, tx.sha256):
+				self.log.write("TxIndex failed %064x" % (tx.sha256,))
+				return False
+
+		self.log.write("MemPool: blk.vtx.sz %d, neverseen %d, poolsz %d" % (len(block.vtx), neverseen, self.mempool.size()))
+
+		# mark deps as spent
+		for outpt in outpts:
+			self.spend_txout(outpt[0], outpt[1])
 
 		return True
 
