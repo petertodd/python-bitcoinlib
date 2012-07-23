@@ -57,7 +57,7 @@ def uint256_to_shortstr(u):
 	s = "%064x" % (u,)
 	return s[:16]
 
-def deser_vector(f, c):
+def deser_vector(f, c, arg1=None):
 	nit = struct.unpack("<B", f.read(1))[0]
 	if nit == 253:
 		nit = struct.unpack("<H", f.read(2))[0]
@@ -67,7 +67,10 @@ def deser_vector(f, c):
 		nit = struct.unpack("<Q", f.read(8))[0]
 	r = []
 	for i in xrange(nit):
-		t = c()
+		if arg1 is not None:
+			t = c(arg1)
+		else:
+			t = c()
 		t.deserialize(f)
 		r.append(t)
 	return r

@@ -15,12 +15,12 @@ from datatypes import *
 class msg_version(object):
 	command = "version"
 	def __init__(self, protover=MY_VERSION):
-		self.protover = protover
-		self.nVersion = MY_VERSION
+		self.protover = MIN_PROTO_VERSION
+		self.nVersion = protover
 		self.nServices = 1
 		self.nTime = time.time()
-		self.addrTo = CAddress()
-		self.addrFrom = CAddress()
+		self.addrTo = CAddress(MIN_PROTO_VERSION)
+		self.addrFrom = CAddress(MIN_PROTO_VERSION)
 		self.nNonce = random.getrandbits(64)
 		self.strSubVer = MY_SUBVERSION
 		self.nStartingHeight = -1
@@ -30,10 +30,10 @@ class msg_version(object):
 			self.nVersion = 300
 		self.nServices = struct.unpack("<Q", f.read(8))[0]
 		self.nTime = struct.unpack("<q", f.read(8))[0]
-		self.addrTo = CAddress()
+		self.addrTo = CAddress(MIN_PROTO_VERSION)
 		self.addrTo.deserialize(f)
 		if self.nVersion >= 106:
-			self.addrFrom = CAddress()
+			self.addrFrom = CAddress(MIN_PROTO_VERSION)
 			self.addrFrom.deserialize(f)
 			self.nNonce = struct.unpack("<Q", f.read(8))[0]
 			self.strSubVer = deser_string(f)
@@ -77,7 +77,7 @@ class msg_addr(object):
 		self.protover = protover
 		self.addrs = []
 	def deserialize(self, f):
-		self.addrs = deser_vector(f, CAddress)
+		self.addrs = deser_vector(f, CAddress, self.protover)
 	def serialize(self):
 		return ser_vector(self.addrs)
 	def __repr__(self):

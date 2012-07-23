@@ -5,9 +5,5 @@ chain reorg
 
 testnet support
 
-CAddress adds ntime >= CADDR_TIME_VERSION
-
-don't request addresses < CADDR_TIME_VERSION
-
 "ping" responds with "pong(nonce)" > BIP0031_VERSION
 

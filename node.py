@@ -229,7 +229,8 @@ class NodeConn(asyncore.dispatcher):
 
 			self.remote_height = message.nStartingHeight
 			self.send_message(msg_verack())
-			self.send_message(msg_getaddr())
+			if self.ver_send >= CADDR_TIME_VERSION:
+				self.send_message(msg_getaddr())
 			self.send_getblocks()
 
 		elif message.command == "verack":
