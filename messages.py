@@ -14,7 +14,8 @@ from datatypes import *
 
 class msg_version(object):
 	command = "version"
-	def __init__(self):
+	def __init__(self, protover=MY_VERSION):
+		self.protover = protover
 		self.nVersion = MY_VERSION
 		self.nServices = 1
 		self.nTime = time.time()
@@ -61,8 +62,8 @@ class msg_version(object):
 
 class msg_verack(object):
 	command = "verack"
-	def __init__(self):
-		pass
+	def __init__(self, protover=MY_VERSION):
+		self.protover = protover
 	def deserialize(self, f):
 		pass
 	def serialize(self):
@@ -72,7 +73,8 @@ class msg_verack(object):
 
 class msg_addr(object):
 	command = "addr"
-	def __init__(self):
+	def __init__(self, protover=MY_VERSION):
+		self.protover = protover
 		self.addrs = []
 	def deserialize(self, f):
 		self.addrs = deser_vector(f, CAddress)
@@ -83,7 +85,8 @@ class msg_addr(object):
 
 class msg_alert(object):
 	command = "alert"
-	def __init__(self):
+	def __init__(self, protover=MY_VERSION):
+		self.protover = protover
 		self.alert = CAlert()
 	def deserialize(self, f):
 		self.alert = CAlert()
@@ -97,7 +100,8 @@ class msg_alert(object):
 
 class msg_inv(object):
 	command = "inv"
-	def __init__(self):
+	def __init__(self, protover=MY_VERSION):
+		self.protover = protover
 		self.inv = []
 	def deserialize(self, f):
 		self.inv = deser_vector(f, CInv)
@@ -108,7 +112,8 @@ class msg_inv(object):
 
 class msg_getdata(object):
 	command = "getdata"
-	def __init__(self):
+	def __init__(self, protover=MY_VERSION):
+		self.protover = protover
 		self.inv = []
 	def deserialize(self, f):
 		self.inv = deser_vector(f, CInv)
@@ -119,7 +124,8 @@ class msg_getdata(object):
 
 class msg_getblocks(object):
 	command = "getblocks"
-	def __init__(self):
+	def __init__(self, protover=MY_VERSION):
+		self.protover = protover
 		self.locator = CBlockLocator()
 		self.hashstop = 0L
 	def deserialize(self, f):
@@ -136,7 +142,8 @@ class msg_getblocks(object):
 
 class msg_tx(object):
 	command = "tx"
-	def __init__(self):
+	def __init__(self, protover=MY_VERSION):
+		self.protover = protover
 		self.tx = CTransaction()
 	def deserialize(self, f):
 		self.tx.deserialize(f)
@@ -147,7 +154,8 @@ class msg_tx(object):
 
 class msg_block(object):
 	command = "block"
-	def __init__(self):
+	def __init__(self, protover=MY_VERSION):
+		self.protover = protover
 		self.block = CBlock()
 	def deserialize(self, f):
 		self.block.deserialize(f)
@@ -158,8 +166,8 @@ class msg_block(object):
 
 class msg_getaddr(object):
 	command = "getaddr"
-	def __init__(self):
-		pass
+	def __init__(self, protover=MY_VERSION):
+		self.protover = protover
 	def deserialize(self, f):
 		pass
 	def serialize(self):
@@ -173,8 +181,8 @@ class msg_getaddr(object):
 
 class msg_ping(object):
 	command = "ping"
-	def __init__(self):
-		pass
+	def __init__(self, protover=MY_VERSION):
+		self.protover = protover
 	def deserialize(self, f):
 		pass
 	def serialize(self):

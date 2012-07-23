@@ -160,7 +160,7 @@ class NodeConn(asyncore.dispatcher):
 
 			if command in self.messagemap:
 				f = cStringIO.StringIO(msg)
-				t = self.messagemap[command]()
+				t = self.messagemap[command](self.ver_recv)
 				t.deserialize(f)
 				self.got_message(t)
 			else:
