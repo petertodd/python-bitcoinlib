@@ -156,6 +156,19 @@ class ChainDb(object):
 
 		return outpts.keys()
 
+	def tx_connected(self, tx):
+		if not tx.is_valid():
+			return False
+
+		block = CBlock()
+		block.vtx.append(tx)
+
+		outpts = self.spent_outpts(block)
+		if outpts is None:
+			return False
+
+		return True
+
 	def putblock(self, block):
 		block.calc_sha256()
 		ser_hash = ser_uint256(block.sha256)
