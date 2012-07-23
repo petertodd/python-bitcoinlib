@@ -181,13 +181,33 @@ class msg_getaddr(object):
 
 class msg_ping(object):
 	command = "ping"
-	def __init__(self, protover=MY_VERSION):
+	def __init__(self, protover=MY_VERSION, nonce=0L):
 		self.protover = protover
+		self.nonce = nonce
 	def deserialize(self, f):
-		pass
+		if self.protover > BIP0031_VERSION:
+			self.nonce = struct.unpack("<Q", f.read(8))[0]
 	def serialize(self):
-		return ""
+		r = ""
+		if self.protover > BIP0031_VERSION:
+			r += struct.pack("<Q", self.nonce)
+		return r
 	def __repr__(self):
-		return "msg_ping()"
+		return "msg_ping(0x%x)" % (self.nonce,)
+
+class msg_pong(object):
+	command = "pong"
+	def __init__(self, protover=MY_VERSION, nonce=0L):
+		self.protover = protover
+		self.nonce = nonce
+	def deserialize(self, f):
+		self.nonce = struct.unpack("<Q", f.read(8))[0]
+	def serialize(self):
+		r = ""
+		r += struct.pack("<Q", self.nonce)
+		return r
+	def __repr__(self):
+		return "msg_pong(0x%x)" % (self.nonce,)
+
 
 

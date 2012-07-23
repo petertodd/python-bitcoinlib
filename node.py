@@ -198,21 +198,21 @@ class NodeConn(asyncore.dispatcher):
 
 		our_height = self.chaindb.getheight()
 		if our_height < 0:
-			gd = msg_getdata()
+			gd = msg_getdata(self.ver_send)
 			inv = CInv()
 			inv.type = 2
 			inv.hash = BLOCK0
 			gd.inv.append(inv)
 			self.send_message(gd)
 		elif our_height < self.remote_height:
-			gb = msg_getblocks()
+			gb = msg_getblocks(self.ver_send)
 			if our_height >= 0:
 				gb.locator.vHave.append(self.chaindb.gettophash())
 			self.send_message(gb)
 
 	def got_message(self, message):
 		if self.last_sent + 30 * 60 < time.time():
-			self.send_message(msg_ping())
+			self.send_message(msg_ping(self.ver_send))
 
 		if verbose_recvmsg(message):
 			self.log.write("recv %s" % repr(message))
@@ -228,19 +228,23 @@ class NodeConn(asyncore.dispatcher):
 				self.getblocks_ok = False
 
 			self.remote_height = message.nStartingHeight
-			self.send_message(msg_verack())
+			self.send_message(msg_verack(self.ver_send))
 			if self.ver_send >= CADDR_TIME_VERSION:
-				self.send_message(msg_getaddr())
+				self.send_message(msg_getaddr(self.ver_send))
 			self.send_getblocks()
 
 		elif message.command == "verack":
 			self.ver_recv = self.ver_send
 
+		elif message.command == "ping":
+			if self.ver_send > BIP0031_VERSION:
+				self.send_message(msg_pong(self.ver_send))
+
 		elif message.command == "addr":
 			self.log.write("Received %d new addresses" % (len(message.addrs),))
 
 		elif message.command == "inv":
-			want = msg_getdata()
+			want = msg_getdata(self.ver_send)
 			for i in message.inv:
 				if i.type == 1:
 					want.inv.append(i)

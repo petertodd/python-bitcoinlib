@@ -5,5 +5,10 @@ chain reorg
 
 testnet support
 
-"ping" responds with "pong(nonce)" > BIP0031_VERSION
+P2P commands:
+	getdata
+	getblocks
+	getheaders
+	getaddr
+	alert
 
