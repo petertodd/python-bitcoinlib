@@ -19,6 +19,7 @@ from Crypto.Hash import SHA256
 
 import ChainDb
 import MemPool
+import Log
 import script
 from defs import *
 from datatypes import *
@@ -27,17 +28,6 @@ from messages import *
 
 settings = {}
 debugnet = False
-
-class Log(object):
-	def __init__(self, filename=None):
-		if filename is not None:
-			self.fh = open(filename, 'a+', 0)
-		else:
-			self.fh = sys.stdout
-
-	def write(self, msg):
-		line = "%s\n" % msg
-		self.fh.write(line)
 
 def verbose_sendmsg(message):
 	if debugnet:
@@ -287,7 +277,7 @@ if __name__ == '__main__':
 
 	settings['port'] = int(settings['port'])
 
-	log = Log(settings['log'])
+	log = Log.Log(settings['log'])
 	mempool = MemPool.MemPool(log)
 	chaindb = ChainDb.ChainDb(settings['db'], log, mempool)
 
