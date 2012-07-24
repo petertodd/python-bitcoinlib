@@ -1,5 +1,5 @@
 
 *.pyc
 
-local.cfg
+local*.cfg
 
