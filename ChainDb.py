@@ -24,7 +24,6 @@ class ChainDb(object):
 		self.log = log
 		self.mempool = mempool
 		self.netmagic = netmagic
-		self.orphans = {}
 		self.orphan_deps = {}
 		self.misc = gdbm.open(datadir + '/misc.dat', 'c')
 		self.blocks = gdbm.open(datadir + '/blocks.dat', 'c')
@@ -176,7 +175,7 @@ class ChainDb(object):
 
 		return True
 
-	def putblock(self, block):
+	def putoneblock(self, block):
 		block.calc_sha256()
 		ser_hash = ser_uint256(block.sha256)
 
@@ -188,9 +187,8 @@ class ChainDb(object):
 			return False
 
 		if not self.is_nextblock(block):
-			self.orphans[block.sha256] = block
 			self.orphan_deps[block.hashPrevBlock] = block
-			self.log.write("Orphan block %064x (%d orphans)" % (block.sha256, len(self.orphans)))
+			self.log.write("Orphan block %064x (%d orphans)" % (block.sha256, len(self.orphan_deps)))
 			return False
 
 		# check TX connectivity
@@ -221,6 +219,22 @@ class ChainDb(object):
 		# mark deps as spent
 		for outpt in outpts:
 			self.spend_txout(outpt[0], outpt[1])
+
+		return True
+
+	def putblock(self, block):
+		if not self.putoneblock(block):
+			return False
+
+		blkhash = block.sha256
+		while blkhash in self.orphan_deps:
+			block = self.orphan_deps[blkhash]
+			if not self.putoneblock(block):
+				return True
+
+			del self.orphan_deps[blkhash]
+
+			blkhash = block.sha256
 
 		return True
 
