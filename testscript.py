@@ -11,17 +11,18 @@ import Log
 import MemPool
 import ChainDb
 import cStringIO
+from defs import *
 from datatypes import *
 from script import *
 from serialize import *
 
 log = Log.Log('/tmp/testscript.log')
 mempool = MemPool.MemPool(log)
-chaindb = ChainDb.ChainDb('/tmp/chaindb', log, mempool)
+chaindb = ChainDb.ChainDb('/tmp/chaindb', log, mempool, NETWORKS['mainnet'])
 
 scanned = 0
 failures = 0
-cb_failures = 0
+warnings = 0
 
 for height in xrange(chaindb.getheight()):
 	blkhash = long(chaindb.height[str(height)])
@@ -43,9 +44,10 @@ for height in xrange(chaindb.getheight()):
 			script = CScript()
 			if not script.tokenize(txin.scriptSig):
 				log.write("      txin %d parse failed" % (i,))
-				failures += 1
 				if tx.is_coinbase():
-					cb_failures += 1
+					warnings += 1
+				else:
+					failures += 1
 			i += 1
 
 		i = 0
@@ -54,13 +56,12 @@ for height in xrange(chaindb.getheight()):
 			if not script.tokenize(txout.scriptPubKey):
 				log.write("      txout %d parse failed" % (i,))
 				failures += 1
-				if tx.is_coinbase():
-					cb_failures += 1
 			i += 1
 
 	scanned += 1
 	if (scanned % 1000) == 0:
-		print "Scanned %d blocks (%d/%d failures)" % (scanned, cb_failures, failures)
+		print "Scanned %d blocks (%d warnings, %d failures)" % (scanned, warnings, failures)
 
 
+print "Scanned %d blocks (%d warnings, %d failures)" % (scanned, warnings, failures)
 
