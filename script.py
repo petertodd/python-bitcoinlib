@@ -148,9 +148,6 @@ OP_PUBKEY = 0xfe
 
 OP_INVALIDOPCODE = 0xff
 
-# pseudo-opcodes used internally, always > 0xff
-OP_PUSHDATA = 0x1000
-
 VALID_OPCODES = {
 	OP_1NEGATE : True,
 	OP_RESERVED : True,
@@ -331,7 +328,6 @@ class CScript(object):
 			if len(vch) < datasize:
 				return False
 
-			sop.op = OP_PUSHDATA
 			sop.data = vch[:datasize]
 			vch = vch[datasize:]
 
