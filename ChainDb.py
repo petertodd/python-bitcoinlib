@@ -9,6 +9,7 @@
 import string
 import cStringIO
 import gdbm
+import os
 from serialize import *
 from datatypes import *
 from defs import *
@@ -229,7 +230,7 @@ class ChainDb(object):
 		return long(self.misc['tophash'])
 
 	def loadfile(self, filename):
-		f = open(filename, 'rb', 0)
+		fd = os.open(filename, os.O_RDONLY)
 		self.log.write("IMPORTING DATA FROM " + filename)
 		buf = ''
 		wanted = 4096
@@ -237,7 +238,7 @@ class ChainDb(object):
 			if wanted > 0:
 				if wanted < 4096:
 					wanted = 4096
-				s = f.read(wanted)
+				s = os.read(fd, wanted)
 				if len(s) == 0:
 					break
 
