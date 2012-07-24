@@ -19,9 +19,10 @@ class TxIdx(object):
 		self.spentmask = spentmask
 
 class ChainDb(object):
-	def __init__(self, datadir, log, mempool):
+	def __init__(self, datadir, log, mempool, netmagic):
 		self.log = log
 		self.mempool = mempool
+		self.netmagic = netmagic
 		self.orphans = {}
 		self.orphan_deps = {}
 		self.misc = gdbm.open(datadir + '/misc.dat', 'c')
@@ -32,10 +33,15 @@ class ChainDb(object):
 		if 'height' not in self.misc:
 			self.log.write("INITIALIZING EMPTY BLOCKCHAIN DATABASE")
 			self.misc['height'] = str(-1)
+			self.misc['msg_start'] = self.netmagic.msg_start
 			self.misc['tophash'] = str(0L)
 
+		if 'msg_start' not in self.misc or (self.misc['msg_start'] != self.netmagic.msg_start):
+			self.log.write("Database magic number mismatch. Data corruption or incorrect network?")
+			raise RuntimeError
+
 	def is_nextblock(self, block):
-		if self.getheight() < 0 and block.sha256 == BLOCK0:
+		if self.getheight() < 0 and block.sha256 == self.netmagic.block0:
 			return True
 		if self.gettophash() == block.hashPrevBlock:
 			return True
@@ -239,7 +245,7 @@ class ChainDb(object):
 				wanted = 0
 
 			buflen = len(buf)
-			startpos = string.find(buf, MSG_START)
+			startpos = string.find(buf, self.netmagic.msg_start)
 			if startpos < 0:
 				wanted = 8
 				continue

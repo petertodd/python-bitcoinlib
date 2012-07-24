@@ -29,6 +29,18 @@ from messages import *
 settings = {}
 debugnet = False
 
+class NetMagic(object):
+	def __init__(self, msg_start, block0):
+		self.msg_start = msg_start
+		self.block0 = block0
+
+NETWORKS = {
+ 'mainnet' : NetMagic("\xf9\xbe\xb4\xd9",
+	0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26fL),
+ 'testnet3' : NetMagic("\xfa\xbf\xb5\xda",
+        0x000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943L)
+}
+
 def verbose_sendmsg(message):
 	if debugnet:
 		return True
@@ -63,11 +75,12 @@ class NodeConn(asyncore.dispatcher):
 		"getaddr": msg_getaddr,
 		"ping": msg_ping
 	}
-	def __init__(self, dstaddr, dstport, log, mempool, chaindb):
+	def __init__(self, dstaddr, dstport, log, mempool, chaindb, netmagic):
 		asyncore.dispatcher.__init__(self)
 		self.log = log
 		self.mempool = mempool
 		self.chaindb = chaindb
+		self.netmagic = netmagic
 		self.dstaddr = dstaddr
 		self.dstport = dstport
 		self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -141,7 +154,7 @@ class NodeConn(asyncore.dispatcher):
 		while True:
 			if len(self.recvbuf) < 4:
 				return
-			if self.recvbuf[:4] != MSG_START:
+			if self.recvbuf[:4] != self.netmagic.msg_start:
 				raise ValueError("got garbage %s" % repr(self.recvbuf))
 			# check checksum
 			if len(self.recvbuf) < 4 + 12 + 4 + 4:
@@ -174,7 +187,7 @@ class NodeConn(asyncore.dispatcher):
 
 		command = message.command
 		data = message.serialize()
-		tmsg = MSG_START
+		tmsg = self.netmagic.msg_start
 		tmsg += command
 		tmsg += "\x00" * (12 - len(command))
 		tmsg += struct.pack("<I", len(data))
@@ -201,7 +214,7 @@ class NodeConn(asyncore.dispatcher):
 			gd = msg_getdata(self.ver_send)
 			inv = CInv()
 			inv.type = 2
-			inv.hash = BLOCK0
+			inv.hash = self.netmagic.block0
 			gd.inv.append(inv)
 			self.send_message(gd)
 		elif our_height < self.remote_height:
@@ -288,20 +301,31 @@ if __name__ == '__main__':
 		settings['port'] = 8333
 	if 'db' not in settings:
 		settings['db'] = '/tmp/chaindb'
+	if 'chain' not in settings:
+		settings['chain'] = 'mainnet'
+	chain = settings['chain']
 	if 'log' not in settings or (settings['log'] == '-'):
 		settings['log'] = None
 
 	settings['port'] = int(settings['port'])
 
 	log = Log.Log(settings['log'])
-	mempool = MemPool.MemPool(log)
-	chaindb = ChainDb.ChainDb(settings['db'], log, mempool)
 
 	log.write("\n\n\n\n")
+
+	if chain not in NETWORKS:
+		log.write("invalid network")
+		sys.exit(1)
+
+	netmagic = NETWORKS[chain]
+
+	mempool = MemPool.MemPool(log)
+	chaindb = ChainDb.ChainDb(settings['db'], log, mempool, netmagic)
 
 	if 'loadblock' in settings:
 		chaindb.loadfile(settings['loadblock'])
 
-	c = NodeConn(settings['host'], settings['port'], log, mempool, chaindb)
+	c = NodeConn(settings['host'], settings['port'], log, mempool, chaindb,
+		     netmagic)
 	asyncore.loop()
 
