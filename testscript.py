@@ -31,32 +31,10 @@ for height in xrange(chaindb.getheight()):
 	f = cStringIO.StringIO(chaindb.blocks[ser_hash])
 	block = CBlock()
 	block.deserialize(f)
-	block.calc_sha256()
 
-	log.write("Scanning block #%d %064x (%d tx)" % (height, block.sha256, len(block.vtx)))
-
-	for tx in block.vtx:
-		tx.calc_sha256()
-		log.write("   TX %064x" % (tx.sha256,))
-
-		i = 0
-		for txin in tx.vin:
-			script = CScript()
-			if not script.tokenize(txin.scriptSig):
-				log.write("      txin %d parse failed" % (i,))
-				if tx.is_coinbase():
-					warnings += 1
-				else:
-					failures += 1
-			i += 1
-
-		i = 0
-		for txout in tx.vout:
-			script = CScript()
-			if not script.tokenize(txout.scriptPubKey):
-				log.write("      txout %d parse failed" % (i,))
-				failures += 1
-			i += 1
+	if not block.is_valid():
+		log.write("Failed block #%d %064x (%d tx)" % (height, block.sha256, len(block.vtx)))
+		failures += 1
 
 	scanned += 1
 	if (scanned % 1000) == 0:
