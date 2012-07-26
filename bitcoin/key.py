@@ -1,6 +1,6 @@
 
 #
-# ecdsa.py - OpenSSL wrapper
+# key.py - OpenSSL wrapper
 # Source: git://github.com/joric/brutus.git
 # which was forked from git://github.com/samrushing/caesure.git
 #

@@ -12,9 +12,9 @@ import MemPool
 import ChainDb
 import cStringIO
 from defs import *
-from datatypes import *
-from script import *
-from serialize import *
+from bitcoin.core import *
+from bitcoin.script import *
+from bitcoin.serialize import *
 
 log = Log.Log('/tmp/testscript.log')
 mempool = MemPool.MemPool(log)

@@ -20,11 +20,10 @@ from Crypto.Hash import SHA256
 import ChainDb
 import MemPool
 import Log
-import script
 from defs import *
-from datatypes import *
-from serialize import *
-from messages import *
+from bitcoin.core import *
+from bitcoin.serialize import *
+from bitcoin.messages import *
 
 settings = {}
 debugnet = False
