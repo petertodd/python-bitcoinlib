@@ -57,7 +57,7 @@ class ChainDb(object):
 		self.tx[ser_txhash] = hex(blkhash) + ' ' + hex(spentmask)
 
 		return True
-	
+
 	def gettxidx(self, txhash):
 		ser_txhash = ser_uint256(txhash)
 		if ser_txhash not in self.tx:

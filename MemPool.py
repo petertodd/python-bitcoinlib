@@ -12,7 +12,7 @@ class MemPool(object):
 	def __init__(self, log):
 		self.pool = {}
 		self.log = log
-	
+
 	def add(self, tx):
 		tx.calc_sha256()
 		hash = tx.sha256
