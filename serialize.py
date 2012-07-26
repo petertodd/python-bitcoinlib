@@ -173,3 +173,6 @@ def ser_int_vector(l):
 		r += struct.pack("<i", i)
 	return r
 
+def Hash(s):
+	uint256_from_str(SHA256.new(SHA256.new(s).digest()).digest())
+

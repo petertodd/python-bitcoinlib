@@ -7,6 +7,14 @@
 #
 
 import struct
+import copy
+from serialize import Hash
+from key import CKey
+
+SIGHASH_ALL = 1
+SIGHASH_NONE = 2
+SIGHASH_SINGLE = 3
+SIGHASH_ANYONECANPAY = 0x80
 
 # push value
 OP_0 = 0x00
@@ -282,14 +290,17 @@ class CScriptOp(object):
 class CScript(object):
 	def __init__(self, vch=None):
 		self.ops = []
-		self.valid = True
-
+		self.vch = vch
 		if vch is not None:
-			self.tokenize(vch)
-	
-	def tokenize(self, vch_in):
-		vch = vch_in
+			self.valid = False
+		else:
+			self.valid = True
+
+	def tokenize(self, vch_in=None):
+		if vch_in is not None:
+			self.vch = vch_in
 		self.valid = False
+		vch = self.vch
 		while len(vch) > 0:
 			opcode = ord(vch[0])
 
@@ -336,6 +347,60 @@ class CScript(object):
 		self.valid = True
 		return True
 
+def SignatureHash(script, txTo, inIdx, hashtype):
+	if inIdx < len(txTo.vin):
+		return (0L, "inIdx %d out of range" % (inIdx,))
+	txtmp = copy.deepcopy(txTo)
+	for txin in txtmp.vin:
+		txin.scriptSig = ''
+	txtmp.vin[inIdx].scriptSig = script
+
+	if (hashtype & 0x1f) == SIGHASH_NONE:
+		txtmp.vout = []
+
+		for i in xrange(len(txtmp.vin)):
+			if i != inIdx:
+				txtmp.vin[i].nSequence = 0
+
+	elif (hashtype & 0x1f) == SIGHASH_SINGLE:
+		outIdx = inIdx
+		if outIdx >= len(txtmp.vout):
+			return (0L, "outIdx %d out of range" % (outIdx,))
+
+		tmp = txtmp.vout[outIdx]
+		txtmp.vout = []
+		for i in xrange(outIdx):
+			txtmp.vout.append(CTxOut())
+		txtmp.vout.append(tmp)
+
+		for i in xrange(len(txtmp.vin)):
+			if i != inIdx:
+				txtmp.vin[i].nSequence = 0
+
+	if hashtype & SIGHASH_ANYONECANPAY:
+		tmp = txtmp.vin[inIdx]
+		txtmp.vin = []
+		txtmp.vin.append(tmp)
+
+	s = txtmp.serialize()
+	s += struct.pack("<I", self.nTime)
+
+	return Hash(s)
+
+def CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
+	key = CKey()
+	key.set_pubkey(pubkey)
+
+	if len(sig) == 0:
+		return False
+	if hashtype == 0:
+		hashtype = ord(sig[-1])
+	elif hashtype != ord(sig[-1]):
+		return False
+	sig = sig[:-1]
+
+	hash = SignatureHash(script, txTo, inIdx, hashtype)
+	return key.verify(hash, sig)
 
 
 
