@@ -553,6 +553,25 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 			stack.append(sop.data)
 			continue
 
+		elif sop.op == OP_2OVER:
+			if len(stack) < 4:
+				return False
+			v1 = stack[-4]
+			v2 = stack[-3]
+			stack.append(v1)
+			stack.append(v2)
+
+		elif sop.op == OP_2SWAP:
+			if len(stack) < 4:
+				return False
+			tmp = stack[-4]
+			stack[-4] = stack[-2]
+			stack[-2] = tmp
+
+			tmp = stack[-3]
+			stack[-3] = stack[-1]
+			stack[-1] = tmp
+
 		elif sop.op == OP_CHECKSIG or sop.op == OP_CHECKSIGVERIFY:
 			if len(stack) < 2:
 				return False
@@ -605,7 +624,27 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 				return False
 			stack.append(Hash160(stack.pop()))
 
+		elif sop.op == OP_NOP or (sop.op >= OP_NOP1 and sop.op <= OP_NOP10):
+			pass
+
 		elif sop.op == OP_RETURN:
+			return False
+
+		elif sop.op == OP_SHA256:
+			if len(stack) < 1:
+				return False
+			stack.append(SHA256.new(stack.pop()).digest())
+
+		elif sop.op == OP_VERIFY:
+			if len(stack) < 1:
+				return False
+			v = CastToBool(stack[-1])
+			if v:
+				stack.pop()
+			else:
+				return False
+
+		else:
 			return False
 
 	return True
