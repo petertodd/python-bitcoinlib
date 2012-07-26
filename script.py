@@ -286,65 +286,89 @@ class CScriptOp(object):
 	def __init__(self):
 		self.op = OP_INVALIDOPCODE
 		self.data = ''
+		self.ser_len = 0
 
 class CScript(object):
 	def __init__(self, vch=None):
-		self.ops = []
 		self.vch = vch
-		if vch is not None:
-			self.valid = False
+
+		self.reset()
+
+	def reset(self):
+		self.pc = 0
+		if self.vch is None:
+			self.pend = 0
 		else:
-			self.valid = True
+			self.pend = len(self.vch)
+		self.pbegincodehash = 0
+		self.sop = None
+
+	def getchars(self, n):
+		if (self.pc + n) > self.pend:
+			return None
+
+		s = self.vch[self.pc:self.pc+n]
+		self.pc += n
+
+		return s
+
+	def getop(self):
+		s = self.getchars(1)
+		if s is None:
+			return False
+		opcode = ord(s)
+
+		sop = CScriptOp()
+		sop.op = opcode
+		sop.ser_len = 1
+
+		if opcode > OP_PUSHDATA4:
+			if opcode not in VALID_OPCODES:
+				return False
+			self.sop = sop
+			return True
+
+		if opcode < OP_PUSHDATA1:
+			datasize = opcode
+
+		elif opcode == OP_PUSHDATA1:
+			sop.ser_len += 1
+			s = self.getchars(1)
+			if s is None:
+				return False
+			datasize = ord(s)
+
+		elif opcode == OP_PUSHDATA2:
+			sop.ser_len += 2
+			s = self.getchars(2)
+			if s is None:
+				return False
+			datasize = struct.unpack("<H", s)[0]
+
+		elif opcode == OP_PUSHDATA4:
+			sop.ser_len += 4
+			s = self.getchars(4)
+			if s is None:
+				return False
+			datasize = struct.unpack("<I", s)[0]
+
+		sop.ser_len += datasize
+		sop.data = self.getchars(datasize)
+		if sop.data is None:
+			return False
+
+		self.sop = sop
+		return True
 
 	def tokenize(self, vch_in=None):
 		if vch_in is not None:
 			self.vch = vch_in
-		self.valid = False
-		vch = self.vch
-		while len(vch) > 0:
-			opcode = ord(vch[0])
 
-			sop = CScriptOp()
-			sop.op = opcode
-
-			vch = vch[1:]
-
-			if opcode > OP_PUSHDATA4:
-				if opcode not in VALID_OPCODES:
-					return False
-				self.ops.append(sop)
-				continue
-
-			if opcode < OP_PUSHDATA1:
-				datasize = opcode
-
-			elif opcode == OP_PUSHDATA1:
-				if len(vch) < 1:
-					return False
-				datasize = ord(vch[0])
-				vch = vch[1:]
-
-			elif opcode == OP_PUSHDATA2:
-				if len(vch) < 2:
-					return False
-				datasize = struct.unpack("<H", vch[:2])[0]
-				vch = vch[2:]
-
-			elif opcode == OP_PUSHDATA4:
-				if len(vch) < 4:
-					return False
-				datasize = struct.unpack("<I", vch[:4])[0]
-				vch = vch[4:]
-
-			if len(vch) < datasize:
+		self.reset()
+		while self.pc < self.pend:
+			if not self.getop():
 				return False
 
-			sop.data = vch[:datasize]
-			vch = vch[datasize:]
-
-			self.ops.append(sop)
-
-		self.valid = True
 		return True
 
 def SignatureHash(script, txTo, inIdx, hashtype):
@@ -401,6 +425,51 @@ def CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
 
 	hash = SignatureHash(script, txTo, inIdx, hashtype)
 	return key.verify(hash, sig)
+
+def CastToBool(s):
+	i = 0
+	slen = len(s)
+	while i < slen:
+		sv = ord(s[i])
+		if sv != 0:
+			if (i == (slen - 1)) and (sv == 0x80):
+				return False
+			return True
+
+		i += 1
+
+	return False
+
+def VerifyScript(scriptSig, scriptPubKey, txTo, inIdx, hashtype):
+	stack = []
+	if not EvalScript(stack, scriptSig, txTo, inIdx, hashtype):
+		return False
+	if not EvalScript(stack, scriptPubKey, txTo, inIdx, hashtype):
+		return False
+	if len(stack) == 0:
+		return False
+	return CastToBool(stack[-1])
+
+def VerifySignature(txFrom, txTo, inIdx, hashtype):
+	if inIdx >= len(txTo.vin):
+		return False
+	txin = txTo.vin[inIdx]
+
+	if txin.prevout.n >= len(txFrom.vout):
+		return False
+	txout = txFrom.vout[txin.prevout.n]
+
+	txFrom.calc_sha256()
+
+	if txin.prevout.hash != txFrom.sha256:
+		return False
+
+	if not VerifyScript(txin.scriptSig, txout.scriptPubKey, txTo, inIdx,
+			    hashtype):
+		return False
+
+	return True
+
 
 
 
