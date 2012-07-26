@@ -3,8 +3,6 @@ script verification
 
 chain reorg
 
-testnet support
-
 P2P commands:
 	getdata
 	getblocks
