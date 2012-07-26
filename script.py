@@ -377,7 +377,7 @@ def SignatureHash(script, txTo, inIdx, hashtype):
 	txtmp = copy.deepcopy(txTo)
 	for txin in txtmp.vin:
 		txin.scriptSig = ''
-	txtmp.vin[inIdx].scriptSig = script
+	txtmp.vin[inIdx].scriptSig = script.vch
 
 	if (hashtype & 0x1f) == SIGHASH_NONE:
 		txtmp.vout = []
@@ -425,6 +425,74 @@ def CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
 
 	hash = SignatureHash(script, txTo, inIdx, hashtype)
 	return key.verify(hash, sig)
+
+def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
+	script = CScript(scriptIn)
+	while script.pc < script.pend:
+		if not script.getop():
+			return False
+		sop = script.sop
+
+		if sop.op <= OP_PUSHDATA4:
+			stack.append(sop.data)
+			continue
+
+		elif sop.op == OP_CHECKSIG or sop.op == OP_CHECKSIGVERIFY:
+			if len(stack) < 2:
+				return False
+			vchSig = stack.pop()
+			vchPubKey = stack.pop()
+			tmpScript = CScript(script.vch[script.pbegincodehash:script.pend])
+
+			# FIXME: find-and-delete vchSig
+
+			ok = CheckSig(vchSig, vchPubKey, tmpScript,
+				      txTo, inIdx, hashtype)
+			if ok:
+				if sop.op != OP_CHECKSIGVERIFY:
+					stack.append("\x01")
+			else:
+				if sop.op == OP_CHECKSIGVERIFY:
+					return False
+				stack.append("\x00")
+
+		elif sop.op == OP_CODESEPARATOR:
+			script.pbegincodehash = script.pc
+
+		elif sop.op == OP_DROP:
+			if len(stack) < 1:
+				return False
+			stack.pop()
+
+		elif sop.op == OP_DUP:
+			if len(stack) < 1:
+				return False
+			v = stack[-1]
+			stack.append(v)
+
+		elif sop.op == OP_EQUAL or sop.op == OP_EQUALVERIFY:
+			if len(stack) < 1:
+				return False
+			v1 = stack.pop()
+			v2 = stack.pop()
+
+			if v1 == v2:
+				if sop.op != OP_EQUALVERIFY:
+					stack.append("\x01")
+			else:
+				if sop.op == OP_EQUALVERIFY:
+					return False
+				stack.append("\x00")
+
+		elif sop.op == OP_HASH160:
+			if len(stack) < 1:
+				return False
+			stack.append(Hash160(stack.pop()))
+
+		elif sop.op == OP_RETURN:
+			return False
+
+	return True
 
 def CastToBool(s):
 	i = 0

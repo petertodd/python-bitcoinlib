@@ -7,6 +7,7 @@
 #
 
 import struct
+from Crypto.Hash import SHA256, RIPEMD160
 
 def deser_string(f):
 	nit = struct.unpack("<B", f.read(1))[0]
@@ -40,6 +41,13 @@ def ser_uint256(u):
 		rs += struct.pack("<I", u & 0xFFFFFFFFL)
 		u >>= 32
 	return rs
+
+def uint160_from_str(s):
+	r = 0L
+	t = struct.unpack("<IIIII", s[:20])
+	for i in xrange(5):
+		r += t[i] << (i * 32)
+	return r
 
 def uint256_from_str(s):
 	r = 0L
@@ -175,4 +183,7 @@ def ser_int_vector(l):
 
 def Hash(s):
 	uint256_from_str(SHA256.new(SHA256.new(s).digest()).digest())
+
+def Hash160(s):
+	uint160_from_str(RIPEMD160.new(SHA256.new(s).digest()).digest())
 
