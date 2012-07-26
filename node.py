@@ -20,10 +20,11 @@ from Crypto.Hash import SHA256
 import ChainDb
 import MemPool
 import Log
-from defs import *
 from bitcoin.core import *
 from bitcoin.serialize import *
 from bitcoin.messages import *
+
+MY_SUBVERSION = "/pynode:0.0.1/"
 
 settings = {}
 debugnet = False
@@ -89,6 +90,7 @@ class NodeConn(asyncore.dispatcher):
 		vt.addrFrom.ip = "0.0.0.0"
 		vt.addrFrom.port = 0
 		vt.nStartingHeight = self.chaindb.getheight()
+		vt.strSubVer = MY_SUBVERSION
 		self.send_message(vt, True)
 
 		self.log.write("connecting")
@@ -218,7 +220,7 @@ class NodeConn(asyncore.dispatcher):
 			self.log.write("recv %s" % repr(message))
 
 		if message.command  == "version":
-			self.ver_send = min(MY_VERSION, message.nVersion)
+			self.ver_send = min(PROTO_VERSION, message.nVersion)
 			if self.ver_send < MIN_PROTO_VERSION:
 				self.log.write("Obsolete version %d, closing" % (self.ver_send,))
 				self.handle_close()

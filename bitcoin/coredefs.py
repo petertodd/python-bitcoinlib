@@ -1,13 +1,12 @@
 
 #
-# defs.py
+# coredefs.py
 #
 # Distributed under the MIT/X11 software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
 
-MY_VERSION = 60001
-MY_SUBVERSION = "/pynode:0.0.1/"
+PROTO_VERSION = 60001
 
 CADDR_TIME_VERSION = 31402
 

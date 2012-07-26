@@ -11,7 +11,6 @@ import Log
 import MemPool
 import ChainDb
 import cStringIO
-from defs import *
 from bitcoin.core import *
 from bitcoin.script import *
 from bitcoin.serialize import *
