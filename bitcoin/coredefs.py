@@ -25,7 +25,7 @@ class NetMagic(object):
 NETWORKS = {
  'mainnet' : NetMagic("\xf9\xbe\xb4\xd9",
 	0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26fL),
- 'testnet3' : NetMagic("\xfa\xbf\xb5\xda",
+ 'testnet3' : NetMagic("\x0b\x11\x09\x07",
         0x000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943L)
 }
 
