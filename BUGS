@@ -1,0 +1,8 @@
+
+- Script verification not implemented (cannot verf mainnet)
+
+- Many script opcodes not implemented (cannot verf testnet3)
+
+- Does not support chain reorg, and will get stuck on an orphan
+  chain, if one occurs.
+
