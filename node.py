@@ -85,6 +85,7 @@ class NodeConn(asyncore.dispatcher):
 		self.remote_height = -1
 		self.state = "connecting"
 		self.peers = {}
+		self.hash_continue = None
 
 		#stuff version msg into sendbuf
 		vt = msg_version()
@@ -276,6 +277,9 @@ class NodeConn(asyncore.dispatcher):
 		elif message.command == "getdata":
 			self.getdata(message)
 
+		elif message.command == "getblocks":
+			self.getblocks(message)
+
 		elif message.command == "getaddr":
 			msg = msg_addr()
 
@@ -330,6 +334,18 @@ class NodeConn(asyncore.dispatcher):
 
 		self.send_message(msg)
 
+		if blkhash == self.hash_continue:
+			self.hash_continue = None
+
+			inv = CInv()
+			inv.type = MSG_BLOCK
+			inv.hash = self.chaindb.gettophash()
+
+			msg = msg_inv()
+			msg.inv.append(inv)
+
+			self.send_message(msg)
+
 	def getdata(self, message):
 		if len(message.inv) > 50000:
 			self.handle_close()
@@ -339,6 +355,31 @@ class NodeConn(asyncore.dispatcher):
 				self.getdata_tx(inv.hash)
 			elif inv.type == MSG_BLOCK:
 				self.getdata_block(inv.hash)
+
+	def getblocks(self, message):
+		height = self.chaindb.locate(message.locator)
+		top_height = self.getheight()
+		end_height = height + 500
+		if end_height > top_height:
+			end_height = top_height
+
+		msg = msg_inv()
+		while height <= end_height:
+			hash = long(self.height[str(height)])
+			if hash == message.hashstop:
+				break
+
+			inv = CInv()
+			inv.type = MSG_BLOCK
+			inv.hash = hash
+			msg.inv.append(inv)
+
+			height += 1
+
+		if len(msg.inv) > 0:
+			self.send_message(msg)
+			if height <= top_height:
+				self.hash_continue = msg.inv[-1].hash
 
 
 if __name__ == '__main__':

@@ -27,6 +27,7 @@ class ChainDb(object):
 		self.misc = gdbm.open(datadir + '/misc.dat', 'c')
 		self.blocks = gdbm.open(datadir + '/blocks.dat', 'c')
 		self.height = gdbm.open(datadir + '/height.dat', 'c')
+		self.to_height = gdbm.open(datadir + '/to-height.dat', 'c')
 		self.tx = gdbm.open(datadir + '/tx.dat', 'c')
 
 		if 'height' not in self.misc:
@@ -200,6 +201,7 @@ class ChainDb(object):
 		self.misc['height'] = str(self.getheight() + 1)
 		self.misc['tophash'] = str(block.sha256)
 		self.height[str(self.getheight())] = str(block.sha256)
+		self.to_height[str(block.sha256)] = str(self.getheight())
 
 		self.log.write("ChainDb: block %064x, height %d" % (block.sha256, self.getheight()))
 
@@ -236,6 +238,13 @@ class ChainDb(object):
 			blkhash = block.sha256
 
 		return True
+
+	def locate(self, locator):
+		for hash in locator.vHave:
+			str_hash = str(hash)
+			if str_hash in self.to_height:
+				return int(self.to_height[str_hash])
+		return 0
 
 	def getheight(self):
 		return int(self.misc['height'])
