@@ -143,6 +143,36 @@ class msg_getblocks(object):
 	def __repr__(self):
 		return "msg_getblocks(locator=%s hashstop=%064x)" % (repr(self.locator), self.hashstop)
 
+class msg_getheaders(object):
+	command = "getheaders"
+	def __init__(self, protover=PROTO_VERSION):
+		self.protover = protover
+		self.locator = CBlockLocator()
+		self.hashstop = 0L
+	def deserialize(self, f):
+		self.locator = CBlockLocator()
+		self.locator.deserialize(f)
+		self.hashstop = deser_uint256(f)
+	def serialize(self):
+		r = ""
+		r += self.locator.serialize()
+		r += ser_uint256(self.hashstop)
+		return r
+	def __repr__(self):
+		return "msg_getheaders(locator=%s hashstop=%064x)" % (repr(self.locator), self.hashstop)
+
+class msg_headers(object):
+	command = "headers"
+	def __init__(self, protover=PROTO_VERSION):
+		self.protover = protover
+		self.headers = []
+	def deserialize(self, f):
+		self.headers = deser_vector(f, CBlock)
+	def serialize(self):
+		return ser_vector(self.headers)
+	def __repr__(self):
+		return "msg_headers(headers=%s)" % (repr(self.headers))
+
 class msg_tx(object):
 	command = "tx"
 	def __init__(self, protover=PROTO_VERSION):
