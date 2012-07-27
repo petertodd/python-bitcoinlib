@@ -61,7 +61,9 @@ class NodeConn(asyncore.dispatcher):
 		"tx": msg_tx,
 		"block": msg_block,
 		"getaddr": msg_getaddr,
-		"ping": msg_ping
+		"ping": msg_ping,
+		"pong": msg_pong,
+		"mempool": msg_mempool
 	}
 	def __init__(self, dstaddr, dstport, log, mempool, chaindb, netmagic):
 		asyncore.dispatcher.__init__(self)
@@ -82,6 +84,7 @@ class NodeConn(asyncore.dispatcher):
 		self.last_getblocks = 0
 		self.remote_height = -1
 		self.state = "connecting"
+		self.peers = {}
 
 		#stuff version msg into sendbuf
 		vt = msg_version()
@@ -243,7 +246,12 @@ class NodeConn(asyncore.dispatcher):
 				self.send_message(msg_pong(self.ver_send))
 
 		elif message.command == "addr":
-			self.log.write("Received %d new addresses" % (len(message.addrs),))
+			for addr in message.addrs:
+				if addr.ip in self.peers:
+					continue
+				self.peers[addr.ip] = addr
+
+			self.log.write("Received %d new addresses (%d peers total)" % (len(message.addrs), len(self.peers)))
 
 		elif message.command == "inv":
 			want = msg_getdata(self.ver_send)
@@ -265,11 +273,73 @@ class NodeConn(asyncore.dispatcher):
 			self.chaindb.putblock(message.block)
 			self.last_block_rx = time.time()
 
+		elif message.command == "getdata":
+			self.getdata(message)
+
+		elif message.command == "getaddr":
+			msg = msg_addr()
+
+			ips = self.peers.keys()
+			random.shuffle(ips)
+			if len(ips) > 1000:
+				del ips[1000:]
+			for ip in ips:
+				msg.addrs.append(self.peers[ip])
+
+			self.send_message(msg)
+
+		elif message.command == "mempool":
+			msg = msg_inv()
+			for k in self.mempool.pool.iterkeys():
+				inv = CInv()
+				inv.type = MSG_TX
+				inv.hash = k
+				msg.inv.append(inv)
+
+				if len(msg.inv) == 50000:
+					break
+
+			self.send_message(msg)
+
 		# if we haven't seen a 'block' message in a little while,
 		# and we're still not caught up, send another getblocks
 		last_blkmsg = time.time() - self.last_block_rx
 		if last_blkmsg > 5:
 			self.send_getblocks()
+
+	def getdata_tx(self, txhash):
+		if txhash in self.mempool.pool:
+			tx = self.mempool.pool[txhash]
+		else:
+			tx = self.chaindb.gettx(txhash)
+			if tx is None:
+				return
+
+		msg = msg_tx()
+		msg.tx = tx
+
+		self.send_message(msg)
+
+	def getdata_block(self, blkhash):
+		block = self.chaindb.getblock(blkhash)
+		if block is None:
+			return
+
+		msg = msg_block()
+		msg.block = block
+
+		self.send_message(msg)
+
+	def getdata(self, message):
+		if len(message.inv) > 50000:
+			self.handle_close()
+			return
+		for inv in message.inv:
+			if inv.type == MSG_TX:
+				self.getdata_tx(inv.hash)
+			elif inv.type == MSG_BLOCK:
+				self.getdata_block(inv.hash)
+
 
 if __name__ == '__main__':
 	if len(sys.argv) != 2:

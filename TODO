@@ -10,9 +10,7 @@ script verification
 chain reorg
 
 P2P commands:
-	getdata
 	getblocks
 	getheaders
-	getaddr
 	alert
 

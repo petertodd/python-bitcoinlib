@@ -12,6 +12,9 @@ import random
 from coredefs import *
 from core import *
 
+MSG_TX = 1
+MSG_BLOCK = 2
+
 class msg_version(object):
 	command = "version"
 	def __init__(self, protover=PROTO_VERSION):
@@ -209,5 +212,18 @@ class msg_pong(object):
 	def __repr__(self):
 		return "msg_pong(0x%x)" % (self.nonce,)
 
+#
+# Non-standard messages follow...
+#
 
+class msg_mempool(object):
+	command = "mempool"
+	def __init__(self, protover=PROTO_VERSION):
+		self.protover = protover
+	def deserialize(self, f):
+		pass
+	def serialize(self):
+		return ""
+	def __repr__(self):
+		return "msg_mempool()"
 
