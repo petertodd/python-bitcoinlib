@@ -28,13 +28,16 @@ opcount = {}
 
 def scan_tx(tx):
 	tx.calc_sha256()
+#	print "...Scanning TX %064x" % (tx.sha256,)
 	for i in xrange(len(tx.vin)):
 		txin = tx.vin[i]
 		txfrom = chaindb.gettx(txin.prevout.hash)
 		if not VerifySignature(txfrom, tx, i, 0):
-#			print "TX %064x/%d failed" % (tx.sha256, i)
-#			print "FROMTX", txfrom
-#			print "TOTX", tx
+			print "TX %064x/%d failed" % (tx.sha256, i)
+			print "FROMTX %064x" % (txfrom.sha256,)
+			print txfrom
+			print "TOTX %064x" % (tx.sha256,)
+			print tx
 			return False
 	return True
 	
@@ -54,11 +57,11 @@ for height in xrange(chaindb.getheight()):
 
 		if not scan_tx(tx):
 			failures += 1
-#			sys.exit(1)
+			sys.exit(1)
 
 	scanned += 1
-	if (scanned % 1000) == 0:
-		print "Scanned %d tx, %d blocks (%d failures)" % (scanned_tx, scanned, failures)
+#	if (scanned % 1000) == 0:
+	print "Scanned %d tx, %d blocks (%d failures)" % (scanned_tx, scanned, failures)
 
 
 print "Scanned %d tx, %d blocks (%d failures)" % (scanned_tx, scanned, failures)

@@ -7,7 +7,7 @@
 #
 
 import copy
-from serialize import Hash, Hash160, ser_uint256
+from serialize import Hash, Hash160, ser_uint256, ser_uint160
 from script import *
 from core import CTxOut
 from key import CKey
@@ -30,7 +30,7 @@ def SignatureHash(script, txTo, inIdx, hashtype):
 	elif (hashtype & 0x1f) == SIGHASH_SINGLE:
 		outIdx = inIdx
 		if outIdx >= len(txtmp.vout):
-			return (0L, "outIdx %d out of range" % (outIdx,))
+			return (0L, "outIdx %d out of range (%d)" % (outIdx,len(txtmp.vout)))
 
 		tmp = txtmp.vout[outIdx]
 		txtmp.vout = []
@@ -71,6 +71,12 @@ def CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
 		return False
 	return key.verify(ser_uint256(tup[0]), sig)
 
+def dumpstack(msg, stack):
+	print "%s stacksz %d" % (msg, len(stack))
+	for i in xrange(len(stack)):
+		vch = stack[i]
+		print "#%d: %s" % (i, vch.encode('hex'))
+
 def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 	script = CScript(scriptIn)
 	while script.pc < script.pend:
@@ -104,8 +110,8 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 		elif sop.op == OP_CHECKSIG or sop.op == OP_CHECKSIGVERIFY:
 			if len(stack) < 2:
 				return False
-			vchSig = stack.pop()
 			vchPubKey = stack.pop()
+			vchSig = stack.pop()
 			tmpScript = CScript(script.vch[script.pbegincodehash:script.pend])
 
 			# FIXME: find-and-delete vchSig
@@ -135,23 +141,27 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 			stack.append(v)
 
 		elif sop.op == OP_EQUAL or sop.op == OP_EQUALVERIFY:
-			if len(stack) < 1:
+			if len(stack) < 2:
 				return False
 			v1 = stack.pop()
 			v2 = stack.pop()
 
-			if v1 == v2:
-				if sop.op != OP_EQUALVERIFY:
-					stack.append("\x01")
+			is_equal = (v1 == v2)
+			if is_equal:
+				stack.append("\x01")
 			else:
-				if sop.op == OP_EQUALVERIFY:
-					return False
 				stack.append("\x00")
+
+			if sop.op == OP_EQUALVERIFY:
+				if is_equal:
+					stack.pop()
+				else:
+					return False
 
 		elif sop.op == OP_HASH160:
 			if len(stack) < 1:
 				return False
-			stack.append(Hash160(stack.pop()))
+			stack.append(ser_uint160(Hash160(stack.pop())))
 
 		elif sop.op == OP_NOP or (sop.op >= OP_NOP1 and sop.op <= OP_NOP10):
 			pass
@@ -179,16 +189,12 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 	return True
 
 def CastToBool(s):
-	i = 0
-	slen = len(s)
-	while i < slen:
+	for i in xrange(len(s)):
 		sv = ord(s[i])
 		if sv != 0:
-			if (i == (slen - 1)) and (sv == 0x80):
+			if (i == (len(s) - 1)) and (sv == 0x80):
 				return False
 			return True
-
-		i += 1
 
 	return False
 
