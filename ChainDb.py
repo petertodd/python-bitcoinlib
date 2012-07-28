@@ -10,6 +10,7 @@ import string
 import cStringIO
 import gdbm
 import os
+from Cache import Cache
 from bitcoin.serialize import *
 from bitcoin.core import *
 
@@ -23,6 +24,7 @@ class ChainDb(object):
 		self.log = log
 		self.mempool = mempool
 		self.netmagic = netmagic
+		self.blk_cache = Cache()
 		self.orphan_deps = {}
 		self.misc = gdbm.open(datadir + '/misc.dat', 'c')
 		self.blocks = gdbm.open(datadir + '/blocks.dat', 'c')
@@ -87,6 +89,10 @@ class ChainDb(object):
 		return None
 
 	def getblock(self, blkhash):
+		block = self.blk_cache.get(blkhash)
+		if block is not None:
+			return block
+
 		ser_hash = ser_uint256(blkhash)
 		if ser_hash not in self.blocks:
 			return None
@@ -94,6 +100,8 @@ class ChainDb(object):
 		f = cStringIO.StringIO(self.blocks[ser_hash])
 		block = CBlock()
 		block.deserialize(f)
+
+		self.blk_cache.put(blkhash, block)
 
 		return block
 
