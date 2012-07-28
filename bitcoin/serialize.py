@@ -182,8 +182,8 @@ def ser_int_vector(l):
 	return r
 
 def Hash(s):
-	uint256_from_str(SHA256.new(SHA256.new(s).digest()).digest())
+	return uint256_from_str(SHA256.new(SHA256.new(s).digest()).digest())
 
 def Hash160(s):
-	uint160_from_str(RIPEMD160.new(SHA256.new(s).digest()).digest())
+	return uint160_from_str(RIPEMD160.new(SHA256.new(s).digest()).digest())
 

@@ -8,7 +8,8 @@
 
 import struct
 import copy
-from serialize import Hash
+from serialize import Hash, Hash160, ser_uint256
+from core import CTxOut
 from key import CKey
 
 SIGHASH_ALL = 1
@@ -487,9 +488,12 @@ class CScript(object):
 
 		return True
 
+	def __repr__(self):
+		return "CScript(vchsz %d)" % (len(self.vch),)
+
 def SignatureHash(script, txTo, inIdx, hashtype):
-	if inIdx < len(txTo.vin):
-		return (0L, "inIdx %d out of range" % (inIdx,))
+	if inIdx >= len(txTo.vin):
+		return (0L, "inIdx %d out of range (%d)" % (inIdx,len(txTo.vin)))
 	txtmp = copy.deepcopy(txTo)
 	for txin in txtmp.vin:
 		txin.scriptSig = ''
@@ -523,9 +527,11 @@ def SignatureHash(script, txTo, inIdx, hashtype):
 		txtmp.vin.append(tmp)
 
 	s = txtmp.serialize()
-	s += struct.pack("<I", self.nTime)
+	s += struct.pack("<I", hashtype)
 
-	return Hash(s)
+	hash = Hash(s)
+
+	return (hash,)
 
 def CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
 	key = CKey()
@@ -539,8 +545,10 @@ def CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
 		return False
 	sig = sig[:-1]
 
-	hash = SignatureHash(script, txTo, inIdx, hashtype)
-	return key.verify(hash, sig)
+	tup = SignatureHash(script, txTo, inIdx, hashtype)
+	if tup[0] == 0L:
+		return False
+	return key.verify(ser_uint256(tup[0]), sig)
 
 def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 	script = CScript(scriptIn)
