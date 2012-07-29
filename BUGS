@@ -6,3 +6,6 @@
 - Does not support chain reorg, and will get stuck on an orphan
   chain, if one occurs.
 
+- Appears to have difficulty talking to nodes with protocol versions
+  between 40000 and 50001, inclusive.
+
