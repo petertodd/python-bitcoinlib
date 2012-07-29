@@ -1,6 +1,6 @@
 
 class Cache(object):
-	def __init__(self, max=2500):
+	def __init__(self, max=1000):
 		self.d = {}
 		self.l = []
 		self.max = max
