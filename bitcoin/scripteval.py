@@ -12,6 +12,7 @@ from Crypto.Hash import SHA256
 from script import *
 from core import CTxOut
 from key import CKey
+from bignum import bn2vch, vch2bn
 
 def SignatureHash(script, txTo, inIdx, hashtype):
 	if inIdx >= len(txTo.vin):
@@ -88,6 +89,10 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 		if sop.op <= OP_PUSHDATA4:
 			stack.append(sop.data)
 			continue
+
+		elif sop.op == OP_1NEGATE or ((sop.op >= OP_1) and (sop.op <= OP_16)):
+			v = sop.op - (OP_1 - 1)
+			stack.append(bn2vch(v))
 
 		elif sop.op == OP_2OVER:
 			if len(stack) < 4:
@@ -185,9 +190,14 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 				return False
 
 		else:
+			print "Unsupported opcode", OPCODE_NAMES[sop.op]
 			return False
 
 	return True
+
+def CastToBigNum(s):
+	v = vch2bn(s)
+	return bn2vch(v)
 
 def CastToBool(s):
 	for i in xrange(len(s)):
