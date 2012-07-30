@@ -17,9 +17,24 @@ from bitcoin.coredefs import NETWORKS
 from bitcoin.core import CBlock
 from bitcoin.scripteval import *
 
-log = Log.Log('/tmp/testscript.log')
+NET_SETTINGS = {
+	'mainnet' : {
+		'log' : '/tmp/testscript.log',
+		'db' : '/tmp/chaindb'
+	},
+	'testnet3' : {
+		'log' : '/tmp/testtestscript.log',
+		'db' : '/tmp/chaintest'
+	}
+}
+
+MY_NETWORK='mainnet'
+
+SETTINGS = NET_SETTINGS[MY_NETWORK]
+
+log = Log.Log(SETTINGS['log'])
 mempool = MemPool.MemPool(log)
-chaindb = ChainDb.ChainDb('/tmp/chaindb', log, mempool, NETWORKS['mainnet'])
+chaindb = ChainDb.ChainDb(SETTINGS['db'], log, mempool, NETWORKS[MY_NETWORK])
 
 scanned = 0
 scanned_tx = 0
