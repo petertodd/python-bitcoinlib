@@ -189,6 +189,18 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 			else:
 				return False
 
+		elif sop.op == OP_WITHIN:
+			if len(stack) < 3:
+				return False
+			bn3 = CastToBigNum(stack.pop())
+			bn2 = CastToBigNum(stack.pop())
+			bn1 = CastToBigNum(stack.pop())
+			v = (bn2 <= bn1) and (bn1 < bn3)
+			if v:
+				stack.append("\x01")
+			else:
+				stack.append("\x00")
+
 		else:
 			print "Unsupported opcode", OPCODE_NAMES[sop.op]
 			return False
