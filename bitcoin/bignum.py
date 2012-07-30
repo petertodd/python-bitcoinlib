@@ -27,7 +27,7 @@ def bn2bin(v):
 def bin2bn(s):
 	l = 0L
 	for ch in s:
-		l = (l << 8) | ord(ch)
+		l = (l << 8) | ch
 	return l
 
 def bn2mpi(v):
@@ -55,19 +55,20 @@ def bn2mpi(v):
 def mpi2bn(s):
 	if len(s) < 4:
 		return None
-	v_len = struct.unpack(">I", s)[0]
+	s_size = str(s[:4])
+	v_len = struct.unpack(">I", s_size)[0]
 	if len(s) != (v_len + 4):
 		return None
 	if v_len == 0:
 		return 0L
 
-	v_str = s[4:]
+	v_str = bytearray(s[4:])
 	neg = False
-	i = ord(v_str[0])
+	i = v_str[0]
 	if i & 0x80:
 		neg = True
 		i &= ~0x80
-		v_str[0] = chr(i)
+		v_str[0] = i
 
 	v = bin2bn(v_str)
 
@@ -87,7 +88,7 @@ def bn2vch(v):
 def vch2mpi(s):
 	r = struct.pack(">I", len(s))	# size
 	r += s[::-1]			# reverse string, converting LE->BE
-	return sz + s
+	return r
 
 def vch2bn(s):
 	return mpi2bn(vch2mpi(s))
