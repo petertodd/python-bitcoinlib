@@ -195,11 +195,11 @@ class NodeConn(asyncore.dispatcher):
 		self.sendbuf += tmsg
 		self.last_sent = time.time()
 
-	def send_getblocks(self):
+	def send_getblocks(self, timecheck=True):
 		if not self.getblocks_ok:
 			return
 		now = time.time()
-		if (now - self.last_getblocks) < 5:
+		if timecheck and (now - self.last_getblocks) < 5:
 			return
 		self.last_getblocks = now
 
@@ -256,6 +256,14 @@ class NodeConn(asyncore.dispatcher):
 			self.log.write("Received %d new addresses (%d peers total)" % (len(message.addrs), len(self.peers)))
 
 		elif message.command == "inv":
+
+			# special message sent to kick getblocks
+			if (len(message.inv) == 1 and
+			    message.inv[0].type == MSG_BLOCK and
+			    self.chaindb.haveblock(message.inv[0].hash)):
+				self.send_getblocks(False)
+				return
+
 			want = msg_getdata(self.ver_send)
 			for i in message.inv:
 				if i.type == 1:
