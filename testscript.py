@@ -55,7 +55,7 @@ def scan_tx(tx):
 			print tx
 			return False
 	return True
-	
+
 for height in xrange(chaindb.getheight()):
 	blkhash = long(chaindb.height[str(height)])
 	ser_hash = ser_uint256(blkhash)
