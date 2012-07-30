@@ -25,6 +25,7 @@ class ChainDb(object):
 		self.mempool = mempool
 		self.netmagic = netmagic
 		self.blk_cache = Cache()
+		self.orphans = {}
 		self.orphan_deps = {}
 		self.misc = gdbm.open(datadir + '/misc.dat', 'c')
 		self.blocks = gdbm.open(datadir + '/blocks.dat', 'c')
@@ -88,6 +89,16 @@ class ChainDb(object):
 
 		self.log.write("ERROR: Missing TX %064x in block %064x" % (txhash, txidx.blkhash))
 		return None
+
+	def haveblock(self, blkhash):
+		if self.blk_cache.exists(blkhash):
+			return True
+		if blkhash in self.orphans:
+			return True
+		ser_hash = ser_uint256(blkhash)
+		if ser_hash in self.blocks:
+			return True
+		return False
 
 	def getblock(self, blkhash):
 		block = self.blk_cache.get(blkhash)
@@ -186,16 +197,16 @@ class ChainDb(object):
 
 	def putoneblock(self, block):
 		block.calc_sha256()
-		ser_hash = ser_uint256(block.sha256)
 
+		if self.haveblock(block.sha256):
+			self.log.write("Duplicate block %064x" % (block.sha256, ))
+			return False
 		if not block.is_valid():
 			self.log.write("Invalid block %064x" % (block.sha256, ))
 			return False
-		if ser_hash in self.blocks:
-			self.log.write("Duplicate block %064x" % (block.sha256, ))
-			return False
 
 		if not self.is_nextblock(block):
+			self.orphans[block.sha256] = True
 			self.orphan_deps[block.hashPrevBlock] = block
 			self.log.write("Orphan block %064x (%d orphans)" % (block.sha256, len(self.orphan_deps)))
 			return False
@@ -206,6 +217,7 @@ class ChainDb(object):
 			self.log.write("Unconnectable block %064x" % (block.sha256, ))
 			return False
 
+		ser_hash = ser_uint256(block.sha256)
 		self.blocks[ser_hash] = block.serialize()
 		self.misc['height'] = str(self.getheight() + 1)
 		self.misc['tophash'] = str(block.sha256)
@@ -247,6 +259,7 @@ class ChainDb(object):
 				return True
 
 			del self.orphan_deps[blkhash]
+			del self.orphans[blkhash]
 
 			blkhash = block.sha256
 
