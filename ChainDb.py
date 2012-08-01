@@ -22,19 +22,36 @@ class TxIdx(object):
 class BlkMeta(object):
 	def __init__(self):
 		self.height = -1
-		self.total_work = 0L
+		self.work = 0L
 	def deserialize(self, s):
 		l = s.split()
 		if len(l) < 2:
 			raise RuntimeError
 		self.height = int(l[0])
-		self.total_work = long(l[1], 16)
+		self.work = long(l[1], 16)
 	def serialize(self):
-		r = str(self.height) + ' ' + hex(self.total_work)
+		r = str(self.height) + ' ' + hex(self.work)
 		return r
 	def __repr__(self):
-		return "BlkMeta(height %d, total_work %x)" % (
-			self.height, self.total_work)
+		return "BlkMeta(height %d, work %x)" % (self.height, self.work)
+
+
+class HeightIdx(object):
+	def __init__(self):
+		self.blocks = []
+	def deserialize(self, s):
+		self.blocks = []
+		l = s.split()
+		for hashstr in l:
+			hash = long(hashstr, 16)
+			self.blocks.append(hash)
+	def serialize(self):
+		l = []
+		for blkhash in self.blocks:
+			l.append(hex(blkhash))
+		return ' '.join(l)
+	def __repr__(self):
+		return "HeightIdx(blocks=%s)" % (self.serialize(),)
 
 
 class ChainDb(object):
@@ -55,19 +72,12 @@ class ChainDb(object):
 			self.log.write("INITIALIZING EMPTY BLOCKCHAIN DATABASE")
 			self.misc['height'] = str(-1)
 			self.misc['msg_start'] = self.netmagic.msg_start
-			self.misc['tophash'] = str(0L)
-			self.misc['total_work'] = str(0L)
+			self.misc['tophash'] = ser_uint256(0L)
+			self.misc['total_work'] = hex(0L)
 
 		if 'msg_start' not in self.misc or (self.misc['msg_start'] != self.netmagic.msg_start):
 			self.log.write("Database magic number mismatch. Data corruption or incorrect network?")
 			raise RuntimeError
-
-	def is_nextblock(self, block):
-		if self.getheight() < 0 and block.sha256 == self.netmagic.block0:
-			return True
-		if self.gettophash() == block.hashPrevBlock:
-			return True
-		return False
 
 	def puttxidx(self, blkhash, txhash, spentmask=0L):
 		ser_txhash = ser_uint256(txhash)
@@ -108,13 +118,20 @@ class ChainDb(object):
 		self.log.write("ERROR: Missing TX %064x in block %064x" % (txhash, txidx.blkhash))
 		return None
 
-	def haveblock(self, blkhash):
+	def haveblock(self, blkhash, checkorphans):
 		if self.blk_cache.exists(blkhash):
 			return True
-		if blkhash in self.orphans:
+		if checkorphans and blkhash in self.orphans:
 			return True
 		ser_hash = ser_uint256(blkhash)
 		if ser_hash in self.blocks:
+			return True
+		return False
+
+	def have_prevblock(self, block):
+		if self.getheight() < 0 and block.sha256 == self.netmagic.block0:
+			return True
+		if self.haveblock(block.hashPrevBlock, False):
 			return True
 		return False
 
@@ -213,17 +230,17 @@ class ChainDb(object):
 
 		return True
 
-	def putoneblock(self, block):
+	def putoneblock(self, block, checkorphans):
 		block.calc_sha256()
 
-		if self.haveblock(block.sha256):
+		if self.haveblock(block.sha256, checkorphans):
 			self.log.write("Duplicate block %064x" % (block.sha256, ))
 			return False
 		if not block.is_valid():
 			self.log.write("Invalid block %064x" % (block.sha256, ))
 			return False
 
-		if not self.is_nextblock(block):
+		if not self.have_prevblock(block):
 			self.orphans[block.sha256] = True
 			self.orphan_deps[block.hashPrevBlock] = block
 			self.log.write("Orphan block %064x (%d orphans)" % (block.sha256, len(self.orphan_deps)))
@@ -235,22 +252,44 @@ class ChainDb(object):
 			self.log.write("Unconnectable block %064x" % (block.sha256, ))
 			return False
 
+		top_height = self.getheight()
+		top_work = long(self.misc['total_work'], 16)
+
+		prevmeta = BlkMeta()
+		if top_height >= 0:
+			ser_prevhash = ser_uint256(block.hashPrevBlock)
+			prevmeta.deserialize(self.blkmeta[ser_prevhash])
+
+		# store raw block data
 		ser_hash = ser_uint256(block.sha256)
 		self.blocks[ser_hash] = block.serialize()
-		self.misc['height'] = str(self.getheight() + 1)
-		self.misc['tophash'] = str(block.sha256)
-		self.height[str(self.getheight())] = str(block.sha256)
 
-		total_work = long(self.misc['total_work'])
-		total_work += uint256_from_compact(block.nBits)
-		self.misc['total_work'] = str(total_work)
-
+		# store metadata related to this block
 		blkmeta = BlkMeta()
-		blkmeta.height = self.getheight()
-		blkmeta.total_work = total_work
+		blkmeta.height = prevmeta.height + 1
+		blkmeta.work = (prevmeta.work +
+				uint256_from_compact(block.nBits))
 		self.blkmeta[ser_hash] = blkmeta.serialize()
 
-		self.log.write("ChainDb: height %d, block %064x" % (self.getheight(), block.sha256))
+		# store list of blocks at this height
+		heightidx = HeightIdx()
+		heightstr = str(blkmeta.height)
+		if heightstr in self.height:
+			heightidx.deserialize(self.height[heightstr])
+		heightidx.blocks.append(block.sha256)
+		self.height[heightstr] = heightidx.serialize()
+
+		# update global chain pointers
+		if (blkmeta.work <= top_work):
+			self.log.write("ChainDb: height %d (weak), block %064x" % (blkmeta.height, block.sha256))
+			return True
+			
+		self.misc['total_work'] = hex(blkmeta.work)
+		self.misc['height'] = str(blkmeta.height)
+		self.misc['tophash'] = ser_hash
+
+		self.log.write("ChainDb: height %d, block %064x" % (
+				blkmeta.height, block.sha256))
 
 		# all TX's in block are connectable; index
 		neverseen = 0
@@ -271,17 +310,17 @@ class ChainDb(object):
 		return True
 
 	def putblock(self, block):
-		if not self.putoneblock(block):
+		if not self.putoneblock(block, True):
 			return False
 
 		blkhash = block.sha256
 		while blkhash in self.orphan_deps:
 			block = self.orphan_deps[blkhash]
-			if not self.putoneblock(block):
+			if not self.putoneblock(block, False):
 				return True
 
 			del self.orphan_deps[blkhash]
-			del self.orphans[blkhash]
+			del self.orphans[block.sha256]
 
 			blkhash = block.sha256
 
@@ -299,7 +338,7 @@ class ChainDb(object):
 	def getheight(self):
 		return int(self.misc['height'])
 	def gettophash(self):
-		return long(self.misc['tophash'])
+		return uint256_from_str(self.misc['tophash'])
 
 	def loadfile(self, filename):
 		fd = os.open(filename, os.O_RDONLY)
