@@ -369,7 +369,8 @@ class NodeConn(asyncore.dispatcher):
 				self.getdata_block(inv.hash)
 
 	def getblocks(self, message):
-		height = self.chaindb.locate(message.locator)
+		blkmeta = self.chaindb.locate(message.locator)
+		height = blkmeta.height
 		top_height = self.getheight()
 		end_height = height + 500
 		if end_height > top_height:
@@ -394,7 +395,8 @@ class NodeConn(asyncore.dispatcher):
 				self.hash_continue = msg.inv[-1].hash
 
 	def getheaders(self, message):
-		height = self.chaindb.locate(message.locator)
+		blkmeta = self.chaindb.locate(message.locator)
+		height = blkmeta.height
 		top_height = self.getheight()
 		end_height = height + 2000
 		if end_height > top_height:

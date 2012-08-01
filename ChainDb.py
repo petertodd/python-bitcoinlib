@@ -19,6 +19,24 @@ class TxIdx(object):
 		self.blkhash = blkhash
 		self.spentmask = spentmask
 
+class BlkMeta(object):
+	def __init__(self):
+		self.height = -1
+		self.total_work = 0L
+	def deserialize(self, s):
+		l = s.split()
+		if len(l) < 2:
+			raise RuntimeError
+		self.height = int(l[0])
+		self.total_work = long(l[1], 16)
+	def serialize(self):
+		r = str(self.height) + ' ' + hex(self.total_work)
+		return r
+	def __repr__(self):
+		return "BlkMeta(height %d, total_work %x)" % (
+			self.height, self.total_work)
+
+
 class ChainDb(object):
 	def __init__(self, datadir, log, mempool, netmagic):
 		self.log = log
@@ -30,7 +48,7 @@ class ChainDb(object):
 		self.misc = gdbm.open(datadir + '/misc.dat', 'c')
 		self.blocks = gdbm.open(datadir + '/blocks.dat', 'c')
 		self.height = gdbm.open(datadir + '/height.dat', 'c')
-		self.to_height = gdbm.open(datadir + '/to-height.dat', 'c')
+		self.blkmeta = gdbm.open(datadir + '/blkmeta.dat', 'c')
 		self.tx = gdbm.open(datadir + '/tx.dat', 'c')
 
 		if 'height' not in self.misc:
@@ -222,11 +240,15 @@ class ChainDb(object):
 		self.misc['height'] = str(self.getheight() + 1)
 		self.misc['tophash'] = str(block.sha256)
 		self.height[str(self.getheight())] = str(block.sha256)
-		self.to_height[str(block.sha256)] = str(self.getheight())
 
 		total_work = long(self.misc['total_work'])
 		total_work += uint256_from_compact(block.nBits)
 		self.misc['total_work'] = str(total_work)
+
+		blkmeta = BlkMeta()
+		blkmeta.height = self.getheight()
+		blkmeta.total_work = total_work
+		self.blkmeta[ser_hash] = blkmeta.serialize()
 
 		self.log.write("ChainDb: height %d, block %064x" % (self.getheight(), block.sha256))
 
@@ -267,9 +289,11 @@ class ChainDb(object):
 
 	def locate(self, locator):
 		for hash in locator.vHave:
-			str_hash = str(hash)
-			if str_hash in self.to_height:
-				return int(self.to_height[str_hash])
+			ser_hash = ser_uint256(hash)
+			if ser_hash in self.blkmeta:
+				blkmeta = BlkMeta()
+				blkmeta.deserialize(self.blkmeta[ser_hash])
+				return blkmeta
 		return 0
 
 	def getheight(self):
