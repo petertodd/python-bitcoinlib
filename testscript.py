@@ -57,7 +57,10 @@ def scan_tx(tx):
 	return True
 
 for height in xrange(chaindb.getheight()):
-	blkhash = long(chaindb.height[str(height)])
+	heightidx = ChainDb.HeightIdx()
+	heightidx.deserialize(chaindb.height[str(height)])
+
+	blkhash = heightidx.blocks[0]
 	ser_hash = ser_uint256(blkhash)
 
 	f = cStringIO.StringIO(chaindb.blocks[ser_hash])
@@ -76,7 +79,7 @@ for height in xrange(chaindb.getheight()):
 
 	scanned += 1
 #	if (scanned % 1000) == 0:
-	print "Scanned %d tx, %d blocks (%d failures)" % (scanned_tx, scanned, failures)
+	print "Scanned %d tx, height %d (%d failures)" % (scanned_tx, height, failures)
 
 
 print "Scanned %d tx, %d blocks (%d failures)" % (scanned_tx, scanned, failures)
