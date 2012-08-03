@@ -278,6 +278,7 @@ def BinOp(opcode, stack):
 	return True
 
 def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
+	altstack = []
 	script = CScript(scriptIn)
 	while script.pc < script.pend:
 		if not script.getop():
@@ -300,6 +301,20 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 			if not UnaryOp(sop.op, stack):
 				return False
 
+		elif sop.op == OP_2DROP:
+			if len(stack) < 2:
+				return False
+			stack.pop()
+			stack.pop()
+
+		elif sop.op == OP_2DUP:
+			if len(stack) < 2:
+				return False
+			v1 = stack[-2]
+			v2 = stack[-1]
+			stack.append(v1)
+			stack.append(v2)
+
 		elif sop.op == OP_2OVER:
 			if len(stack) < 4:
 				return False
@@ -318,6 +333,16 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 			tmp = stack[-3]
 			stack[-3] = stack[-1]
 			stack[-1] = tmp
+
+		elif sop.op == OP_3DUP:
+			if len(stack) < 3:
+				return False
+			v1 = stack[-3]
+			v2 = stack[-2]
+			v3 = stack[-1]
+			stack.append(v1)
+			stack.append(v2)
+			stack.append(v3)
 
 		elif sop.op == OP_CHECKMULTISIG or sop.op == OP_CHECKMULTISIGVERIFY:
 			tmpScript = CScript(script.vch[script.pbegincodehash:script.pend])
@@ -381,16 +406,46 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 				else:
 					return False
 
+		elif sop.op == OP_FROMALTSTACK:
+			if len(altstack) < 1:
+				return False
+			v = altstack.pop()
+			stack.append(v)
+
 		elif sop.op == OP_HASH160:
 			if len(stack) < 1:
 				return False
 			stack.append(ser_uint160(Hash160(stack.pop())))
 
+		elif sop.op == OP_IFDUP:
+			if len(stack) < 1:
+				return False
+			vch = stack[-1]
+			if CastToBool(vch):
+				stack.append(vch)
+
 		elif sop.op == OP_NOP or (sop.op >= OP_NOP1 and sop.op <= OP_NOP10):
 			pass
 
+		elif sop.op == OP_OVER:
+			if len(stack) < 2:
+				return False
+			vch = stack[-2]
+			stack.append(vch)
+
 		elif sop.op == OP_RETURN:
 			return False
+
+		elif sop.op == OP_ROT:
+			if len(stack) < 3:
+				return False
+			tmp = stack[-3]
+			stack[-3] = stack[-2]
+			stack[-2] = tmp
+
+			tmp = stack[-2]
+			stack[-2] = stack[-1]
+			stack[-1] = tmp
 
 		elif sop.op == OP_SIZE:
 			if len(stack) < 1:
@@ -402,6 +457,19 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 			if len(stack) < 1:
 				return False
 			stack.append(SHA256.new(stack.pop()).digest())
+
+		elif sop.op == OP_SWAP:
+			if len(stack) < 2:
+				return False
+			tmp = stack[-2]
+			stack[-2] = stack[-1]
+			stack[-1] = tmp
+
+		elif sop.op == OP_TOALTSTACK:
+			if len(stack) < 1:
+				return False
+			v = stack.pop()
+			altstack.append(v)
 
 		elif sop.op == OP_VERIFY:
 			if len(stack) < 1:
