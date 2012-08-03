@@ -55,18 +55,23 @@ class HeightIdx(object):
 
 
 class ChainDb(object):
-	def __init__(self, datadir, log, mempool, netmagic):
+	def __init__(self, datadir, log, mempool, netmagic, readonly=False):
 		self.log = log
 		self.mempool = mempool
+		self.readonly = readonly
 		self.netmagic = netmagic
 		self.blk_cache = Cache()
 		self.orphans = {}
 		self.orphan_deps = {}
-		self.misc = gdbm.open(datadir + '/misc.dat', 'c')
-		self.blocks = gdbm.open(datadir + '/blocks.dat', 'c')
-		self.height = gdbm.open(datadir + '/height.dat', 'c')
-		self.blkmeta = gdbm.open(datadir + '/blkmeta.dat', 'c')
-		self.tx = gdbm.open(datadir + '/tx.dat', 'c')
+		if readonly:
+			mode_str = 'r'
+		else:
+			mode_str = 'c'
+		self.misc = gdbm.open(datadir + '/misc.dat', mode_str)
+		self.blocks = gdbm.open(datadir + '/blocks.dat', mode_str)
+		self.height = gdbm.open(datadir + '/height.dat', mode_str)
+		self.blkmeta = gdbm.open(datadir + '/blkmeta.dat', mode_str)
+		self.tx = gdbm.open(datadir + '/tx.dat', mode_str)
 
 		if 'height' not in self.misc:
 			self.log.write("INITIALIZING EMPTY BLOCKCHAIN DATABASE")
