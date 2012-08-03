@@ -288,7 +288,7 @@ class ChainDb(object):
 		if (blkmeta.work <= top_work):
 			self.log.write("ChainDb: height %d (weak), block %064x" % (blkmeta.height, block.sha256))
 			return True
-			
+
 		self.misc['total_work'] = hex(blkmeta.work)
 		self.misc['height'] = str(blkmeta.height)
 		self.misc['tophash'] = ser_hash

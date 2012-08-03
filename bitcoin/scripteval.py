@@ -77,7 +77,7 @@ def CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
 	i = 1
 	if len(stack) < i:
 		return False
-	
+
 	keys_count = CastToBigNum(stack[-i])
 	if keys_count < 0 or keys_count > 20:
 		return False
@@ -139,11 +139,61 @@ def dumpstack(msg, stack):
 		vch = stack[i]
 		print "#%d: %s" % (i, vch.encode('hex'))
 
+ISA_UNOP = {
+	OP_1ADD: True,
+	OP_1SUB: True,
+	OP_2MUL: True,
+	OP_2DIV: True,
+	OP_NEGATE: True,
+	OP_ABS: True,
+	OP_NOT: True,
+	OP_0NOTEQUAL: True,
+}
+
+def UnaryOp(opcode, stack):
+	if len(stack) < 1:
+		return False
+	bn = CastToBigNum(stack.pop())
+
+	if opcode == OP_1ADD:
+		bn += 1
+
+	elif opcode == OP_1SUB:
+		bn -= 1
+
+	elif opcode == OP_2MUL:
+		bn <<= 1
+
+	elif opcode == OP_2DIV:
+		bn >>= 1
+
+	elif opcode == OP_NEGATE:
+		bn = -bn
+
+	elif opcode == OP_ABS:
+		if bn < 0:
+			bn = -bn
+
+	elif opcode == OP_NOT:
+		bn = long(bn == 0L)
+
+	elif opcode == OP_0NOTEQUAL:
+		bn = long(bn != 0L)
+
+	else:
+		return False
+
+	stack.append(bn2vch(bn))
+
+	return True
+
 ISA_BINOP = {
 	OP_ADD: True,
 	OP_SUB: True,
 	OP_LSHIFT: True,
 	OP_RSHIFT: True,
+	OP_BOOLAND: True,
+	OP_BOOLOR: True,
 	OP_NUMEQUAL: True,
 	OP_NUMEQUALVERIFY: True,
 	OP_NUMNOTEQUAL: True,
@@ -158,7 +208,7 @@ ISA_BINOP = {
 def BinOp(opcode, stack):
 	if len(stack) < 2:
 		return False
-	
+
 	bn2 = CastToBigNum(stack.pop())
 	bn1 = CastToBigNum(stack.pop())
 
@@ -167,7 +217,7 @@ def BinOp(opcode, stack):
 
 	elif opcode == OP_SUB:
 		bn = bn1 - bn2
-	
+
 	elif opcode == OP_LSHIFT:
 		if bn2 < 0 or bn2 > 2048:
 			return False
@@ -177,6 +227,12 @@ def BinOp(opcode, stack):
 		if bn2 < 0 or bn2 > 2048:
 			return False
 		bn = bn1 >> bn2
+
+	elif opcode == OP_BOOLAND:
+		bn = long(bn1 != 0L and bn2 != 0L)
+
+	elif opcode == OP_BOOLOR:
+		bn = long(bn1 != 0L or bn2 != 0L)
 
 	elif opcode == OP_NUMEQUAL or opcode == OP_NUMEQUALVERIFY:
 		bn = long(bn1 == bn2)
@@ -218,7 +274,7 @@ def BinOp(opcode, stack):
 			stack.pop()
 		else:
 			return False
-	
+
 	return True
 
 def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
@@ -238,6 +294,10 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 
 		elif sop.op in ISA_BINOP:
 			if not BinOp(sop.op, stack):
+				return False
+
+		elif sop.op in ISA_UNOP:
+			if not UnaryOp(sop.op, stack):
 				return False
 
 		elif sop.op == OP_2OVER:
@@ -288,6 +348,10 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 		elif sop.op == OP_CODESEPARATOR:
 			script.pbegincodehash = script.pc
 
+		elif sop.op == OP_DEPTH:
+			bn = len(stack)
+			stack.append(bn2vch(bn))
+
 		elif sop.op == OP_DROP:
 			if len(stack) < 1:
 				return False
@@ -327,6 +391,12 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 
 		elif sop.op == OP_RETURN:
 			return False
+
+		elif sop.op == OP_SIZE:
+			if len(stack) < 1:
+				return False
+			bn = len(stack[-1])
+			stack.append(bn2vch(bn))
 
 		elif sop.op == OP_SHA256:
 			if len(stack) < 1:
