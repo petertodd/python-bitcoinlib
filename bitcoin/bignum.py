@@ -83,7 +83,7 @@ def mpi2vch(s):
 	return r
 
 def bn2vch(v):
-	return mpi2vch(bn2mpi(v))
+	return str(mpi2vch(bn2mpi(v)))
 
 def vch2mpi(s):
 	r = struct.pack(">I", len(s))	# size
