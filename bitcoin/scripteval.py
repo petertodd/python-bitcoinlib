@@ -139,6 +139,88 @@ def dumpstack(msg, stack):
 		vch = stack[i]
 		print "#%d: %s" % (i, vch.encode('hex'))
 
+ISA_BINOP = {
+	OP_ADD: True,
+	OP_SUB: True,
+	OP_LSHIFT: True,
+	OP_RSHIFT: True,
+	OP_NUMEQUAL: True,
+	OP_NUMEQUALVERIFY: True,
+	OP_NUMNOTEQUAL: True,
+	OP_LESSTHAN: True,
+	OP_GREATERTHAN: True,
+	OP_LESSTHANOREQUAL: True,
+	OP_GREATERTHANOREQUAL: True,
+	OP_MIN: True,
+	OP_MAX: True,
+}
+
+def BinOp(opcode, stack):
+	if len(stack) < 2:
+		return False
+	
+	bn2 = CastToBigNum(stack.pop())
+	bn1 = CastToBigNum(stack.pop())
+
+	if opcode == OP_ADD:
+		bn = bn1 + bn2
+
+	elif opcode == OP_SUB:
+		bn = bn1 - bn2
+	
+	elif opcode == OP_LSHIFT:
+		if bn2 < 0 or bn2 > 2048:
+			return False
+		bn = bn1 << bn2
+
+	elif opcode == OP_RSHIFT:
+		if bn2 < 0 or bn2 > 2048:
+			return False
+		bn = bn1 >> bn2
+
+	elif opcode == OP_NUMEQUAL or opcode == OP_NUMEQUALVERIFY:
+		bn = long(bn1 == bn2)
+
+	elif opcode == OP_NUMNOTEQUAL:
+		bn = long(bn1 != bn2)
+
+	elif opcode == OP_LESSTHAN:
+		bn = long(bn1 < bn2)
+
+	elif opcode == OP_GREATERTHAN:
+		bn = long(bn1 > bn2)
+
+	elif opcode == OP_LESSTHANOREQUAL:
+		bn = long(bn1 <= bn2)
+
+	elif opcode == OP_GREATERTHANOREQUAL:
+		bn = long(bn1 >= bn2)
+
+	elif opcode == OP_MIN:
+		if bn1 < bn2:
+			bn = bn1
+		else:
+			bn = bn2
+
+	elif opcode == OP_MAX:
+		if bn1 > bn2:
+			bn = bn1
+		else:
+			bn = bn2
+
+	else:
+		return False			# unknown binop opcode
+
+	stack.append(bn2vch(bn))
+
+	if opcode == OP_NUMEQUALVERIFY:
+		if CastToBool(stack[-1]):
+			stack.pop()
+		else:
+			return False
+	
+	return True
+
 def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 	script = CScript(scriptIn)
 	while script.pc < script.pend:
@@ -153,6 +235,10 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 		elif sop.op == OP_1NEGATE or ((sop.op >= OP_1) and (sop.op <= OP_16)):
 			v = sop.op - (OP_1 - 1)
 			stack.append(bn2vch(v))
+
+		elif sop.op in ISA_BINOP:
+			if not BinOp(sop.op, stack):
+				return False
 
 		elif sop.op == OP_2OVER:
 			if len(stack) < 4:
