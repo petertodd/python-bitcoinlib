@@ -19,12 +19,12 @@ from bitcoin.scripteval import *
 
 NET_SETTINGS = {
 	'mainnet' : {
-		'log' : '/tmp/testscript.log',
-		'db' : '/tmp/chaindb'
+		'log' : '/spare/tmp/testscript.log',
+		'db' : '/spare/tmp/chaindb'
 	},
 	'testnet3' : {
-		'log' : '/tmp/testtestscript.log',
-		'db' : '/tmp/chaintest'
+		'log' : '/spare/tmp/testtestscript.log',
+		'db' : '/spare/tmp/chaintest'
 	}
 }
 
@@ -32,9 +32,23 @@ MY_NETWORK='mainnet'
 
 SETTINGS = NET_SETTINGS[MY_NETWORK]
 
+start_height = 0
+end_height = -1
+if len(sys.argv) > 1:
+	start_height = int(sys.argv[1])
+if len(sys.argv) > 2:
+	end_height = int(sys.argv[2])
+if len(sys.argv) > 3:
+	SETTINGS['log'] = sys.argv[3]
+
 log = Log.Log(SETTINGS['log'])
 mempool = MemPool.MemPool(log)
-chaindb = ChainDb.ChainDb(SETTINGS['db'], log, mempool, NETWORKS[MY_NETWORK])
+chaindb = ChainDb.ChainDb(SETTINGS['db'], log, mempool,
+			  NETWORKS[MY_NETWORK], True)
+chaindb.blk_cache.max = 500
+
+if end_height < 0 or end_height > chaindb.getheight():
+	end_height = chaindb.getheight()
 
 scanned = 0
 scanned_tx = 0
@@ -56,7 +70,9 @@ def scan_tx(tx):
 			return False
 	return True
 
-for height in xrange(chaindb.getheight()):
+for height in xrange(end_height):
+	if height < start_height:
+		continue
 	heightidx = ChainDb.HeightIdx()
 	heightidx.deserialize(chaindb.height[str(height)])
 
