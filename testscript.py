@@ -43,16 +43,16 @@ opcount = {}
 
 def scan_tx(tx):
 	tx.calc_sha256()
-#	print "...Scanning TX %064x" % (tx.sha256,)
+#	log.write("...Scanning TX %064x" % (tx.sha256,))
 	for i in xrange(len(tx.vin)):
 		txin = tx.vin[i]
 		txfrom = chaindb.gettx(txin.prevout.hash)
 		if not VerifySignature(txfrom, tx, i, 0):
-			print "TX %064x/%d failed" % (tx.sha256, i)
-			print "FROMTX %064x" % (txfrom.sha256,)
-			print txfrom
-			print "TOTX %064x" % (tx.sha256,)
-			print tx
+			log.write("TX %064x/%d failed" % (tx.sha256, i))
+			log.write("FROMTX %064x" % (txfrom.sha256,))
+			log.write(txfrom.__repr__())
+			log.write("TOTX %064x" % (tx.sha256,))
+			log.write(tx.__repr__())
 			return False
 	return True
 
@@ -79,11 +79,13 @@ for height in xrange(chaindb.getheight()):
 
 	scanned += 1
 #	if (scanned % 1000) == 0:
-	print "Scanned %d tx, height %d (%d failures)" % (scanned_tx, height, failures)
+	log.write("Scanned %d tx, height %d (%d failures)" % (
+		scanned_tx, height, failures))
 
 
-print "Scanned %d tx, %d blocks (%d failures)" % (scanned_tx, scanned, failures)
+log.write("Scanned %d tx, %d blocks (%d failures)" % (
+	scanned_tx, scanned, failures))
 
-for k,v in opcount.iteritems():
-	print k, v
+#for k,v in opcount.iteritems():
+#	print k, v
 
