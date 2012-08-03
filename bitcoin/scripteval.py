@@ -73,6 +73,66 @@ def CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
 		return False
 	return key.verify(ser_uint256(tup[0]), sig)
 
+def CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
+	i = 1
+	if len(stack) < i:
+		return False
+	
+	keys_count = CastToBigNum(stack[-i])
+	if keys_count < 0 or keys_count > 20:
+		return False
+	i += 1
+	ikey = i
+	i += keys_count
+	if len(stack) < i:
+		return False
+
+	sigs_count = CastToBigNum(stack[-i])
+	if sigs_count < 0 or sigs_count > keys_count:
+		return False
+	i += 1
+	isig = i
+	i += sigs_count
+	if len(stack) < i:
+		return False
+
+	for k in xrange(sigs_count):
+		sig = stack[-isig-k]
+		# FIXME: find-and-delete sig in script
+
+	success = True
+
+	while success and sigs_count > 0:
+		sig = stack[-isig]
+		pubkey = stack[-ikey]
+
+		if CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
+			isig += 1
+			sigs_count -= 1
+
+		ikey += 1
+		keys_count -= 1
+
+		if sigs_count > keys_count:
+			success = False
+
+	while i > 0:
+		stack.pop()
+		i -= 1
+
+	if success:
+		stack.append("\x01")
+	else:
+		stack.append("\x00")
+
+	if opcode == OP_CHECKMULTISIGVERIFY:
+		if success:
+			stack.pop()
+		else:
+			return False
+
+	return True
+
 def dumpstack(msg, stack):
 	print "%s stacksz %d" % (msg, len(stack))
 	for i in xrange(len(stack)):
@@ -112,6 +172,13 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 			tmp = stack[-3]
 			stack[-3] = stack[-1]
 			stack[-1] = tmp
+
+		elif sop.op == OP_CHECKMULTISIG or sop.op == OP_CHECKMULTISIGVERIFY:
+			tmpScript = CScript(script.vch[script.pbegincodehash:script.pend])
+			ok = CheckMultiSig(sop.op, tmpScript, stack, txTo,
+					   inIdx, hashtype)
+			if not ok:
+				return False
 
 		elif sop.op == OP_CHECKSIG or sop.op == OP_CHECKSIGVERIFY:
 			if len(stack) < 2:
@@ -209,7 +276,7 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 
 def CastToBigNum(s):
 	v = vch2bn(s)
-	return bn2vch(v)
+	return v
 
 def CastToBool(s):
 	for i in xrange(len(s)):
