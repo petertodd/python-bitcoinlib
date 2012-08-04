@@ -8,6 +8,7 @@
 
 
 import sys
+import time
 import Log
 import MemPool
 import ChainDb
@@ -55,8 +56,20 @@ scanned_tx = 0
 failures = 0
 opcount = {}
 
+SKIP_TX = {
+  # testnet3 transactions
+  0x9aa3a5a6d9b7d1ac9555be8e42596d06686cc5f76d259b06c560a207d310d5f5L : True,
+  0xc5d4b73af6eed28798473b05d2b227edd4f285069629843e899b52c2d1c165b7L : True,
+  0xe335562f7e297aadeed88e5954bc4eeb8dc00b31d829eedb232e39d672b0c009L : True,
+  0x74ea059a63c7ebddaee6805e1560b15c937d99a9ee9745412cbc6d2a0a5f5305L : True,
+}
+
 def scan_tx(tx):
 	tx.calc_sha256()
+
+	if tx.sha256 in SKIP_TX:
+		return True
+
 #	log.write("...Scanning TX %064x" % (tx.sha256,))
 	for i in xrange(len(tx.vin)):
 		txin = tx.vin[i]
@@ -83,6 +96,8 @@ for height in xrange(end_height):
 	block = CBlock()
 	block.deserialize(f)
 
+	start_time = time.time()
+
 	for tx in block.vtx:
 		if tx.is_coinbase():
 			continue
@@ -93,10 +108,12 @@ for height in xrange(end_height):
 			failures += 1
 			sys.exit(1)
 
+	end_time = time.time()
+
 	scanned += 1
 #	if (scanned % 1000) == 0:
-	log.write("Scanned %d tx, height %d (%d failures)" % (
-		scanned_tx, height, failures))
+	log.write("Scanned %d tx, height %d (%d failures), %.2f sec" % (
+		scanned_tx, height, failures, end_time - start_time))
 
 
 log.write("Scanned %d tx, %d blocks (%d failures)" % (
