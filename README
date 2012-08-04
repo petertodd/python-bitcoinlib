@@ -1,6 +1,7 @@
 
-This python script (node.py) is a client node for the bitcoin network.
-It is based on ArtForz' half-a-node at http://pastebin.com/ZSM7iHZw
+This python script (node.py) is a client node for the bitcoin
+network.  It is based on ArtForz' public domain half-a-node at
+http://pastebin.com/ZSM7iHZw
 
 In its current form, node.py does nothing more than listen for new
 transactions and blocks, perform some simple verification checks on
