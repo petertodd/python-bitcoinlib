@@ -417,12 +417,22 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 				return False
 			stack.append(ser_uint160(Hash160(stack.pop())))
 
+		elif sop.op == OP_HASH256:
+			if len(stack) < 1:
+				return False
+			stack.append(ser_uint256(Hash(stack.pop())))
+
 		elif sop.op == OP_IFDUP:
 			if len(stack) < 1:
 				return False
 			vch = stack[-1]
 			if CastToBool(vch):
 				stack.append(vch)
+
+		elif sop.op == OP_NIP:
+			if len(stack) < 2:
+				return False
+			del stack[-2]
 
 		elif sop.op == OP_NOP or (sop.op >= OP_NOP1 and sop.op <= OP_NOP10):
 			pass
@@ -431,6 +441,17 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 			if len(stack) < 2:
 				return False
 			vch = stack[-2]
+			stack.append(vch)
+
+		elif sop.op == OP_PICK or sop.op == OP_ROLL:
+			if len(stack) < 2:
+				return False
+			n = CastToBigNum(stack.pop())
+			if n < 0 or n >= len(stack):
+				return False
+			vch = stack[-n-1]
+			if sop.op == OP_ROLL:
+				del stack[-n-1]
 			stack.append(vch)
 
 		elif sop.op == OP_RETURN:
