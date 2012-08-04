@@ -30,6 +30,7 @@ MY_SUBVERSION = "/pynode:0.0.1/"
 settings = {}
 debugnet = False
 
+
 def verbose_sendmsg(message):
 	if debugnet:
 		return True
@@ -66,6 +67,7 @@ class NodeConn(asyncore.dispatcher):
 		"pong": msg_pong,
 		"mempool": msg_mempool
 	}
+
 	def __init__(self, dstaddr, dstport, log, mempool, chaindb, netmagic):
 		asyncore.dispatcher.__init__(self)
 		self.log = log
@@ -103,6 +105,7 @@ class NodeConn(asyncore.dispatcher):
 			self.connect((dstaddr, dstport))
 		except:
 			self.handle_close()
+
 	def handle_connect(self):
 		self.log.write("connected")
 		self.state = "connected"
@@ -113,6 +116,7 @@ class NodeConn(asyncore.dispatcher):
 #		t.addrFrom.ip = "0.0.0.0"
 #		t.addrFrom.port = 0
 #		self.send_message(t)
+
 	def handle_close(self):
 		self.log.write("close")
 		self.state = "closed"
@@ -122,6 +126,7 @@ class NodeConn(asyncore.dispatcher):
 			self.close()
 		except:
 			pass
+
 	def handle_read(self):
 		try:
 			t = self.recv(8192)
@@ -133,10 +138,13 @@ class NodeConn(asyncore.dispatcher):
 			return
 		self.recvbuf += t
 		self.got_data()
+
 	def readable(self):
 		return True
+
 	def writable(self):
 		return (len(self.sendbuf) > 0)
+
 	def handle_write(self):
 		try:
 			sent = self.send(self.sendbuf)
@@ -144,6 +152,7 @@ class NodeConn(asyncore.dispatcher):
 			self.handle_close()
 			return
 		self.sendbuf = self.sendbuf[sent:]
+
 	def got_data(self):
 		while True:
 			if len(self.recvbuf) < 4:
@@ -172,6 +181,7 @@ class NodeConn(asyncore.dispatcher):
 				self.got_message(t)
 			else:
 				self.log.write("UNKNOWN COMMAND %s %s" % (command, repr(msg)))
+
 	def send_message(self, message, pushbuf=False):
 		if self.state != "connected" and not pushbuf:
 			return
@@ -224,7 +234,7 @@ class NodeConn(asyncore.dispatcher):
 		if verbose_recvmsg(message):
 			self.log.write("recv %s" % repr(message))
 
-		if message.command  == "version":
+		if message.command == "version":
 			self.ver_send = min(PROTO_VERSION, message.nVersion)
 			if self.ver_send < MIN_PROTO_VERSION:
 				self.log.write("Obsolete version %d, closing" % (self.ver_send,))

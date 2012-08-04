@@ -8,6 +8,7 @@
 
 from bitcoin.serialize import uint256_to_shortstr
 
+
 class MemPool(object):
 	def __init__(self, log):
 		self.pool = {}

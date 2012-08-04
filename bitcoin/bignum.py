@@ -8,6 +8,7 @@
 
 import struct
 
+
 # generic big endian MPI format
 
 def bn_bytes(v, have_ext=False):
@@ -92,5 +93,4 @@ def vch2mpi(s):
 
 def vch2bn(s):
 	return mpi2bn(vch2mpi(s))
-
 

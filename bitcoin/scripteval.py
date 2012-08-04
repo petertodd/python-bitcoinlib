@@ -16,7 +16,7 @@ from bignum import bn2vch, vch2bn
 
 def SignatureHash(script, txTo, inIdx, hashtype):
 	if inIdx >= len(txTo.vin):
-		return (0L, "inIdx %d out of range (%d)" % (inIdx,len(txTo.vin)))
+		return (0L, "inIdx %d out of range (%d)" % (inIdx, len(txTo.vin)))
 	txtmp = copy.deepcopy(txTo)
 	for txin in txtmp.vin:
 		txin.scriptSig = ''
@@ -32,7 +32,7 @@ def SignatureHash(script, txTo, inIdx, hashtype):
 	elif (hashtype & 0x1f) == SIGHASH_SINGLE:
 		outIdx = inIdx
 		if outIdx >= len(txtmp.vout):
-			return (0L, "outIdx %d out of range (%d)" % (outIdx,len(txtmp.vout)))
+			return (0L, "outIdx %d out of range (%d)" % (outIdx, len(txtmp.vout)))
 
 		tmp = txtmp.vout[outIdx]
 		txtmp.vout = []

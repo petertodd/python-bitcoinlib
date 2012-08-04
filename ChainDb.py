@@ -14,24 +14,29 @@ from Cache import Cache
 from bitcoin.serialize import *
 from bitcoin.core import *
 
+
 class TxIdx(object):
 	def __init__(self, blkhash=0L, spentmask=0L):
 		self.blkhash = blkhash
 		self.spentmask = spentmask
 
+
 class BlkMeta(object):
 	def __init__(self):
 		self.height = -1
 		self.work = 0L
+
 	def deserialize(self, s):
 		l = s.split()
 		if len(l) < 2:
 			raise RuntimeError
 		self.height = int(l[0])
 		self.work = long(l[1], 16)
+
 	def serialize(self):
 		r = str(self.height) + ' ' + hex(self.work)
 		return r
+
 	def __repr__(self):
 		return "BlkMeta(height %d, work %x)" % (self.height, self.work)
 
@@ -39,17 +44,20 @@ class BlkMeta(object):
 class HeightIdx(object):
 	def __init__(self):
 		self.blocks = []
+
 	def deserialize(self, s):
 		self.blocks = []
 		l = s.split()
 		for hashstr in l:
 			hash = long(hashstr, 16)
 			self.blocks.append(hash)
+
 	def serialize(self):
 		l = []
 		for blkhash in self.blocks:
 			l.append(hex(blkhash))
 		return ' '.join(l)
+
 	def __repr__(self):
 		return "HeightIdx(blocks=%s)" % (self.serialize(),)
 
@@ -342,6 +350,7 @@ class ChainDb(object):
 
 	def getheight(self):
 		return int(self.misc['height'])
+
 	def gettophash(self):
 		return uint256_from_str(self.misc['tophash'])
 

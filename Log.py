@@ -8,6 +8,7 @@
 
 import sys
 
+
 class Log(object):
 	def __init__(self, filename=None):
 		if filename is not None:
