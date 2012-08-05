@@ -7,7 +7,9 @@ In its current form, node.py does nothing more than listen for new
 transactions and blocks, perform some simple verification checks on
 the data, and store them in a database.  It does not handle script
 verification or chain reorg, and is therefore not safe for general use.
-See BUGS and TODO files.
+See BUGS and TODO files.  A simple HTTP server for JSON-RPC API calls
+is also included.  Send the "help" RPC call for a list of supported
+commands.
 
 It might be useful as the base for a P2P monitoring node, or similar
 tasks.
@@ -24,8 +26,12 @@ The configuration file is a key=value text file, with the following settings:
 	# port of network node to connect to (default: 8333)
 	port=8333
 
-	# Incoming (listen) port, for JSON-RPC requests (default: 9332)
-	port=9332
+	# JSON-RPC server user, password.  Uses HTTP Basic authentication.
+	rpcuser=XXXX
+	rpcpass=YYYY
+
+	# JSON-RPC server incoming TCP port (default: 9332)
+	rpcport=9332
 
 	# database directory
 	db=/tmp/chaindb

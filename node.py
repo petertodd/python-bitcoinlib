@@ -17,6 +17,8 @@ import random
 import cStringIO
 import copy
 import json
+import re
+import base64
 from Crypto.Hash import SHA256
 
 import ChainDb
@@ -435,6 +437,13 @@ class RPCExec(object):
 		self.mempool = mempool
 		self.chaindb = chaindb
 
+	def help(self, params):
+		l = []
+		l.append("Available RPC calls:")
+		l.append("getrawmempool - list mempool contents")
+		l.append("getinfo - misc. node info")
+		return (l, None)
+
 	def getrawmempool(self, params):
 		l = []
 		for k in self.mempool.pool.iterkeys():
@@ -458,11 +467,42 @@ class RPCRequestHandler(rpcsrv.RequestHandler):
 	def do_GET(self):
 		self.send_error(501, "Unsupported method (%s)" %self.command)
 	
+	def check_auth(self):
+		hdr = self.headers.getheader('authorization')
+		if hdr is None:
+			return None
+
+		m = re.search('\s*(\w+)\s+(\S+)', hdr)
+		if m is None or m.group(0) is None:
+			return None
+		if m.group(1) != 'Basic':
+			return None
+
+		unpw = base64.b64decode(m.group(2))
+		if unpw is None:
+			return None
+
+		m = re.search('^([^:]+):(.*)$', unpw)
+		if m is None:
+			return None
+
+		un = m.group(1)
+		pw = m.group(2)
+		if (un != settings['rpcuser'] or
+		    pw != settings['rpcpass']):
+			return None
+
+		return un
+
 	def handle_data(self):
 		if self.path != '/':
 			self.send_error(404, "Path not found")
 			return
-		print "BODY", type(self.body), self.body
+		username = self.check_auth()
+		if username is None:
+			self.send_error(401, "Forbidden")
+			return
+
 		try:
 			rpcreq = json.loads(self.body)
 		except ValueError:
@@ -508,6 +548,8 @@ class RPCRequestHandler(rpcsrv.RequestHandler):
 			return self.rpc.getrawmempool(params)
 		elif method == 'getinfo':
 			return self.rpc.getinfo(params)
+		elif method == 'help':
+			return self.rpc.help(params)
 		return (None, {"code":-32601, "message":"method not found"})
 
 if __name__ == '__main__':
@@ -536,6 +578,11 @@ if __name__ == '__main__':
 	chain = settings['chain']
 	if 'log' not in settings or (settings['log'] == '-'):
 		settings['log'] = None
+
+	if ('rpcuser' not in settings or
+	    'rpcpass' not in settings):
+		print "You must set the following in config: rpcuser, rpcpass"
+		sys.exit(1)
 
 	settings['port'] = int(settings['port'])
 	settings['rpcport'] = int(settings['rpcport'])
