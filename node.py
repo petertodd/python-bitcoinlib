@@ -16,11 +16,13 @@ import re
 import random
 import cStringIO
 import copy
+import json
 from Crypto.Hash import SHA256
 
 import ChainDb
 import MemPool
 import Log
+import rpcsrv
 from bitcoin.core import *
 from bitcoin.serialize import *
 from bitcoin.messages import *
@@ -428,6 +430,58 @@ class NodeConn(asyncore.dispatcher):
 
 		self.send_message(msg)
 
+class RPCRequestHandler(rpcsrv.RequestHandler):
+	def do_GET(self):
+		self.send_error(501, "Unsupported method (%s)" %self.command)
+	
+	def handle_data(self):
+		if self.path != '/':
+			self.send_error(404, "Path not found")
+			return
+		print "BODY", type(self.body), self.body
+		try:
+			rpcreq = json.loads(self.body)
+		except ValueError:
+			self.send_error(400, "Unable to decode JSON data")
+			return
+		if isinstance(rpcreq, dict):
+			if not self.handle_rpc(rpcreq):
+				self.send_error(400, "Invalid JSON-RPC request")
+		else:
+			self.send_error(400, "Not a valid JSON-RPC request")
+
+	def handle_rpc(self, rpcreq):
+		if 'method' not in rpcreq:
+			return False
+		if ('params' not in rpcreq or
+		    not isinstance(rpcreq['params'], list)):
+			return False
+		id = None
+		if 'id' in rpcreq:
+			id = rpcreq['id']
+
+		(res, err) = self.jsonrpc(rpcreq['method'], rpcreq['params'])
+
+		if err is None:
+			resp = { "result" : res, "error" : None, "id" : id }
+		else:
+			resp = { "error" : err, "id" : id }
+
+		respstr = json.dumps(resp)
+
+		self.send_response(200)
+		self.send_header("Content-type", "application/json")
+		self.send_header("Content-length", len(respstr))
+		self.end_headers()
+		self.log_request(self.code, len(respstr))
+		self.outgoing.append(respstr)
+		self.outgoing.append(None)
+
+		return True
+
+	def jsonrpc(self, method, params):
+		return (None, {"code":-32601, "message":"method not found"})
+
 if __name__ == '__main__':
 	if len(sys.argv) != 2:
 		print "Usage: node.py CONFIG-FILE"
@@ -445,6 +499,8 @@ if __name__ == '__main__':
 		settings['host'] = '127.0.0.1'
 	if 'port' not in settings:
 		settings['port'] = 8333
+	if 'rpcport' not in settings:
+		settings['rpcport'] = 9332
 	if 'db' not in settings:
 		settings['db'] = '/tmp/chaindb'
 	if 'chain' not in settings:
@@ -454,6 +510,7 @@ if __name__ == '__main__':
 		settings['log'] = None
 
 	settings['port'] = int(settings['port'])
+	settings['rpcport'] = int(settings['rpcport'])
 
 	log = Log.Log(settings['log'])
 
@@ -473,5 +530,6 @@ if __name__ == '__main__':
 
 	c = NodeConn(settings['host'], settings['port'], log, mempool, chaindb,
 		     netmagic)
+	s = rpcsrv.Server('', settings['rpcport'], RPCRequestHandler)
 	asyncore.loop()
 

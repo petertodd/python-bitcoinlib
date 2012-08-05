@@ -24,6 +24,9 @@ The configuration file is a key=value text file, with the following settings:
 	# port of network node to connect to (default: 8333)
 	port=8333
 
+	# Incoming (listen) port, for JSON-RPC requests (default: 9332)
+	port=9332
+
 	# database directory
 	db=/tmp/chaindb
 
