@@ -160,7 +160,9 @@ class RPCRequestHandler(httpsrv.RequestHandler):
 		id = None
 		if 'id' in rpcreq:
 			id = rpcreq['id']
-		if 'method' not in rpcreq:
+		if ('method' not in rpcreq or
+		    (not isinstance(rpcreq['method'], str) and
+		     not isinstance(rpcreq['method'], unicode))):
 			resp = { "id" : id, "error" :
 				  { "code" : -1,
 				    "message" : "method not specified" } }
