@@ -509,20 +509,27 @@ class RPCRequestHandler(rpcsrv.RequestHandler):
 			self.send_error(400, "Unable to decode JSON data")
 			return
 		if isinstance(rpcreq, dict):
-			if not self.handle_rpc(rpcreq):
-				self.send_error(400, "Invalid JSON-RPC request")
+			self.handle_rpc_singleton(rpcreq)
+		elif isinstance(rpcreq, list):
+			self.handle_rpc_batch(rpcreq)
 		else:
 			self.send_error(400, "Not a valid JSON-RPC request")
 
 	def handle_rpc(self, rpcreq):
-		if 'method' not in rpcreq:
-			return False
-		if ('params' not in rpcreq or
-		    not isinstance(rpcreq['params'], list)):
-			return False
 		id = None
 		if 'id' in rpcreq:
 			id = rpcreq['id']
+		if 'method' not in rpcreq:
+			resp = { "id" : id, "error" :
+				  { "code" : -1,
+				    "message" : "method not specified" } }
+			return resp
+		if ('params' not in rpcreq or
+		    not isinstance(rpcreq['params'], list)):
+			resp = { "id" : id, "error" :
+				  { "code" : -2,
+				    "message" : "invalid/missing params" } }
+			return resp
 
 		(res, err) = self.jsonrpc(rpcreq['method'], rpcreq['params'])
 
@@ -531,6 +538,9 @@ class RPCRequestHandler(rpcsrv.RequestHandler):
 		else:
 			resp = { "error" : err, "id" : id }
 
+		return resp
+
+	def json_response(self, resp):
 		respstr = json.dumps(resp)
 
 		self.send_response(200)
@@ -541,7 +551,16 @@ class RPCRequestHandler(rpcsrv.RequestHandler):
 		self.outgoing.append(respstr)
 		self.outgoing.append(None)
 
-		return True
+	def handle_rpc_singleton(self, rpcreq):
+		resp = self.handle_rpc(rpcreq)
+		self.json_response(resp)
+
+	def handle_rpc_batch(self, rpcreq_list):
+		res = []
+		for rpcreq in rpcreq_list:
+			resp = self.handle_rpc(rpcreq)
+			res.append(resp)
+		self.json_response(res)
 
 	def jsonrpc(self, method, params):
 		if method == 'getrawmempool':
