@@ -432,6 +432,16 @@ class NodeConn(asyncore.dispatcher):
 
 		self.send_message(msg)
 
+VALID_RPCS = {
+	"getblockcount" : True,
+	"getblockhash" : True,
+	"getconnectioncount" : True,
+	"getinfo" : True,
+	"getrawmempool" : True,
+	"getrawtransaction" : True,
+	"help" : True,
+}
+
 class RPCExec(object):
 	def __init__(self, mempool, chaindb):
 		self.mempool = mempool
@@ -472,6 +482,7 @@ class RPCExec(object):
 
 	def getinfo(self, params):
 		d = {}
+		d['protocolversion'] = PROTO_VERSION
 		d['blocks'] = self.chaindb.getheight()
 		if self.chaindb.netmagic.block0 == 0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26fL:
 			d['testnet'] = False
@@ -609,21 +620,11 @@ class RPCRequestHandler(rpcsrv.RequestHandler):
 		self.json_response(res)
 
 	def jsonrpc(self, method, params):
-		if method == 'getblockcount':
-			return self.rpc.getblockcount(params)
-		elif method == 'getblockhash':
-			return self.rpc.getblockhash(params)
-		elif method == 'getconnectioncount':
-			return self.rpc.getconnectioncount(params)
-		elif method == 'getinfo':
-			return self.rpc.getinfo(params)
-		elif method == 'getrawmempool':
-			return self.rpc.getrawmempool(params)
-		elif method == 'getrawtransaction':
-			return self.rpc.getrawtransaction(params)
-		elif method == 'help':
-			return self.rpc.help(params)
-		return (None, {"code":-32601, "message":"method not found"})
+		if method not in VALID_RPCS:
+			return (None, {"code":-32601,
+					"message":"method not found"})
+		rpcfunc = getattr(self.rpc, method)
+		return rpcfunc(params)
 
 if __name__ == '__main__':
 	if len(sys.argv) != 2:
