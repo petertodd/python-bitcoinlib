@@ -438,17 +438,37 @@ class RPCExec(object):
 		self.chaindb = chaindb
 
 	def help(self, params):
-		l = []
-		l.append("Available RPC calls:")
-		l.append("getrawmempool - list mempool contents")
-		l.append("getinfo - misc. node info")
-		return (l, None)
+		s = "Available RPC calls:\n"
+		s += "getblockcount - number of blocks in the longest block chain\n"
+		s += "getblockhash <index> - Returns hash of block in best-block-chain at <index>\n"
+		s += "getconnectioncount - get P2P peer count\n"
+		s += "getinfo - misc. node info\n"
+		s += "getrawmempool - list mempool contents\n"
+		s += "getrawtransaction <txid> - Get serialized bytes for transaction <txid>\n"
+		return (s, None)
 
-	def getrawmempool(self, params):
-		l = []
-		for k in self.mempool.pool.iterkeys():
-			l.append("%064x" % (k,))
-		return (l, None)
+	def getblockcount(self, params):
+		return (self.chaindb.getheight(), None)
+	
+	def getblockhash(self, params):
+		err = { "code" : -1, "message" : "invalid params" }
+		if (len(params) != 1 or
+		    not isinstance(params[0], int)):
+			return (None, err)
+
+		index = params[0]
+		heightstr = str(index)
+		if heightstr not in chaindb.height:
+			err = { "code" : -2, "message" : "invalid height" }
+			return (None, err)
+
+		heightidx = ChainDb.HeightIdx()
+		heightidx.deserialize(chaindb.height[str(index)])
+
+		return ("%064x" % (heightidx.blocks[0],), None)
+
+	def getconnectioncount(self, params):
+		return (1, None)
 
 	def getinfo(self, params):
 		d = {}
@@ -458,6 +478,33 @@ class RPCExec(object):
 		else:
 			d['testnet'] = True
 		return (d, None)
+
+	def getrawmempool(self, params):
+		l = []
+		for k in self.mempool.pool.iterkeys():
+			l.append("%064x" % (k,))
+		return (l, None)
+
+	def getrawtransaction(self, params):
+		print "PARAMS", params
+		err = { "code" : -1, "message" : "invalid params" }
+		if (len(params) != 1 or
+		    (not isinstance(params[0], str) and
+		     not isinstance(params[0], unicode))):
+			return (None, err)
+		m = re.search('\s*([\dA-Fa-f]+)\s*', params[0])
+		if m is None:
+			err = { "code" : -1, "message" : "invalid txid param" }
+			return (None, err)
+
+		txhash = long(m.group(1), 16)
+		tx = self.chaindb.gettx(txhash)
+		if tx is None:
+			err = { "code" : -3, "message" : "txid not found" }
+			return (None, err)
+
+		ser_tx = tx.serialize()
+		return (ser_tx.encode('hex'), None)
 
 class RPCRequestHandler(rpcsrv.RequestHandler):
 	def __init__(self, conn, addr, server, privdata):
@@ -563,10 +610,18 @@ class RPCRequestHandler(rpcsrv.RequestHandler):
 		self.json_response(res)
 
 	def jsonrpc(self, method, params):
-		if method == 'getrawmempool':
-			return self.rpc.getrawmempool(params)
+		if method == 'getblockcount':
+			return self.rpc.getblockcount(params)
+		elif method == 'getblockhash':
+			return self.rpc.getblockhash(params)
+		elif method == 'getconnectioncount':
+			return self.rpc.getconnectioncount(params)
 		elif method == 'getinfo':
 			return self.rpc.getinfo(params)
+		elif method == 'getrawmempool':
+			return self.rpc.getrawmempool(params)
+		elif method == 'getrawtransaction':
+			return self.rpc.getrawtransaction(params)
 		elif method == 'help':
 			return self.rpc.help(params)
 		return (None, {"code":-32601, "message":"method not found"})
