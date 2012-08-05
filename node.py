@@ -486,7 +486,6 @@ class RPCExec(object):
 		return (l, None)
 
 	def getrawtransaction(self, params):
-		print "PARAMS", params
 		err = { "code" : -1, "message" : "invalid params" }
 		if (len(params) != 1 or
 		    (not isinstance(params[0], str) and
