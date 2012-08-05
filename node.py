@@ -430,7 +430,31 @@ class NodeConn(asyncore.dispatcher):
 
 		self.send_message(msg)
 
+class RPCExec(object):
+	def __init__(self, mempool, chaindb):
+		self.mempool = mempool
+		self.chaindb = chaindb
+
+	def getrawmempool(self, params):
+		l = []
+		for k in self.mempool.pool.iterkeys():
+			l.append("%064x" % (k,))
+		return (l, None)
+
+	def getinfo(self, params):
+		d = {}
+		d['blocks'] = self.chaindb.getheight()
+		if self.chaindb.netmagic.block0 == 0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26fL:
+			d['testnet'] = False
+		else:
+			d['testnet'] = True
+		return (d, None)
+
 class RPCRequestHandler(rpcsrv.RequestHandler):
+	def __init__(self, conn, addr, server, privdata):
+		rpcsrv.RequestHandler.__init__(self, conn, addr, server)
+		self.rpc = RPCExec(privdata[0], privdata[1])
+
 	def do_GET(self):
 		self.send_error(501, "Unsupported method (%s)" %self.command)
 	
@@ -480,6 +504,10 @@ class RPCRequestHandler(rpcsrv.RequestHandler):
 		return True
 
 	def jsonrpc(self, method, params):
+		if method == 'getrawmempool':
+			return self.rpc.getrawmempool(params)
+		elif method == 'getinfo':
+			return self.rpc.getinfo(params)
 		return (None, {"code":-32601, "message":"method not found"})
 
 if __name__ == '__main__':
@@ -530,6 +558,7 @@ if __name__ == '__main__':
 
 	c = NodeConn(settings['host'], settings['port'], log, mempool, chaindb,
 		     netmagic)
-	s = rpcsrv.Server('', settings['rpcport'], RPCRequestHandler)
+	s = rpcsrv.Server('', settings['rpcport'], RPCRequestHandler,
+			  (mempool, chaindb))
 	asyncore.loop()
 
