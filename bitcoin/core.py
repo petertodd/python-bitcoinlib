@@ -90,6 +90,9 @@ class COutPoint(object):
 		return r
 	def is_null(self):
 		return ((self.hash == 0) and (self.n == 0xffffffff))
+	def copy(self, old_outpt):
+		self.hash = old_outpt.hash
+		self.n = old_outpt.n
 	def __repr__(self):
 		return "COutPoint(hash=%064x n=%i)" % (self.hash, self.n)
 
@@ -114,6 +117,11 @@ class CTxIn(object):
 		if not script.tokenize(self.scriptSig):
 			return False
 		return True
+	def copy(self, old_txin):
+		self.prevout = COutPoint()
+		self.prevout.copy(old_txin.prevout)
+		self.scriptSig = old_txin.scriptSig
+		self.nSequence = old_txin.nSequence
 	def __repr__(self):
 		return "CTxIn(prevout=%s scriptSig=%s nSequence=%i)" % (repr(self.prevout), binascii.hexlify(self.scriptSig), self.nSequence)
 
@@ -136,6 +144,9 @@ class CTxOut(object):
 		if not script.tokenize(self.scriptPubKey):
 			return False
 		return True
+	def copy(self, old_txout):
+		self.nValue = old_txout.nValue
+		self.scriptPubKey = old_txout.scriptPubKey
 	def __repr__(self):
 		return "CTxOut(nValue=%i.%08i scriptPubKey=%s)" % (self.nValue // 100000000, self.nValue % 100000000, binascii.hexlify(self.scriptPubKey))
 
@@ -173,6 +184,24 @@ class CTransaction(object):
 		return True
 	def is_coinbase(self):
 		return len(self.vin) == 1 and self.vin[0].prevout.is_null()
+
+	def copy(self, old_tx):
+		self.nVersion = old_tx.nVersion
+		self.vin = []
+		self.vout = []
+		self.nLockTime = old_tx.nLockTime
+		self.sha256 = None
+
+		for old_txin in old_tx.vin:
+			txin = CTxIn()
+			txin.copy(old_txin)
+			self.vin.append(txin)
+
+		for old_txout in old_tx.vout:
+			txout = CTxOut()
+			txout.copy(old_txout)
+			self.vout.append(txout)
+
 	def __repr__(self):
 		return "CTransaction(nVersion=%i vin=%s vout=%s nLockTime=%i)" % (self.nVersion, repr(self.vin), repr(self.vout), self.nLockTime)
 

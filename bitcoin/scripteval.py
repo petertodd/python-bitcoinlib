@@ -6,18 +6,19 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
 
-import copy
 from serialize import Hash, Hash160, ser_uint256, ser_uint160
 from Crypto.Hash import SHA256
 from script import *
-from core import CTxOut
+from core import CTxOut, CTransaction
 from key import CKey
 from bignum import bn2vch, vch2bn
 
 def SignatureHash(script, txTo, inIdx, hashtype):
 	if inIdx >= len(txTo.vin):
 		return (0L, "inIdx %d out of range (%d)" % (inIdx, len(txTo.vin)))
-	txtmp = copy.deepcopy(txTo)
+	txtmp = CTransaction()
+	txtmp.copy(txTo)
+
 	for txin in txtmp.vin:
 		txin.scriptSig = ''
 	txtmp.vin[inIdx].scriptSig = script.vch
