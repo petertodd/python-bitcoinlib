@@ -5,7 +5,7 @@ multiple peer support; do something useful with CAddresses
 
 incoming peer support
 
-script verification
+integrate script verification with node.py
 
 chain reorg
 

@@ -1,11 +1,13 @@
 
-- Script verification not implemented (cannot verf mainnet)
-
-- Many script opcodes not implemented (cannot verf testnet3)
+- Script engine exists, but is not yet integrated with node.py
 
 - Does not support chain reorg, and will get stuck on an orphan
-  chain, if one occurs.
+  chain, if one occurs.  Workaround:  Restore from backup, or
+  delete *.dat and download the block chain again.
 
 - Appears to have difficulty talking to nodes with protocol versions
   between 40000 and 50001, inclusive.
+
+- Truncated or corrupted serialization may crash the program...
+  must test and see which exceptions are thrown.
 
