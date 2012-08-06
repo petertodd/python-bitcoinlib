@@ -16,7 +16,8 @@ import cStringIO
 
 from bitcoin.coredefs import NETWORKS
 from bitcoin.core import CBlock
-from bitcoin.scripteval import *
+from bitcoin.serialize import ser_uint256
+from bitcoin.scripteval import VerifySignature
 
 NET_SETTINGS = {
 	'mainnet' : {
@@ -29,7 +30,7 @@ NET_SETTINGS = {
 	}
 }
 
-MY_NETWORK='mainnet'
+MY_NETWORK = 'mainnet'
 
 SETTINGS = NET_SETTINGS[MY_NETWORK]
 
@@ -63,6 +64,7 @@ SKIP_TX = {
   0xe335562f7e297aadeed88e5954bc4eeb8dc00b31d829eedb232e39d672b0c009L : True,
   0x74ea059a63c7ebddaee6805e1560b15c937d99a9ee9745412cbc6d2a0a5f5305L : True,
 }
+
 
 def scan_tx(tx):
 	tx.calc_sha256()
@@ -98,13 +100,13 @@ for height in xrange(end_height):
 
 	start_time = time.time()
 
-	for tx in block.vtx:
-		if tx.is_coinbase():
+	for tx_tmp in block.vtx:
+		if tx_tmp.is_coinbase():
 			continue
 
 		scanned_tx += 1
 
-		if not scan_tx(tx):
+		if not scan_tx(tx_tmp):
 			failures += 1
 			sys.exit(1)
 

@@ -24,6 +24,7 @@ VALID_RPCS = {
 	"help" : True,
 }
 
+
 class RPCExec(object):
 	def __init__(self, mempool, chaindb):
 		self.mempool = mempool
@@ -41,7 +42,7 @@ class RPCExec(object):
 
 	def getblockcount(self, params):
 		return (self.chaindb.getheight(), None)
-	
+
 	def getblockhash(self, params):
 		err = { "code" : -1, "message" : "invalid params" }
 		if (len(params) != 1 or
@@ -50,12 +51,12 @@ class RPCExec(object):
 
 		index = params[0]
 		heightstr = str(index)
-		if heightstr not in chaindb.height:
+		if heightstr not in self.chaindb.height:
 			err = { "code" : -2, "message" : "invalid height" }
 			return (None, err)
 
 		heightidx = ChainDb.HeightIdx()
-		heightidx.deserialize(chaindb.height[str(index)])
+		heightidx.deserialize(self.chaindb.height[str(index)])
 
 		return ("%064x" % (heightidx.blocks[0],), None)
 
@@ -98,6 +99,7 @@ class RPCExec(object):
 		ser_tx = tx.serialize()
 		return (ser_tx.encode('hex'), None)
 
+
 class RPCRequestHandler(httpsrv.RequestHandler):
 	def __init__(self, conn, addr, server, privdata):
 		httpsrv.RequestHandler.__init__(self, conn, addr, server)
@@ -106,8 +108,8 @@ class RPCRequestHandler(httpsrv.RequestHandler):
 		self.rpcpass = privdata[3]
 
 	def do_GET(self):
-		self.send_error(501, "Unsupported method (%s)" %self.command)
-	
+		self.send_error(501, "Unsupported method (%s)" % self.command)
+
 	def check_auth(self):
 		hdr = self.headers.getheader('authorization')
 		if hdr is None:
@@ -184,7 +186,7 @@ class RPCRequestHandler(httpsrv.RequestHandler):
 		return resp
 
 	def json_response(self, resp):
-		respstr = json.dumps(resp)
+		respstr = json.dumps(resp) + "\n"
 
 		self.send_response(200)
 		self.send_header("Content-type", "application/json")
@@ -207,8 +209,8 @@ class RPCRequestHandler(httpsrv.RequestHandler):
 
 	def jsonrpc(self, method, params):
 		if method not in VALID_RPCS:
-			return (None, {"code":-32601,
-					"message":"method not found"})
+			return (None, { "code" : -32601,
+					"message" : "method not found" })
 		rpcfunc = getattr(self.rpc, method)
 		return rpcfunc(params)
 

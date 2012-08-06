@@ -62,24 +62,24 @@ except:
         def __init__(self, iterable=()):
             self.left = self.right = 0
             self.data = {}
-            self.extend(iterable)         
-        
+            self.extend(iterable)
+
         def append(self, x):
             self.data[self.right] = x
             self.right += 1
-        
+
         def appendleft(self, x):
-            self.left -= 1        
+            self.left -= 1
             self.data[self.left] = x
-        
+
         def pop(self):
             if self.left == self.right:
                 raise IndexError('cannot pop from empty deque')
             self.right -= 1
             elem = self.data[self.right]
-            del self.data[self.right]         
+            del self.data[self.right]
             return elem
-        
+
         def popleft(self):
             if self.left == self.right:
                 raise IndexError('cannot pop from empty deque')
@@ -87,15 +87,15 @@ except:
             del self.data[self.left]
             self.left += 1
             return elem
-        
+
         def clear(self):
             self.data.clear()
             self.left = self.right = 0
-        
+
         def extend(self, iterable):
             for elem in iterable:
                 self.append(elem)
-        
+
         def __len__(self):
             return self.right - self.left
 
@@ -108,7 +108,7 @@ def popall(self):
     r = len(self)*[None]
     for i in xrange(len(r)):
         r[i] = self.popleft()
-    return r        
+    return r
 
 class writewrapper(object):
     def __init__(self, d, blocksize=4096):
@@ -140,10 +140,10 @@ class ParseHeaders(dict):
             k,v=line.split(":",1)
             self._ci_dict[k.lower()] = self[k] = v.strip()
         self.headers = self.keys()
-    
+
     def getheader(self,key,default=""):
         return self._ci_dict.get(key.lower(),default)
-    
+
     def get(self,key,default=""):
         return self._ci_dict.get(key.lower(),default)
 #
@@ -153,13 +153,13 @@ class RequestHandler(asynchat.async_chat, SimpleHTTPServer.SimpleHTTPRequestHand
         protocol_version = "HTTP/1.1"
         MessageClass = ParseHeaders
         blocksize = 4096
-        
+
         #In enabling the use of buffer objects by setting use_buffer to True,
         #any data block sent will remain in memory until it has actually been
         #sent.
         use_buffer = False
         use_favicon = True
-    
+
     def __init__(self, conn, addr, server, privdata=None):
         asynchat.async_chat.__init__(self,conn)
         self.client_address = addr
@@ -183,7 +183,7 @@ class RequestHandler(asynchat.async_chat, SimpleHTTPServer.SimpleHTTPRequestHand
         if fsize > 1048576:
             self.use_buffer = True
             self.blocksize = 131072
-    
+
     def collect_incoming_data(self,data):
         """Collect the data arriving on the connexion"""
         if not data:
@@ -199,13 +199,13 @@ class RequestHandler(asynchat.async_chat, SimpleHTTPServer.SimpleHTTPRequestHand
         self.incoming.clear()
         # control will be passed to a new found_terminator
         self.found_terminator = self.handle_post_data
-    
+
     def handle_post_data(self):
         """Called when a POST request body has been read"""
         self.rfile = cStringIO.StringIO(''.join(popall(self.incoming)))
         self.rfile.seek(0)
         self.do_POST()
-            
+
     def do_GET(self):
         """Begins serving a GET request"""
 
@@ -216,7 +216,7 @@ class RequestHandler(asynchat.async_chat, SimpleHTTPServer.SimpleHTTPRequestHand
             self.path = self.path[:qspos]
 
         self.handle_data()
-        
+
     def do_POST(self):
         """Begins serving a POST request. The request data must be readable
         on a file-like object called self.rfile"""
@@ -250,7 +250,7 @@ class RequestHandler(asynchat.async_chat, SimpleHTTPServer.SimpleHTTPRequestHand
             self.outgoing.append(favicon)
             self.outgoing.append(None)
             return
-        
+
         f = self.send_head()
         if f:
             # do some special things with file objects so that we don't have
@@ -266,7 +266,7 @@ class RequestHandler(asynchat.async_chat, SimpleHTTPServer.SimpleHTTPRequestHand
             self.outgoing.append(f)
         else:
             self.log_request(self.code)
-        
+
         # signal the end of this request
         self.outgoing.append(None)
 
@@ -301,7 +301,7 @@ class RequestHandler(asynchat.async_chat, SimpleHTTPServer.SimpleHTTPRequestHand
 
     def writable(self):
         return len(self.outgoing) and self.connected
-    
+
     def handle_write(self):
         O = self.outgoing
         while len(O):
@@ -310,7 +310,7 @@ class RequestHandler(asynchat.async_chat, SimpleHTTPServer.SimpleHTTPRequestHand
             if a is None:
                 #Some clients have issues with keep-alive connections, or
                 #perhaps I implemented them wrong.
-                
+
                 #If the user is running a Python version < 2.4.1, there is a
                 #bug with SimpleHTTPServer:
                 #    http://python.org/sf/1097597
@@ -355,7 +355,7 @@ class RequestHandler(asynchat.async_chat, SimpleHTTPServer.SimpleHTTPRequestHand
             else:
                 self.log_error(str(why))
             self.handle_error()
-    
+
     def send_head(self):
         path = self.translate_path(self.path)
         if sys.platform == 'win32':
@@ -372,7 +372,7 @@ class RequestHandler(asynchat.async_chat, SimpleHTTPServer.SimpleHTTPRequestHand
                 self.wfile.write(x)
                 return None
         return SimpleHTTPServer.SimpleHTTPRequestHandler.send_head(self)
-    
+
     def send_response(self, code, message=None):
         if self.code:
             return
@@ -388,7 +388,7 @@ class RequestHandler(asynchat.async_chat, SimpleHTTPServer.SimpleHTTPRequestHand
             # print (self.protocol_version, code, message)
         self.send_header('Server', self.version_string())
         self.send_header('Date', self.date_time_string())
-    
+
     def log_message(self, format, *args):
         sys.stderr.write("%s - - [%s] %s \"%s\" \"%s\"\n" %
                          (self.address_string(),
@@ -488,7 +488,7 @@ class to_logfile:
 
 if __name__=="__main__":
     usage = "usage: \%prog -r<root> [-p<port>] [-0|-1|-2]"
-    
+
     parser = optparse.OptionParser(usage)
     parser.add_option('-r', '--root', dest='root',
                       help='Root path of the web server', action='store')
@@ -502,17 +502,17 @@ if __name__=="__main__":
     parser.add_option('-2', dest='server',
                       help='Run the server which will serve exact files and directory->index files',
                       action='store_const', const=2)
-    
+
     options, args = parser.parse_args()
-    
+
     if options.root is None:
         parser.error("Need root path to start server")
-    
+
     if not os.path.isdir(options.root):
         parser.error("Root path does not exist")
-    
+
     os.chdir(options.root)
-    
+
     req_handler = which[options.server]
     s=Server('',options.port,req_handler)
     print req_handler.__name__, "running on port", options.port, "with root path", options.root

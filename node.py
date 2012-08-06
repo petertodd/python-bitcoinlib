@@ -41,6 +41,7 @@ def verbose_sendmsg(message):
 		return True
 	return False
 
+
 def verbose_recvmsg(message):
 	skipmsg = {
 		'tx' : True,
@@ -53,6 +54,7 @@ def verbose_recvmsg(message):
 	if message.command in skipmsg:
 		return False
 	return True
+
 
 class NodeConn(asyncore.dispatcher):
 	messagemap = {
@@ -244,7 +246,8 @@ class NodeConn(asyncore.dispatcher):
 				self.handle_close()
 				return
 
-			if self.ver_send >= NOBLKS_VERSION_START and self.ver_send <= NOBLKS_VERSION_END:
+			if (self.ver_send >= NOBLKS_VERSION_START and
+			    self.ver_send <= NOBLKS_VERSION_END):
 				self.getblocks_ok = False
 
 			self.remote_height = message.nStartingHeight
@@ -430,6 +433,7 @@ class NodeConn(asyncore.dispatcher):
 			height += 1
 
 		self.send_message(msg)
+
 
 if __name__ == '__main__':
 	if len(sys.argv) != 2:
