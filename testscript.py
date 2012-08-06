@@ -58,11 +58,6 @@ failures = 0
 opcount = {}
 
 SKIP_TX = {
-  # testnet3 transactions
-  0x9aa3a5a6d9b7d1ac9555be8e42596d06686cc5f76d259b06c560a207d310d5f5L : True,
-  0xc5d4b73af6eed28798473b05d2b227edd4f285069629843e899b52c2d1c165b7L : True,
-  0xe335562f7e297aadeed88e5954bc4eeb8dc00b31d829eedb232e39d672b0c009L : True,
-  0x74ea059a63c7ebddaee6805e1560b15c937d99a9ee9745412cbc6d2a0a5f5305L : True,
 }
 
 
