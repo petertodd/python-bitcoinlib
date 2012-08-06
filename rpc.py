@@ -103,9 +103,10 @@ class RPCExec(object):
 class RPCRequestHandler(httpsrv.RequestHandler):
 	def __init__(self, conn, addr, server, privdata):
 		httpsrv.RequestHandler.__init__(self, conn, addr, server)
-		self.rpc = RPCExec(privdata[0], privdata[1])
-		self.rpcuser = privdata[2]
-		self.rpcpass = privdata[3]
+		self.log = privdata[0]
+		self.rpc = RPCExec(privdata[1], privdata[2])
+		self.rpcuser = privdata[3]
+		self.rpcpass = privdata[4]
 
 	def do_GET(self):
 		self.send_error(501, "Unsupported method (%s)" % self.command)
@@ -213,4 +214,13 @@ class RPCRequestHandler(httpsrv.RequestHandler):
 					"message" : "method not found" })
 		rpcfunc = getattr(self.rpc, method)
 		return rpcfunc(params)
+
+	def log_message(self, format, *args):
+		self.log.write("HTTP %s - - [%s] %s \"%s\" \"%s\"" %
+			(self.address_string(),
+			 self.log_date_time_string(),
+			 format%args,
+			 self.headers.get('referer', ''),
+			 self.headers.get('user-agent', '')
+			 ))
 
