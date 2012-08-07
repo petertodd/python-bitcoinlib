@@ -407,7 +407,7 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 			if len(vfExec) == 0:
 				return false
 			vfExec.pop()
-			
+
 		elif fExec and sop.op == OP_EQUAL or sop.op == OP_EQUALVERIFY:
 			if len(stack) < 2:
 				return False

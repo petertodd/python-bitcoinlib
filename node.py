@@ -73,9 +73,11 @@ class NodeConn(asyncore.dispatcher):
 		"mempool": msg_mempool
 	}
 
-	def __init__(self, dstaddr, dstport, log, mempool, chaindb, netmagic):
+	def __init__(self, dstaddr, dstport, log, peermgr,
+		     mempool, chaindb, netmagic):
 		asyncore.dispatcher.__init__(self)
 		self.log = log
+		self.peermgr = peermgr
 		self.mempool = mempool
 		self.chaindb = chaindb
 		self.netmagic = netmagic
@@ -92,7 +94,6 @@ class NodeConn(asyncore.dispatcher):
 		self.last_getblocks = 0
 		self.remote_height = -1
 		self.state = "connecting"
-		self.peers = {}
 		self.hash_continue = None
 
 		#stuff version msg into sendbuf
@@ -264,12 +265,7 @@ class NodeConn(asyncore.dispatcher):
 				self.send_message(msg_pong(self.ver_send))
 
 		elif message.command == "addr":
-			for addr in message.addrs:
-				if addr.ip in self.peers:
-					continue
-				self.peers[addr.ip] = addr
-
-			self.log.write("Received %d new addresses (%d peers total)" % (len(message.addrs), len(self.peers)))
+			peermgr.new_addrs(message.addrs)
 
 		elif message.command == "inv":
 
@@ -310,13 +306,7 @@ class NodeConn(asyncore.dispatcher):
 
 		elif message.command == "getaddr":
 			msg = msg_addr()
-
-			ips = self.peers.keys()
-			random.shuffle(ips)
-			if len(ips) > 1000:
-				del ips[1000:]
-			for ip in ips:
-				msg.addrs.append(self.peers[ip])
+			msg.addrs = peermgr.random_addrs()
 
 			self.send_message(msg)
 
@@ -442,11 +432,34 @@ class PeerManager(object):
 		self.chaindb = chaindb
 		self.netmagic = netmagic
 		self.peers = []
-	
+		self.addrs = {}
+
 	def add(self, host, port):
-		c = NodeConn(host, port, self.log, self.mempool, self.chaindb,
-			     self.netmagic)
+		self.log.write("PeerManager: connecting to %s:%d" %
+			       (host, port))
+		c = NodeConn(host, port, self.log, self, self.mempool,
+			     self.chaindb, self.netmagic)
 		self.peers.append(c)
+
+	def new_addrs(self, addrs):
+		for addr in addrs:
+			if addr.ip in self.addrs:
+				continue
+			self.addrs[addr.ip] = addr
+
+		self.log.write("PeerManager: Received %d new addresses (%d addrs total)" % (len(addrs), len(self.addrs)))
+
+	def random_addrs(self):
+		ips = self.addrs.keys()
+		random.shuffle(ips)
+		if len(ips) > 1000:
+			del ips[1000:]
+
+		vaddr = []
+		for ip in ips:
+			vaddr.append(self.addrs[ip])
+
+		return vaddr
 
 
 if __name__ == '__main__':
