@@ -9,6 +9,8 @@ integrate script verification with node.py
 
 chain reorg
 
+pay to script hash (P2SH, BIP 16)
+
 P2P commands:
 	alert
 
