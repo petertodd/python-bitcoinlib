@@ -9,6 +9,7 @@
 import re
 import base64
 import json
+import socket
 
 import httpsrv
 import ChainDb
@@ -22,14 +23,16 @@ VALID_RPCS = {
 	"getrawmempool" : True,
 	"getrawtransaction" : True,
 	"help" : True,
+	"stop" : True,
 }
 
 
 class RPCExec(object):
-	def __init__(self, peermgr, mempool, chaindb):
+	def __init__(self, peermgr, mempool, chaindb, httpsrv):
 		self.peermgr = peermgr
 		self.mempool = mempool
 		self.chaindb = chaindb
+		self.httpsrv = httpsrv
 
 	def help(self, params):
 		s = "Available RPC calls:\n"
@@ -39,6 +42,8 @@ class RPCExec(object):
 		s += "getinfo - misc. node info\n"
 		s += "getrawmempool - list mempool contents\n"
 		s += "getrawtransaction <txid> - Get serialized bytes for transaction <txid>\n"
+		s += "help - this message\n"
+		s += "stop - stop node\n"
 		return (s, None)
 
 	def getblockcount(self, params):
@@ -100,14 +105,24 @@ class RPCExec(object):
 		ser_tx = tx.serialize()
 		return (ser_tx.encode('hex'), None)
 
+	def stop(self, params):
+		self.httpsrv.shutdown(socket.SHUT_RD)
+		self.httpsrv.close()
+
+		self.peermgr.closeall()
+
+		return (True, None)
+
 
 class RPCRequestHandler(httpsrv.RequestHandler):
 	def __init__(self, conn, addr, server, privdata):
 		httpsrv.RequestHandler.__init__(self, conn, addr, server)
 		self.log = privdata[0]
-		self.rpc = RPCExec(privdata[1], privdata[2], privdata[3])
+		self.rpc = RPCExec(privdata[1], privdata[2], privdata[3],
+				   server)
 		self.rpcuser = privdata[4]
 		self.rpcpass = privdata[5]
+		self.server = server
 
 	def do_GET(self):
 		self.send_error(501, "Unsupported method (%s)" % self.command)

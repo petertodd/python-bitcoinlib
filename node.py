@@ -129,6 +129,7 @@ class NodeConn(asyncore.dispatcher):
 		self.recvbuf = ""
 		self.sendbuf = ""
 		try:
+			self.shutdown(socket.SHUT_RDWR)
 			self.close()
 		except:
 			pass
@@ -464,6 +465,11 @@ class PeerManager(object):
 			vaddr.append(self.addrs[ip])
 
 		return vaddr
+
+	def closeall(self):
+		for peer in self.peers:
+			peer.handle_close()
+		self.peers = []
 
 
 if __name__ == '__main__':
