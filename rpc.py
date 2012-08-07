@@ -26,7 +26,8 @@ VALID_RPCS = {
 
 
 class RPCExec(object):
-	def __init__(self, mempool, chaindb):
+	def __init__(self, peermgr, mempool, chaindb):
+		self.peermgr = peermgr
 		self.mempool = mempool
 		self.chaindb = chaindb
 
@@ -61,7 +62,7 @@ class RPCExec(object):
 		return ("%064x" % (heightidx.blocks[0],), None)
 
 	def getconnectioncount(self, params):
-		return (1, None)
+		return (len(self.peermgr.peers), None)
 
 	def getinfo(self, params):
 		d = {}
@@ -104,9 +105,9 @@ class RPCRequestHandler(httpsrv.RequestHandler):
 	def __init__(self, conn, addr, server, privdata):
 		httpsrv.RequestHandler.__init__(self, conn, addr, server)
 		self.log = privdata[0]
-		self.rpc = RPCExec(privdata[1], privdata[2])
-		self.rpcuser = privdata[3]
-		self.rpcpass = privdata[4]
+		self.rpc = RPCExec(privdata[1], privdata[2], privdata[3])
+		self.rpcuser = privdata[4]
+		self.rpcpass = privdata[5]
 
 	def do_GET(self):
 		self.send_error(501, "Unsupported method (%s)" % self.command)

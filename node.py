@@ -435,6 +435,20 @@ class NodeConn(asyncore.dispatcher):
 		self.send_message(msg)
 
 
+class PeerManager(object):
+	def __init__(self, log, mempool, chaindb, netmagic):
+		self.log = log
+		self.mempool = mempool
+		self.chaindb = chaindb
+		self.netmagic = netmagic
+		self.peers = []
+	
+	def add(self, host, port):
+		c = NodeConn(host, port, self.log, self.mempool, self.chaindb,
+			     self.netmagic)
+		self.peers.append(c)
+
+
 if __name__ == '__main__':
 	if len(sys.argv) != 2:
 		print "Usage: node.py CONFIG-FILE"
@@ -482,14 +496,19 @@ if __name__ == '__main__':
 
 	mempool = MemPool.MemPool(log)
 	chaindb = ChainDb.ChainDb(settings['db'], log, mempool, netmagic)
+	peermgr = PeerManager(log, mempool, chaindb, netmagic)
 
 	if 'loadblock' in settings:
 		chaindb.loadfile(settings['loadblock'])
 
-	c = NodeConn(settings['host'], settings['port'], log, mempool, chaindb,
-		     netmagic)
+	# start HTTP server for JSON-RPC
 	s = httpsrv.Server('', settings['rpcport'], rpc.RPCRequestHandler,
-			  (log, mempool, chaindb,
+			  (log, peermgr, mempool, chaindb,
 			   settings['rpcuser'], settings['rpcpass']))
+
+	# connect to specified remote node
+	peermgr.add(settings['host'], settings['port'])
+
+	# program main loop
 	asyncore.loop()
 
