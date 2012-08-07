@@ -433,10 +433,12 @@ class PeerManager(object):
 		self.netmagic = netmagic
 		self.peers = []
 		self.addrs = {}
+		self.tried = {}
 
 	def add(self, host, port):
 		self.log.write("PeerManager: connecting to %s:%d" %
 			       (host, port))
+		self.tried[host] = True
 		c = NodeConn(host, port, self.log, self, self.mempool,
 			     self.chaindb, self.netmagic)
 		self.peers.append(c)
@@ -447,7 +449,9 @@ class PeerManager(object):
 				continue
 			self.addrs[addr.ip] = addr
 
-		self.log.write("PeerManager: Received %d new addresses (%d addrs total)" % (len(addrs), len(self.addrs)))
+		self.log.write("PeerManager: Received %d new addresses (%d addrs, %d tried)" %
+				(len(addrs), len(self.addrs),
+				 len(self.tried)))
 
 	def random_addrs(self):
 		ips = self.addrs.keys()
