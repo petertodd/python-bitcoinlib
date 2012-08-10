@@ -141,14 +141,14 @@ def dumpstack(msg, stack):
 		print "#%d: %s" % (i, vch.encode('hex'))
 
 ISA_UNOP = {
-	OP_1ADD: True,
-	OP_1SUB: True,
-	OP_2MUL: True,
-	OP_2DIV: True,
-	OP_NEGATE: True,
-	OP_ABS: True,
-	OP_NOT: True,
-	OP_0NOTEQUAL: True,
+	OP_1ADD,
+	OP_1SUB,
+	OP_2MUL,
+	OP_2DIV,
+	OP_NEGATE,
+	OP_ABS,
+	OP_NOT,
+	OP_0NOTEQUAL,
 }
 
 def UnaryOp(opcode, stack):
@@ -189,21 +189,21 @@ def UnaryOp(opcode, stack):
 	return True
 
 ISA_BINOP = {
-	OP_ADD: True,
-	OP_SUB: True,
-	OP_LSHIFT: True,
-	OP_RSHIFT: True,
-	OP_BOOLAND: True,
-	OP_BOOLOR: True,
-	OP_NUMEQUAL: True,
-	OP_NUMEQUALVERIFY: True,
-	OP_NUMNOTEQUAL: True,
-	OP_LESSTHAN: True,
-	OP_GREATERTHAN: True,
-	OP_LESSTHANOREQUAL: True,
-	OP_GREATERTHANOREQUAL: True,
-	OP_MIN: True,
-	OP_MAX: True,
+	OP_ADD,
+	OP_SUB,
+	OP_LSHIFT,
+	OP_RSHIFT,
+	OP_BOOLAND,
+	OP_BOOLOR,
+	OP_NUMEQUAL,
+	OP_NUMEQUALVERIFY,
+	OP_NUMNOTEQUAL,
+	OP_LESSTHAN,
+	OP_GREATERTHAN,
+	OP_LESSTHANOREQUAL,
+	OP_GREATERTHANOREQUAL,
+	OP_MIN,
+	OP_MAX,
 }
 
 def BinOp(opcode, stack):

@@ -44,10 +44,10 @@ def verbose_sendmsg(message):
 
 def verbose_recvmsg(message):
 	skipmsg = {
-		'tx' : True,
-		'block' : True,
-		'inv' : True,
-		'addr' : True
+		'tx',
+		'block',
+		'inv',
+		'addr',
 	}
 	if debugnet:
 		return True
