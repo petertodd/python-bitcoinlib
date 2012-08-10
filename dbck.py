@@ -19,12 +19,12 @@ from bitcoin.scripteval import *
 
 NET_SETTINGS = {
 	'mainnet' : {
-		'log' : '/tmp/dbck.log',
-		'db' : '/tmp/chaindb'
+		'log' : '/spare/tmp/dbck.log',
+		'db' : '/spare/tmp/chaindb'
 	},
 	'testnet3' : {
-		'log' : '/tmp/dbcktest.log',
-		'db' : '/tmp/chaintest'
+		'log' : '/spare/tmp/dbcktest.log',
+		'db' : '/spare/tmp/chaintest'
 	}
 }
 
