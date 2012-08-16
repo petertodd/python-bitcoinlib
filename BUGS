@@ -11,3 +11,7 @@
 - Truncated or corrupted serialization may crash the program...
   must test and see which exceptions are thrown.
 
+- GDBM is not exactly a fully transactional database, and using
+  multiple GDBM tables means data may get out of sync even if
+  GDBM file integrity is retained during a crash.
+
