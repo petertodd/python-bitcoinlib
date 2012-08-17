@@ -92,14 +92,22 @@ class ChainDb(object):
 			self.log.write("Database magic number mismatch. Data corruption or incorrect network?")
 			raise RuntimeError
 
-	def puttxidx(self, blkhash, txhash, spentmask=0L):
+	def dbsync(self):
+		self.misc.sync()
+		self.blocks.sync()
+		self.height.sync()
+		self.blkmeta.sync()
+		self.tx.sync()
+
+	def puttxidx(self, txhash, txidx):
 		ser_txhash = ser_uint256(txhash)
 
 		if ser_txhash in self.tx:
-			txidx = self.gettxidx(txhash)
-			self.log.write("WARNING: overwriting duplicate TX %064x, height %d, oldblk %064x, oldspent %x, newblk %064x" % (txhash, self.getheight(), txidx.blkhash, txidx.spentmask, blkhash))
+			old_txidx = self.gettxidx(txhash)
+			self.log.write("WARNING: overwriting duplicate TX %064x, height %d, oldblk %064x, oldspent %x, newblk %064x" % (txhash, self.getheight(), old_txidx.blkhash, old_txidx.spentmask, txidx.blkhash))
 
-		self.tx[ser_txhash] = hex(blkhash) + ' ' + hex(spentmask)
+		self.tx[ser_txhash] = (hex(txidx.blkhash) + ' ' +
+				       hex(txidx.spentmask))
 
 		return True
 
@@ -171,7 +179,17 @@ class ChainDb(object):
 			return False
 
 		txidx.spentmask |= (1L << n_idx)
-		self.puttxidx(txidx.blkhash, txhash, txidx.spentmask)
+		self.puttxidx(txhash, txidx)
+
+		return True
+
+	def clear_txout(self, txhash, n_idx):
+		txidx = self.gettxidx(txhash)
+		if txidx is None:
+			return False
+
+		txidx.spentmask &= ~(1L << n_idx)
+		self.puttxidx(txhash, txidx)
 
 		return True
 
@@ -310,7 +328,8 @@ class ChainDb(object):
 			if not self.mempool.remove(tx.sha256):
 				neverseen += 1
 
-			if not self.puttxidx(block.sha256, tx.sha256):
+			txidx = TxIdx(block.sha256)
+			if not self.puttxidx(tx.sha256, txidx):
 				self.log.write("TxIndex failed %064x" % (tx.sha256,))
 				return False
 
