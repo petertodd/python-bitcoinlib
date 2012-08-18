@@ -63,11 +63,13 @@ class HeightIdx(object):
 
 
 class ChainDb(object):
-	def __init__(self, datadir, log, mempool, netmagic, readonly=False):
+	def __init__(self, datadir, log, mempool, netmagic, readonly=False,
+		     fast_dbm=False):
 		self.log = log
 		self.mempool = mempool
 		self.readonly = readonly
 		self.netmagic = netmagic
+		self.fast_dbm = fast_dbm
 		self.blk_cache = Cache()
 		self.orphans = {}
 		self.orphan_deps = {}
@@ -75,6 +77,9 @@ class ChainDb(object):
 			mode_str = 'r'
 		else:
 			mode_str = 'c'
+			if fast_dbm:
+				self.log.write("Opening database in fast mode")
+				mode_str += 'f'
 		self.misc = gdbm.open(datadir + '/misc.dat', mode_str)
 		self.blocks = gdbm.open(datadir + '/blocks.dat', mode_str)
 		self.height = gdbm.open(datadir + '/height.dat', mode_str)
@@ -347,6 +352,9 @@ class ChainDb(object):
 		# update global chain pointers
 		if not self.setbestchain(ser_hash, block, blkmeta):
 			return False
+
+		if self.fast_dbm and blkmeta.height % 10000 == 0:
+			self.dbsync()
 
 		return True
 
