@@ -261,6 +261,40 @@ class ChainDb(object):
 
 		return True
 
+	def setbestchain(self, ser_hash, block, blkmeta):
+		# check TX connectivity
+		outpts = self.spent_outpts(block)
+		if outpts is None:
+			self.log.write("Unconnectable block %064x" % (block.sha256, ))
+			return False
+
+		# update database pointers for best chain
+		self.misc['total_work'] = hex(blkmeta.work)
+		self.misc['height'] = str(blkmeta.height)
+		self.misc['tophash'] = ser_hash
+
+		self.log.write("ChainDb: height %d, block %064x" % (
+				blkmeta.height, block.sha256))
+
+		# all TX's in block are connectable; index
+		neverseen = 0
+		for tx in block.vtx:
+			if not self.mempool.remove(tx.sha256):
+				neverseen += 1
+
+			txidx = TxIdx(block.sha256)
+			if not self.puttxidx(tx.sha256, txidx):
+				self.log.write("TxIndex failed %064x" % (tx.sha256,))
+				return False
+
+		self.log.write("MemPool: blk.vtx.sz %d, neverseen %d, poolsz %d" % (len(block.vtx), neverseen, self.mempool.size()))
+
+		# mark deps as spent
+		for outpt in outpts:
+			self.spend_txout(outpt[0], outpt[1])
+
+		return True
+
 	def putoneblock(self, block, checkorphans):
 		block.calc_sha256()
 
@@ -277,15 +311,10 @@ class ChainDb(object):
 			self.log.write("Orphan block %064x (%d orphans)" % (block.sha256, len(self.orphan_deps)))
 			return False
 
-		# check TX connectivity
-		outpts = self.spent_outpts(block)
-		if outpts is None:
-			self.log.write("Unconnectable block %064x" % (block.sha256, ))
-			return False
-
 		top_height = self.getheight()
 		top_work = long(self.misc['total_work'], 16)
 
+		# read metadata for previous block
 		prevmeta = BlkMeta()
 		if top_height >= 0:
 			ser_prevhash = ser_uint256(block.hashPrevBlock)
@@ -310,34 +339,14 @@ class ChainDb(object):
 		heightidx.blocks.append(block.sha256)
 		self.height[heightstr] = heightidx.serialize()
 
-		# update global chain pointers
+		# if chain is not best chain, proceed no further
 		if (blkmeta.work <= top_work):
 			self.log.write("ChainDb: height %d (weak), block %064x" % (blkmeta.height, block.sha256))
 			return True
 
-		self.misc['total_work'] = hex(blkmeta.work)
-		self.misc['height'] = str(blkmeta.height)
-		self.misc['tophash'] = ser_hash
-
-		self.log.write("ChainDb: height %d, block %064x" % (
-				blkmeta.height, block.sha256))
-
-		# all TX's in block are connectable; index
-		neverseen = 0
-		for tx in block.vtx:
-			if not self.mempool.remove(tx.sha256):
-				neverseen += 1
-
-			txidx = TxIdx(block.sha256)
-			if not self.puttxidx(tx.sha256, txidx):
-				self.log.write("TxIndex failed %064x" % (tx.sha256,))
-				return False
-
-		self.log.write("MemPool: blk.vtx.sz %d, neverseen %d, poolsz %d" % (len(block.vtx), neverseen, self.mempool.size()))
-
-		# mark deps as spent
-		for outpt in outpts:
-			self.spend_txout(outpt[0], outpt[1])
+		# update global chain pointers
+		if not self.setbestchain(ser_hash, block, blkmeta):
+			return False
 
 		return True
 
