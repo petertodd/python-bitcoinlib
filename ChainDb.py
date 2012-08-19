@@ -463,6 +463,7 @@ class ChainDb(object):
 		return True
 
 	def putblock(self, block):
+		block.calc_sha256()
 		if self.haveblock(block.sha256, True):
 			self.log.write("Duplicate block %064x submitted" % (block.sha256, ))
 			return False
