@@ -355,7 +355,7 @@ class ChainDb(object):
 		conn = []
 		disconn = []
 
-		old_best_blkhash = deser_uint256(self.misc['tophash'])
+		old_best_blkhash = self.gettophash()
 		fork = old_best_blkhash
 		longer = new_best_blkhash
 		while fork != longer:
