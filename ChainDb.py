@@ -300,9 +300,100 @@ class ChainDb(object):
 
 		return True
 
-	def reorganize(self, ser_hash, block, blkmeta):
-		self.log.write("FIXME: reorganize not implemented")
-		return False
+	def disconnect_block(self, block):
+		ser_prevhash = ser_uint256(block.hashPrevBlock)
+		prevmeta = BlkMeta()
+		prevmeta.deserialize(self.blkmeta[ser_prevhash])
+
+		outpts = self.unique_outpts(block)
+		if outpts is None:
+			return False
+
+		# mark deps as unspent
+		for outpt in outpts:
+			self.clear_txout(outpt[0], outpt[1])
+
+		# update tx index and memory pool
+		for tx in block.vtx:
+			ser_hash = ser_uint256(tx.sha256)
+			if ser_hash in self.tx:
+				del self.tx[ser_hash]
+
+			if not tx.is_coinbase():
+				self.mempool.add(tx)
+
+		# update database pointers for best chain
+		self.misc['total_work'] = hex(prevmeta.work)
+		self.misc['height'] = str(prevmeta.height)
+		self.misc['tophash'] = ser_prevhash
+
+		self.log.write("ChainDb(disconn): height %d, block %064x" % (
+				prevmeta.height, block.hashPrevBlock))
+
+		return True
+
+	def getblockmeta(self, blkhash):
+		ser_hash = ser_uint256(blkhash)
+		if ser_hash not in self.blkmeta:
+			return None
+
+		meta = BlkMeta()
+		meta.deserialize(self.blkmeta[ser_hash])
+
+		return meta
+	
+	def getblockheight(self, blkhash):
+		meta = self.getblockmeta(blkhash)
+		if meta is None:
+			return -1
+
+		return meta.height
+
+	def reorganize(self, new_best_blkhash):
+		self.log.write("REORGANIZE")
+
+		conn = []
+		disconn = []
+
+		old_best_blkhash = deser_uint256(self.misc['tophash'])
+		fork = old_best_blkhash
+		longer = new_best_blkhash
+		while fork != longer:
+			while (self.getblockheight(longer) >
+			       self.getblockheight(fork)):
+				block = self.getblock(longer)
+				conn.append(block)
+
+				longer = block.hashPrevBlock
+				if longer == 0:
+					return False
+
+			if fork == longer:
+				break
+
+			block = self.getblock(fork)
+			disconn.append(block)
+
+			fork = block.hashPrevBlock
+			if fork == 0:
+				return False
+
+		self.log.write("REORG disconnecting top hash %064x" % (old_best_blkhash,))
+		self.log.write("REORG connecting new top hash %064x" % (new_best_blkhash,))
+		self.log.write("REORG chain union point %064x" % (fork,))
+		self.log.write("REORG disconnecting %d blocks, connecting %d blocks" % (len(disconn), len(conn)))
+
+		for block in disconn:
+			if not self.disconnect_block(block):
+				return False
+
+		for block in conn:
+			if not self.connect_block(ser_uint256(block.sha256),
+				  block, self.getblockmeta(block.sha256)):
+				return False
+
+		self.log.write("REORGANIZE DONE")
+		return True
 
 	def set_best_chain(self, ser_prevhash, ser_hash, block, blkmeta):
 		# the easy case, extending current best chain
@@ -311,7 +402,7 @@ class ChainDb(object):
 			return self.connect_block(ser_hash, block, blkmeta)
 
 		# switching from current chain to another, stronger chain
-		return self.reorganize(ser_hash, block, blkmeta)
+		return self.reorganize(block.sha256)
 
 	def putoneblock(self, block, checkorphans):
 		block.calc_sha256()
