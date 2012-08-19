@@ -404,12 +404,9 @@ class ChainDb(object):
 		# switching from current chain to another, stronger chain
 		return self.reorganize(block.sha256)
 
-	def putoneblock(self, block, checkorphans):
+	def putoneblock(self, block):
 		block.calc_sha256()
 
-		if self.haveblock(block.sha256, checkorphans):
-			self.log.write("Duplicate block %064x" % (block.sha256, ))
-			return False
 		if not block.is_valid():
 			self.log.write("Invalid block %064x" % (block.sha256, ))
 			return False
@@ -466,13 +463,17 @@ class ChainDb(object):
 		return True
 
 	def putblock(self, block):
-		if not self.putoneblock(block, True):
+		if self.haveblock(block.sha256, True):
+			self.log.write("Duplicate block %064x submitted" % (block.sha256, ))
+			return False
+
+		if not self.putoneblock(block):
 			return False
 
 		blkhash = block.sha256
 		while blkhash in self.orphan_deps:
 			block = self.orphan_deps[blkhash]
-			if not self.putoneblock(block, False):
+			if not self.putoneblock(block):
 				return True
 
 			del self.orphan_deps[blkhash]
