@@ -266,7 +266,7 @@ class ChainDb(object):
 
 		return True
 
-	def setbestchain(self, ser_hash, block, blkmeta):
+	def connect_block(self, ser_hash, block, blkmeta):
 		# check TX connectivity
 		outpts = self.spent_outpts(block)
 		if outpts is None:
@@ -300,6 +300,19 @@ class ChainDb(object):
 
 		return True
 
+	def reorganize(self, ser_hash, block, blkmeta):
+		self.log.write("FIXME: reorganize not implemented")
+		return False
+
+	def set_best_chain(self, ser_prevhash, ser_hash, block, blkmeta):
+		# the easy case, extending current best chain
+		if (blkmeta.height == 0 or
+		    self.misc['tophash'] == ser_prevhash):
+			return self.connect_block(ser_hash, block, blkmeta)
+
+		# switching from current chain to another, stronger chain
+		return self.reorganize(ser_hash, block, blkmeta)
+
 	def putoneblock(self, block, checkorphans):
 		block.calc_sha256()
 
@@ -324,6 +337,8 @@ class ChainDb(object):
 		if top_height >= 0:
 			ser_prevhash = ser_uint256(block.hashPrevBlock)
 			prevmeta.deserialize(self.blkmeta[ser_prevhash])
+		else:
+			ser_prevhash = ''
 
 		# store raw block data
 		ser_hash = ser_uint256(block.sha256)
@@ -350,7 +365,8 @@ class ChainDb(object):
 			return True
 
 		# update global chain pointers
-		if not self.setbestchain(ser_hash, block, blkmeta):
+		if not self.set_best_chain(ser_prevhash, ser_hash,
+					   block, blkmeta):
 			return False
 
 		if self.fast_dbm and blkmeta.height % 10000 == 0:
