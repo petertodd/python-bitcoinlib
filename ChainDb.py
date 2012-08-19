@@ -284,6 +284,8 @@ class ChainDb(object):
 		# all TX's in block are connectable; index
 		neverseen = 0
 		for tx in block.vtx:
+			tx.calc_sha256()
+
 			if not self.mempool.remove(tx.sha256):
 				neverseen += 1
 
@@ -305,9 +307,11 @@ class ChainDb(object):
 		prevmeta = BlkMeta()
 		prevmeta.deserialize(self.blkmeta[ser_prevhash])
 
-		outpts = self.unique_outpts(block)
-		if outpts is None:
+		tup = self.unique_outpts(block)
+		if tup is None:
 			return False
+
+		outpts = tup[0]
 
 		# mark deps as unspent
 		for outpt in outpts:
@@ -315,6 +319,7 @@ class ChainDb(object):
 
 		# update tx index and memory pool
 		for tx in block.vtx:
+			tx.calc_sha256()
 			ser_hash = ser_uint256(tx.sha256)
 			if ser_hash in self.tx:
 				del self.tx[ser_hash]
@@ -362,6 +367,7 @@ class ChainDb(object):
 			while (self.getblockheight(longer) >
 			       self.getblockheight(fork)):
 				block = self.getblock(longer)
+				block.calc_sha256()
 				conn.append(block)
 
 				longer = block.hashPrevBlock
@@ -372,6 +378,7 @@ class ChainDb(object):
 				break
 
 			block = self.getblock(fork)
+			block.calc_sha256()
 			disconn.append(block)
 
 			fork = block.hashPrevBlock
