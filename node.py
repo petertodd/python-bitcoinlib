@@ -261,6 +261,9 @@ class NodeConn(asyncore.dispatcher):
 		elif message.command == "verack":
 			self.ver_recv = self.ver_send
 
+			if self.ver_send >= MEMPOOL_GD_VERSION:
+				self.send_message(msg_mempool())
+
 		elif message.command == "ping":
 			if self.ver_send > BIP0031_VERSION:
 				self.send_message(msg_pong(self.ver_send))

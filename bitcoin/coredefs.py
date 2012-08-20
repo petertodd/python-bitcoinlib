@@ -17,6 +17,8 @@ BIP0031_VERSION = 60000
 NOBLKS_VERSION_START = 32000
 NOBLKS_VERSION_END = 32400
 
+MEMPOOL_GD_VERSION = 60002
+
 class NetMagic(object):
 	def __init__(self, msg_start, block0):
 		self.msg_start = msg_start
