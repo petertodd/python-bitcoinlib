@@ -17,6 +17,7 @@ import bitcoin.coredefs
 
 VALID_RPCS = {
 	"getblockcount",
+	"getblock",
 	"getblockhash",
 	"getconnectioncount",
 	"getinfo",
@@ -27,6 +28,30 @@ VALID_RPCS = {
 }
 
 
+def blockToJSON(block, blkmeta, cur_height):
+	block.calc_sha256()
+	res = {}
+
+	res['hash'] = "%064x" % (block.sha256,)
+	res['confirmations'] = cur_height - blkmeta.height + 1
+	res['size'] = len(block.serialize())
+	res['height'] = blkmeta.height
+	res['version'] = block.nVersion
+	res['merkleroot'] = "%064x" % (block.hashMerkleRoot,)
+	res['time'] = block.nTime
+	res['nonce'] = block.nNonce
+	res['bits'] = block.nBits
+	res['previousblockhash'] = "%064x" % (block.hashPrevBlock,)
+
+	txs = []
+	for tx in block.vtx:
+		tx.calc_sha256()
+		txs.append("%064x" % (tx.sha256,))
+	
+	res['tx'] = txs
+
+	return res
+
 class RPCExec(object):
 	def __init__(self, peermgr, mempool, chaindb, httpsrv):
 		self.peermgr = peermgr
@@ -36,6 +61,7 @@ class RPCExec(object):
 
 	def help(self, params):
 		s = "Available RPC calls:\n"
+		s += "getblock <hash> - Return block header and list of transactions\n"
 		s += "getblockcount - number of blocks in the longest block chain\n"
 		s += "getblockhash <index> - Returns hash of block in best-block-chain at <index>\n"
 		s += "getconnectioncount - get P2P peer count\n"
@@ -45,6 +71,25 @@ class RPCExec(object):
 		s += "help - this message\n"
 		s += "stop - stop node\n"
 		return (s, None)
+
+	def getblock(self, params):
+		err = { "code" : -1, "message" : "invalid params" }
+		if (len(params) != 1 or
+		    (not isinstance(params[0], str) and
+		     not isinstance(params[0], unicode))):
+			return (None, err)
+
+		blkhash = long(params[0], 16)
+		block = self.chaindb.getblock(blkhash)
+		blkmeta = self.chaindb.getblockmeta(blkhash)
+		cur_height = self.chaindb.getheight()
+		if block is None or blkmeta is None or cur_height < 0:
+			err = { "code" : -4, "message" : "block hash not found"}
+			return (None, err)
+
+		res = blockToJSON(block, blkmeta, cur_height)
+
+		return (res, None)
 
 	def getblockcount(self, params):
 		return (self.chaindb.getheight(), None)
