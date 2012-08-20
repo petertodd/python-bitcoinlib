@@ -40,7 +40,7 @@ def blockToJSON(block, blkmeta, cur_height):
 	res['merkleroot'] = "%064x" % (block.hashMerkleRoot,)
 	res['time'] = block.nTime
 	res['nonce'] = block.nNonce
-	res['bits'] = block.nBits
+	res['bits'] = "%x" % (block.nBits,)
 	res['previousblockhash'] = "%064x" % (block.hashPrevBlock,)
 
 	txs = []
