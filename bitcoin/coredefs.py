@@ -6,7 +6,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
 
-PROTO_VERSION = 60001
+PROTO_VERSION = 60002
 
 CADDR_TIME_VERSION = 31402
 

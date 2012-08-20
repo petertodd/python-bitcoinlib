@@ -242,10 +242,6 @@ class msg_pong(object):
 	def __repr__(self):
 		return "msg_pong(0x%x)" % (self.nonce,)
 
-#
-# Non-standard messages follow...
-#
-
 class msg_mempool(object):
 	command = "mempool"
 	def __init__(self, protover=PROTO_VERSION):
