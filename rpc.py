@@ -11,6 +11,7 @@ import base64
 import json
 import socket
 import cStringIO
+import struct
 
 import httpsrv
 import ChainDb
@@ -30,6 +31,20 @@ VALID_RPCS = {
 	"stop",
 }
 
+
+def uint32(x):
+	return x & 0xffffffffL
+
+def bytereverse(x):
+	return uint32(( ((x) << 24) | (((x) << 8) & 0x00ff0000) |
+			(((x) >> 8) & 0x0000ff00) | ((x) >> 24) ))
+
+def bufreverse(in_buf):
+	out_words = []
+	for i in range(0, len(in_buf), 4):
+		word = struct.unpack('@I', in_buf[i:i+4])[0]
+		out_words.append(struct.pack('@I', bytereverse(word)))
+	return ''.join(out_words)
 
 def blockToJSON(block, blkmeta, cur_height):
 	block.calc_sha256()
@@ -178,6 +193,7 @@ class RPCExec(object):
 		data = data[:80]
 		data += "\x00" * 48
 
+		data = bufreverse(data)
 		res['data'] = data.encode('hex')
 
 		return (res, None)
@@ -188,6 +204,7 @@ class RPCExec(object):
 			err = { "code" : -5, "message" : "invalid data" }
 			return (None, err)
 
+		data = bufreverse(data)
 		blkhdr = data[:80]
 		f = cStringIO.StringIO(blkhdr)
 		block_tmp = CBlock()
