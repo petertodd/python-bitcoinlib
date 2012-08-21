@@ -88,6 +88,9 @@ class COutPoint(object):
 		r += ser_uint256(self.hash)
 		r += struct.pack("<I", self.n)
 		return r
+	def set_null(self):
+		self.hash = 0
+		self.n = 0xffffffff
 	def is_null(self):
 		return ((self.hash == 0) and (self.n == 0xffffffff))
 	def copy(self, old_outpt):
@@ -100,7 +103,7 @@ class CTxIn(object):
 	def __init__(self):
 		self.prevout = COutPoint()
 		self.scriptSig = ""
-		self.nSequence = 0
+		self.nSequence = 0xffffffff
 	def deserialize(self, f):
 		self.prevout = COutPoint()
 		self.prevout.deserialize(f)
@@ -112,6 +115,8 @@ class CTxIn(object):
 		r += ser_string(self.scriptSig)
 		r += struct.pack("<I", self.nSequence)
 		return r
+	def is_final(self):
+		return (self.nSequence == 0xffffffff)
 	def is_valid(self):
 		script = CScript()
 		if not script.tokenize(self.scriptSig):
@@ -152,11 +157,18 @@ class CTxOut(object):
 
 class CTransaction(object):
 	def __init__(self):
+		# serialized
 		self.nVersion = 1
 		self.vin = []
 		self.vout = []
 		self.nLockTime = 0
+
+		# used at runtime
 		self.sha256 = None
+		self.nFeesPaid = 0
+		self.dFeePerKB = None
+		self.dPriority = None
+		self.ser_size = 0
 	def deserialize(self, f):
 		self.nVersion = struct.unpack("<i", f.read(4))[0]
 		self.vin = deser_vector(f, CTxIn)
@@ -180,6 +192,11 @@ class CTransaction(object):
 					return False
 		for tout in self.vout:
 			if not tout.is_valid():
+				return False
+		return True
+	def is_final(self):
+		for tin in self.vin:
+			if not tin.is_final():
 				return False
 		return True
 	def is_coinbase(self):
@@ -243,15 +260,11 @@ class CBlock(object):
 			r += struct.pack("<I", self.nBits)
 			r += struct.pack("<I", self.nNonce)
 			self.sha256 = uint256_from_str(SHA256.new(SHA256.new(r).digest()).digest())
-	def is_valid(self):
-		self.calc_sha256()
-		target = uint256_from_compact(self.nBits)
-		if self.sha256 > target:
-			return False
+	def calc_merkle(self):
 		hashes = []
 		for tx in self.vtx:
 			if not tx.is_valid():
-				return False
+				return None
 			tx.calc_sha256()
 			hashes.append(ser_uint256(tx.sha256))
 		while len(hashes) > 1:
@@ -260,7 +273,13 @@ class CBlock(object):
 				i2 = min(i+1, len(hashes)-1)
 				newhashes.append(SHA256.new(SHA256.new(hashes[i] + hashes[i2]).digest()).digest())
 			hashes = newhashes
-		if uint256_from_str(hashes[0]) != self.hashMerkleRoot:
+		return uint256_from_str(hashes[0])
+	def is_valid(self):
+		self.calc_sha256()
+		target = uint256_from_compact(self.nBits)
+		if self.sha256 > target:
+			return False
+		if self.calc_merkle() != self.hashMerkleRoot:
 			return False
 		return True
 	def __repr__(self):

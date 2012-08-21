@@ -10,10 +10,23 @@ import string
 import cStringIO
 import gdbm
 import os
+import time
+from decimal import Decimal
 from Cache import Cache
 from bitcoin.serialize import *
 from bitcoin.core import *
+from bitcoin.coredefs import COIN
 
+
+def tx_blk_cmp(a, b):
+	if a.dFeePerKB != b.dFeePerKB:
+		return int(a.dFeePerKB - b.dFeePerKB)
+	return int(a.dPriority - b.dPriority)
+
+def block_value(height, fees):
+	subsidy = 50 * COIN
+	subsidy >>= (height / 210000)
+	return subsidy + fees
 
 class TxIdx(object):
 	def __init__(self, blkhash=0L, spentmask=0L):
@@ -547,4 +560,119 @@ class ChainDb(object):
 			block.deserialize(f)
 
 			self.putblock(block)
+
+	def newblock_txs(self):
+		txlist = []
+		for tx in self.mempool.pool.itervalues():
+
+			# query finalized, non-coinbase mempool tx's
+			if tx.is_coinbase() or not tx.is_final():
+				continue
+
+			# iterate through inputs, calculate total input value
+			valid = True
+			nValueIn = 0
+			nValueOut = 0
+			dPriority = Decimal(0)
+
+			for tin in tx.vin:
+				in_tx = self.gettx(tin.prevout.hash)
+				if (in_tx is None or
+				    tin.prevout.n >= len(in_tx.vout)):
+					valid = False
+				else:
+					v = in_tx.vout[tin.prevout.n].nValue
+					nValueIn += v
+					dPriority += Decimal(v * 1)
+
+			if not valid:
+				continue
+
+			# iterate through outputs, calculate total output value
+			for txout in tx.vout:
+				nValueOut += txout.nValue
+
+			# calculate fees paid, if any
+			tx.nFeesPaid = nValueIn - nValueOut
+			if tx.nFeesPaid < 0:
+				continue
+
+			# calculate fee-per-KB and priority
+			tx.ser_size = len(tx.serialize())
+
+			dPriority /= Decimal(tx.ser_size)
+
+			tx.dFeePerKB = (Decimal(tx.nFeesPaid) /
+					(Decimal(tx.ser_size) / Decimal(1000)))
+			if tx.dFeePerKB < Decimal(50000):
+				tx.dFeePerKB = Decimal(0)
+			tx.dPriority = dPriority
+
+			txlist.append(tx)
+
+		# sort list by fee-per-kb, then priority
+		sorted_txlist = sorted(txlist, cmp=tx_blk_cmp, reverse=True)
+
+		# build final list of transactions.  thanks to sort
+		# order above, we add TX's to the block in the
+		# highest-fee-first order.  free transactions are
+		# then appended in order of priority, until
+		# free_bytes is exhausted.
+		txlist = []
+		txlist_bytes = 0
+		free_bytes = 50000
+		while len(sorted_txlist) > 0:
+			tx = sorted_txlist.pop()
+			if txlist_bytes + tx.ser_size > (900 * 1000):
+				continue
+
+			if tx.dFeePerKB > 0:
+				txlist.append(tx)
+				txlist_bytes += tx.ser_size
+			elif free_bytes >= tx.ser_size:
+				txlist.append(tx)
+				txlist_bytes += tx.ser_size
+				free_bytes -= tx.ser_size
+		
+		return txlist
+
+	def newblock(self):
+		tophash = self.gettophash()
+		prevblock = self.getblock(tophash)
+		if prevblock is None:
+			return None
+
+		# obtain list of candidate transactions for a new block
+		total_fees = 0
+		txlist = self.newblock_txs()
+		for tx in txlist:
+			total_fees += tx.nFeesPaid
+
+		#
+		# build coinbase
+		#
+		txin = CTxIn()
+		txin.prevout.set_null()
+		# FIXME: txin.scriptSig
+
+		txout = CTxOut()
+		txout.nValue = block_value(self.getheight(), total_fees)
+		# FIXME: txout.scriptPubKey
+
+		coinbase = CTransaction()
+		coinbase.vin.append(txin)
+		coinbase.vout.append(txout)
+
+		#
+		# build block
+		#
+		block = CBlock()
+		block.hashPrevBlock = tophash
+		block.nTime = int(time.time())
+		block.nBits = prevblock.nBits	# TODO: wrong
+		block.vtx.append(coinbase)
+		block.vtx.extend(txlist)
+		block.hashMerkleRoot = block.calc_merkle()
+
+		return block
 

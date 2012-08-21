@@ -10,10 +10,12 @@ import re
 import base64
 import json
 import socket
+import cStringIO
 
 import httpsrv
 import ChainDb
 import bitcoin.coredefs
+from bitcoin.serialize import uint256_from_compact
 
 VALID_RPCS = {
 	"getblockcount",
@@ -23,6 +25,7 @@ VALID_RPCS = {
 	"getinfo",
 	"getrawmempool",
 	"getrawtransaction",
+	"getwork",
 	"help",
 	"stop",
 }
@@ -59,6 +62,9 @@ class RPCExec(object):
 		self.chaindb = chaindb
 		self.httpsrv = httpsrv
 
+		self.work_tophash = None
+		self.work_blocks = {}
+
 	def help(self, params):
 		s = "Available RPC calls:\n"
 		s += "getblock <hash> - Return block header and list of transactions\n"
@@ -68,6 +74,7 @@ class RPCExec(object):
 		s += "getinfo - misc. node info\n"
 		s += "getrawmempool - list mempool contents\n"
 		s += "getrawtransaction <txid> - Get serialized bytes for transaction <txid>\n"
+		s += "getwork [data] - get mining work\n"
 		s += "help - this message\n"
 		s += "stop - stop node\n"
 		return (s, None)
@@ -149,6 +156,65 @@ class RPCExec(object):
 
 		ser_tx = tx.serialize()
 		return (ser_tx.encode('hex'), None)
+
+	def getwork_new(self):
+		err = { "code" : -6, "message" : "internal error" }
+		tmp_top = self.chaindb.gettophash()
+		if self.work_tophash != tmp_top:
+			self.work_tophash = tmp_top
+			self.work_blocks = {}
+
+		block = self.chaindb.newblock()
+		if block is None:
+			return (None, err)
+		self.work_blocks[block.hashMerkleRoot] = block
+
+		res = {}
+
+		target = uint256_from_compact(block.nBits)
+		res['target'] = "%064x" % (target,)
+
+		data = block.serialize()
+		data = data[:80]
+		data += "\x00" * 48
+
+		res['data'] = data.encode('hex')
+
+		return (res, None)
+
+	def getwork_submit(self, hexstr):
+		data = hexstr.decode('hex')
+		if len(data) != 128:
+			err = { "code" : -5, "message" : "invalid data" }
+			return (None, err)
+
+		blkhdr = data[:80]
+		f = cStringIO.StringIO(blkhdr)
+		block_tmp = CBlock()
+		block_tmp.deserialize(f)
+
+		if block_tmp.hashMerkleRoot not in self.work_blocks:
+			return (False, None)
+
+		block = self.work_blocks[block_tmp.hashMerkleRoot]
+		block.nTime = block_tmp.nTime
+		block.nNonce = block_tmp.nNonce
+
+		res = self.chaindb.putblock(block)
+
+		return (res, None)
+
+	def getwork(self, params):
+		err = { "code" : -1, "message" : "invalid params" }
+		if len(params) == 1:
+			if (not isinstance(params[0], str) and
+			    not isinstance(params[0], unicode)):
+				return (None, err)
+			return self.getwork_submit(params[0])
+		elif len(params) == 0:
+			return self.getwork_new()
+		else:
+			return (None, err)
 
 	def stop(self, params):
 		self.httpsrv.shutdown(socket.SHUT_RD)

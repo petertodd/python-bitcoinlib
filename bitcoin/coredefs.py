@@ -19,6 +19,8 @@ NOBLKS_VERSION_END = 32400
 
 MEMPOOL_GD_VERSION = 60002
 
+COIN = 100000000
+
 class NetMagic(object):
 	def __init__(self, msg_start, block0):
 		self.msg_start = msg_start
