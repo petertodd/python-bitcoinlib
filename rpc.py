@@ -27,6 +27,7 @@ VALID_RPCS = {
 	"getrawmempool",
 	"getrawtransaction",
 	"getwork",
+	"submitblock",
 	"help",
 	"stop",
 }
@@ -90,6 +91,7 @@ class RPCExec(object):
 		s += "getrawmempool - list mempool contents\n"
 		s += "getrawtransaction <txid> - Get serialized bytes for transaction <txid>\n"
 		s += "getwork [data] - get mining work\n"
+		s += "submitblock <data>\n"
 		s += "help - this message\n"
 		s += "stop - stop node\n"
 		return (s, None)
@@ -232,6 +234,24 @@ class RPCExec(object):
 			return self.getwork_new()
 		else:
 			return (None, err)
+
+	def submitblock(self, params):
+		err = { "code" : -1, "message" : "invalid params" }
+		if (len(params) != 1 or
+		    (not isinstance(params[0], str) and
+		     not isinstance(params[0], unicode))):
+			return (None, err)
+
+		data = params[0].decode('hex')
+		f = cStringIO.StringIO(data)
+		block = CBlock()
+		block.deserialize(f)
+
+		res = self.chaindb.putblock(block)
+		if not res:
+			return ("rejected", None)
+
+		return (None, None)
 
 	def stop(self, params):
 		self.httpsrv.shutdown(socket.SHUT_RD)
