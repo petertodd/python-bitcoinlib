@@ -4,9 +4,9 @@ network.  It is based on ArtForz' public domain half-a-node at
 http://pastebin.com/ZSM7iHZw
 
 In its current form, node.py does nothing more than listen for new
-transactions and blocks, perform some simple verification checks on
-the data, and store them in a database.  It does not handle script
-verification or chain reorg, and is therefore not safe for general use.
+transactions and blocks, perform verification checks on the data, and
+store them in a database.  Script verification is a separate, manual
+process (testscript.py).  It is therefore not safe for general use.
 See BUGS and TODO files.  A simple HTTP server for JSON-RPC API calls
 is also included.  Send the "help" RPC call for a list of supported
 commands.
