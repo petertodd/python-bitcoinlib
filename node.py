@@ -290,10 +290,12 @@ class NodeConn(asyncore.dispatcher):
 				self.send_message(want)
 
 		elif message.command == "tx":
-			if self.chaindb.tx_connected(message.tx):
-				self.mempool.add(message.tx)
-			else:
+			if not self.chaindb.tx_connected(message.tx):
 				self.log.write("MemPool: Ignoring disconnected TX %064x" % (message.tx.sha256,))
+			elif not self.chaindb.tx_signed(message.tx, None, True):
+				self.log.write("MemPool: Ignoring failed-sig TX %064x" % (message.tx.sha256,))
+			else:
+				self.mempool.add(message.tx)
 
 		elif message.command == "block":
 			self.chaindb.putblock(message.block)

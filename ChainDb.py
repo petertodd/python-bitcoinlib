@@ -16,6 +16,7 @@ from Cache import Cache
 from bitcoin.serialize import *
 from bitcoin.core import *
 from bitcoin.coredefs import COIN
+from bitcoin.scripteval import VerifySignature
 
 
 def tx_blk_cmp(a, b):
@@ -83,7 +84,7 @@ class ChainDb(object):
 		self.readonly = readonly
 		self.netmagic = netmagic
 		self.fast_dbm = fast_dbm
-		self.blk_cache = Cache()
+		self.blk_cache = Cache(750)
 		self.orphans = {}
 		self.orphan_deps = {}
 		if readonly:
@@ -266,6 +267,45 @@ class ChainDb(object):
 
 		return outpts.keys()
 
+	def tx_signed(self, tx, block, check_mempool):
+		tx.calc_sha256()
+
+		for i in xrange(len(tx.vin)):
+			txin = tx.vin[i]
+
+			# search database for dependent TX
+			txfrom = self.gettx(txin.prevout.hash)
+
+			# search block for dependent TX
+			if txfrom is None and block is not None:
+				for blktx in block.vtx:
+					blktx.calc_sha256()
+					if blktx.sha256 == txin.prevout.hash:
+						txfrom = blktx
+						break
+
+			# search mempool for dependent TX
+			if txfrom is None and check_mempool:
+				try:
+					txfrom = self.mempool.pool[txin.prevout.hash]
+				except:
+					self.log.write("TX %064x/%d no-dep %064x" %
+							(tx.sha256, i,
+							 txin.prevout.hash))
+					return False
+			if txfrom is None:
+				self.log.write("TX %064x/%d no-dep %064x" %
+						(tx.sha256, i,
+						 txin.prevout.hash))
+				return False
+
+			if not VerifySignature(txfrom, tx, i, 0):
+				self.log.write("TX %064x/%d sigfail" %
+						(tx.sha256, i))
+				return False
+
+		return True
+
 	def tx_connected(self, tx):
 		if not tx.is_valid():
 			return False
@@ -286,6 +326,17 @@ class ChainDb(object):
 			self.log.write("Unconnectable block %064x" % (block.sha256, ))
 			return False
 
+		# verify script signatures
+		for tx in block.vtx:
+			tx.calc_sha256()
+
+			if tx.is_coinbase():
+				continue
+
+			if not self.tx_signed(tx, block, False):
+				self.log.write("Invalid signature in block %064x" % (block.sha256, ))
+				return False
+
 		# update database pointers for best chain
 		self.misc['total_work'] = hex(blkmeta.work)
 		self.misc['height'] = str(blkmeta.height)
@@ -297,8 +348,6 @@ class ChainDb(object):
 		# all TX's in block are connectable; index
 		neverseen = 0
 		for tx in block.vtx:
-			tx.calc_sha256()
-
 			if not self.mempool.remove(tx.sha256):
 				neverseen += 1
 
