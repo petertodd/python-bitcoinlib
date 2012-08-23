@@ -45,3 +45,5 @@ The configuration file is a key=value text file, with the following settings:
 node.py connects to a single remote node, and does not accept incoming
 P2P connections.  If the connection is lost, node.py exits.
 
+See the "minimal-node" branch for a single-file, non-chaindb node.
+
