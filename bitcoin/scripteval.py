@@ -6,8 +6,8 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
 
+import hashlib
 from serialize import Hash, Hash160, ser_uint256, ser_uint160
-from Crypto.Hash import SHA256, RIPEMD160
 from script import *
 from core import CTxOut, CTransaction
 from key import CKey
@@ -493,7 +493,10 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 		elif fExec and sop.op == OP_RIPEMD160:
 			if len(stack) < 1:
 				return False
-			stack.append(RIPEMD160.new(stack.pop()).digest())
+
+			h = hashlib.new('ripemd160')
+			h.update(stack.pop())
+			stack.append(h.digest())
 
 		elif fExec and sop.op == OP_ROT:
 			if len(stack) < 3:
@@ -515,7 +518,7 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 		elif fExec and sop.op == OP_SHA256:
 			if len(stack) < 1:
 				return False
-			stack.append(SHA256.new(stack.pop()).digest())
+			stack.append(hashlib.sha256(stack.pop()).digest())
 
 		elif fExec and sop.op == OP_SWAP:
 			if len(stack) < 2:

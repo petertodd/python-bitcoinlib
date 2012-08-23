@@ -17,7 +17,7 @@ import random
 import cStringIO
 import copy
 import re
-from Crypto.Hash import SHA256
+import hashlib
 
 import ChainDb
 import MemPool
@@ -175,8 +175,8 @@ class NodeConn(asyncore.dispatcher):
 			if len(self.recvbuf) < 4 + 12 + 4 + 4 + msglen:
 				return
 			msg = self.recvbuf[4+12+4+4:4+12+4+4+msglen]
-			th = SHA256.new(msg).digest()
-			h = SHA256.new(th).digest()
+			th = hashlib.sha256(msg).digest()
+			h = hashlib.sha256(th).digest()
 			if checksum != h[:4]:
 				raise ValueError("got bad checksum %s" % repr(self.recvbuf))
 			self.recvbuf = self.recvbuf[4+12+4+4+msglen:]
@@ -204,8 +204,8 @@ class NodeConn(asyncore.dispatcher):
 		tmsg += struct.pack("<I", len(data))
 
 		# add checksum
-		th = SHA256.new(data).digest()
-		h = SHA256.new(th).digest()
+		th = hashlib.sha256(data).digest()
+		h = hashlib.sha256(th).digest()
 		tmsg += h[:4]
 
 		tmsg += data

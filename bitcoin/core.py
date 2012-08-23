@@ -10,7 +10,7 @@ import struct
 import socket
 import binascii
 import time
-from Crypto.Hash import SHA256
+import hashlib
 from serialize import *
 from coredefs import *
 from script import CScript
@@ -183,7 +183,7 @@ class CTransaction(object):
 		return r
 	def calc_sha256(self):
 		if self.sha256 is None:
-			self.sha256 = uint256_from_str(SHA256.new(SHA256.new(self.serialize()).digest()).digest())
+			self.sha256 = Hash(self.serialize())
 	def is_valid(self):
 		self.calc_sha256()
 		if not self.is_coinbase():
@@ -240,7 +240,7 @@ class CBlock(object):
 		self.nBits = struct.unpack("<I", f.read(4))[0]
 		self.nNonce = struct.unpack("<I", f.read(4))[0]
 		self.vtx = deser_vector(f, CTransaction)
-	def serialize(self):
+	def serialize_hdr(self):
 		r = ""
 		r += struct.pack("<i", self.nVersion)
 		r += ser_uint256(self.hashPrevBlock)
@@ -248,18 +248,14 @@ class CBlock(object):
 		r += struct.pack("<I", self.nTime)
 		r += struct.pack("<I", self.nBits)
 		r += struct.pack("<I", self.nNonce)
+		return r
+	def serialize(self):
+		r = self.serialize_hdr()
 		r += ser_vector(self.vtx)
 		return r
 	def calc_sha256(self):
 		if self.sha256 is None:
-			r = ""
-			r += struct.pack("<i", self.nVersion)
-			r += ser_uint256(self.hashPrevBlock)
-			r += ser_uint256(self.hashMerkleRoot)
-			r += struct.pack("<I", self.nTime)
-			r += struct.pack("<I", self.nBits)
-			r += struct.pack("<I", self.nNonce)
-			self.sha256 = uint256_from_str(SHA256.new(SHA256.new(r).digest()).digest())
+			self.sha256 = Hash(self.serialize_hdr())
 	def calc_merkle(self):
 		hashes = []
 		for tx in self.vtx:
@@ -271,7 +267,7 @@ class CBlock(object):
 			newhashes = []
 			for i in xrange(0, len(hashes), 2):
 				i2 = min(i+1, len(hashes)-1)
-				newhashes.append(SHA256.new(SHA256.new(hashes[i] + hashes[i2]).digest()).digest())
+				newhashes.append(hashlib.sha256(hashlib.sha256(hashes[i] + hashes[i2]).digest()).digest())
 			hashes = newhashes
 		return uint256_from_str(hashes[0])
 	def is_valid(self):
