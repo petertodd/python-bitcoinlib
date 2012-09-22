@@ -9,9 +9,7 @@
 import re
 import base64
 import json
-import socket
-
-import httpsrv
+import sys
 import ChainDb
 import bitcoin.coredefs
 
@@ -26,13 +24,19 @@ VALID_RPCS = {
 	"stop",
 }
 
+class RPCException(Exception):
+	def __init__(self, status, message):
+		self.status = status
+		self.message = message
 
 class RPCExec(object):
-	def __init__(self, peermgr, mempool, chaindb, httpsrv):
+	def __init__(self, peermgr, mempool, chaindb, log, rpcuser, rpcpass):
 		self.peermgr = peermgr
 		self.mempool = mempool
 		self.chaindb = chaindb
-		self.httpsrv = httpsrv
+		self.rpcuser = rpcuser
+		self.rpcpass = rpcpass
+		self.log = log
 
 	def help(self, params):
 		s = "Available RPC calls:\n"
@@ -52,7 +56,7 @@ class RPCExec(object):
 	def getblockhash(self, params):
 		err = { "code" : -1, "message" : "invalid params" }
 		if (len(params) != 1 or
-		    not isinstance(params[0], int)):
+			not isinstance(params[0], int)):
 			return (None, err)
 
 		index = params[0]
@@ -88,8 +92,8 @@ class RPCExec(object):
 	def getrawtransaction(self, params):
 		err = { "code" : -1, "message" : "invalid params" }
 		if (len(params) != 1 or
-		    (not isinstance(params[0], str) and
-		     not isinstance(params[0], unicode))):
+			(not isinstance(params[0], str) and
+			 not isinstance(params[0], unicode))):
 			return (None, err)
 		m = re.search('\s*([\dA-Fa-f]+)\s*', params[0])
 		if m is None:
@@ -106,29 +110,50 @@ class RPCExec(object):
 		return (ser_tx.encode('hex'), None)
 
 	def stop(self, params):
-		self.httpsrv.shutdown(socket.SHUT_RD)
-		self.httpsrv.close()
-
 		self.peermgr.closeall()
-
 		return (True, None)
 
+	def handle_request(self, environ, start_response):
+		try:
+			# Posts only
+			if environ['REQUEST_METHOD'] != 'POST':
+				raise RPCException('501', "Unsupported method (%s)" % environ['REQUEST_METHOD'])
 
-class RPCRequestHandler(httpsrv.RequestHandler):
-	def __init__(self, conn, addr, server, privdata):
-		httpsrv.RequestHandler.__init__(self, conn, addr, server)
-		self.log = privdata[0]
-		self.rpc = RPCExec(privdata[1], privdata[2], privdata[3],
-				   server)
-		self.rpcuser = privdata[4]
-		self.rpcpass = privdata[5]
-		self.server = server
+			# Only accept default path
+			if environ['PATH_INFO'] + environ['SCRIPT_NAME'] != '/':
+				raise RPCException('404', "Path not found")
 
-	def do_GET(self):
-		self.send_error(501, "Unsupported method (%s)" % self.command)
+			# RPC authentication
+			username = self.check_auth(environ['HTTP_AUTHORIZATION'])
+			if username is None:
+				raise RPCException('401', 'Forbidden')
 
-	def check_auth(self):
-		hdr = self.headers.getheader('authorization')
+			# Dispatch the RPC call
+			length = environ['CONTENT_LENGTH']
+			body = environ['wsgi.input'].read(length)
+			try:
+				rpcreq = json.loads(body)
+			except ValueError:
+				raise RPCException('400', "Unable to decode JSON data")
+
+			if isinstance(rpcreq, dict):
+				resp = self.handle_rpc(rpcreq)
+			elif isinstance(rpcreq, list):
+				resp = self.handle_rpc_batch(rpcreq)
+			else:
+				raise RPCException('400', "Not a valid JSON-RPC request")
+			respstr = json.dumps(resp) + "\n"
+
+			# Return a json response
+			start_response('200 OK', [('Content-Type', 'application/json')])
+			return respstr
+
+		except RPCException, e:
+			start_response(e.status, [('Content-Type', 'text/plain')], sys.exc_info())
+			return e.message
+
+
+	def check_auth(self, hdr):
 		if hdr is None:
 			return None
 
@@ -149,48 +174,28 @@ class RPCRequestHandler(httpsrv.RequestHandler):
 		un = m.group(1)
 		pw = m.group(2)
 		if (un != self.rpcuser or
-		    pw != self.rpcpass):
+			pw != self.rpcpass):
 			return None
 
 		return un
 
-	def handle_data(self):
-		if self.path != '/':
-			self.send_error(404, "Path not found")
-			return
-		username = self.check_auth()
-		if username is None:
-			self.send_error(401, "Forbidden")
-			return
-
-		try:
-			rpcreq = json.loads(self.body)
-		except ValueError:
-			self.send_error(400, "Unable to decode JSON data")
-			return
-		if isinstance(rpcreq, dict):
-			self.handle_rpc_singleton(rpcreq)
-		elif isinstance(rpcreq, list):
-			self.handle_rpc_batch(rpcreq)
-		else:
-			self.send_error(400, "Not a valid JSON-RPC request")
 
 	def handle_rpc(self, rpcreq):
 		id = None
 		if 'id' in rpcreq:
 			id = rpcreq['id']
 		if ('method' not in rpcreq or
-		    (not isinstance(rpcreq['method'], str) and
-		     not isinstance(rpcreq['method'], unicode))):
+			(not isinstance(rpcreq['method'], str) and
+			 not isinstance(rpcreq['method'], unicode))):
 			resp = { "id" : id, "error" :
 				  { "code" : -1,
-				    "message" : "method not specified" } }
+					"message" : "method not specified" } }
 			return resp
 		if ('params' not in rpcreq or
-		    not isinstance(rpcreq['params'], list)):
+			not isinstance(rpcreq['params'], list)):
 			resp = { "id" : id, "error" :
 				  { "code" : -2,
-				    "message" : "invalid/missing params" } }
+					"message" : "invalid/missing params" } }
 			return resp
 
 		(res, err) = self.jsonrpc(rpcreq['method'], rpcreq['params'])
@@ -203,32 +208,17 @@ class RPCRequestHandler(httpsrv.RequestHandler):
 		return resp
 
 	def json_response(self, resp):
-		respstr = json.dumps(resp) + "\n"
-
-		self.send_response(200)
-		self.send_header("Content-type", "application/json")
-		self.send_header("Content-length", len(respstr))
-		self.end_headers()
-		self.log_request(self.code, len(respstr))
-		self.outgoing.append(respstr)
-		self.outgoing.append(None)
-
-	def handle_rpc_singleton(self, rpcreq):
-		resp = self.handle_rpc(rpcreq)
-		self.json_response(resp)
+		pass
 
 	def handle_rpc_batch(self, rpcreq_list):
 		res = []
-		for rpcreq in rpcreq_list:
-			resp = self.handle_rpc(rpcreq)
-			res.append(resp)
-		self.json_response(res)
+		return ''.join(map(self.handle_rpc, repcreq_list))
 
 	def jsonrpc(self, method, params):
 		if method not in VALID_RPCS:
 			return (None, { "code" : -32601,
 					"message" : "method not found" })
-		rpcfunc = getattr(self.rpc, method)
+		rpcfunc = getattr(self, method)
 		return rpcfunc(params)
 
 	def log_message(self, format, *args):
@@ -239,4 +229,3 @@ class RPCRequestHandler(httpsrv.RequestHandler):
 			 self.headers.get('referer', ''),
 			 self.headers.get('user-agent', '')
 			 ))
-
