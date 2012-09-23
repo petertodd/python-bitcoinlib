@@ -8,7 +8,8 @@
 
 import string
 import cStringIO
-import gdbm
+import leveldb
+import io
 import os
 import time
 from decimal import Decimal
@@ -17,6 +18,7 @@ from bitcoin.serialize import *
 from bitcoin.core import *
 from bitcoin.coredefs import COIN
 from bitcoin.scripteval import VerifySignature
+
 
 
 def tx_blk_cmp(a, b):
@@ -88,55 +90,57 @@ class ChainDb(object):
 		self.blk_cache = Cache(750)
 		self.orphans = {}
 		self.orphan_deps = {}
-		if readonly:
-			mode_str = 'r'
-		else:
-			mode_str = 'c'
-			if fast_dbm:
-				self.log.write("Opening database in fast mode")
-				mode_str += 'f'
-		self.misc = gdbm.open(datadir + '/misc.dat', mode_str)
-		self.blocks = gdbm.open(datadir + '/blocks.dat', mode_str)
-		self.height = gdbm.open(datadir + '/height.dat', mode_str)
-		self.blkmeta = gdbm.open(datadir + '/blkmeta.dat', mode_str)
-		self.tx = gdbm.open(datadir + '/tx.dat', mode_str)
 
-		if 'height' not in self.misc:
+                # LevelDB to hold:
+                #    tx:*      transaction outputs
+                #    misc:*    state
+                #    height:*  list of blocks at height h
+                #    blkmeta:* block metadata
+                #    blocks:*  block seek point in stream
+                self.blk_write = io.BufferedWriter(io.FileIO(datadir + '/blocks.dat','ab'))
+                self.blk_read = io.BufferedReader(io.FileIO(datadir + '/blocks.dat','rb'))
+                self.db = leveldb.LevelDB(datadir + '/leveldb')
+
+                try:
+                    self.db.Get('misc:height')
+                except KeyError:
 			self.log.write("INITIALIZING EMPTY BLOCKCHAIN DATABASE")
-			self.misc['height'] = str(-1)
-			self.misc['msg_start'] = self.netmagic.msg_start
-			self.misc['tophash'] = ser_uint256(0L)
-			self.misc['total_work'] = hex(0L)
+                        batch = leveldb.WriteBatch()
+			batch.Put('misc:height', str(-1))
+			batch.Put('misc:msg_start', self.netmagic.msg_start)
+			batch.Put('misc:tophash', ser_uint256(0L))
+			batch.Put('misc:total_work', hex(0L))
+                        self.db.Write(batch)
 
-		if 'msg_start' not in self.misc or (self.misc['msg_start'] != self.netmagic.msg_start):
+                try:
+                    start = self.db.Get('misc:msg_start')
+                    if start != self.netmagic.msg_start: raise KeyError
+                except KeyError:
 			self.log.write("Database magic number mismatch. Data corruption or incorrect network?")
 			raise RuntimeError
-
-	def dbsync(self):
-		self.misc.sync()
-		self.blocks.sync()
-		self.height.sync()
-		self.blkmeta.sync()
-		self.tx.sync()
 
 	def puttxidx(self, txhash, txidx):
 		ser_txhash = ser_uint256(txhash)
 
-		if ser_txhash in self.tx:
-			old_txidx = self.gettxidx(txhash)
-			self.log.write("WARNING: overwriting duplicate TX %064x, height %d, oldblk %064x, oldspent %x, newblk %064x" % (txhash, self.getheight(), old_txidx.blkhash, old_txidx.spentmask, txidx.blkhash))
 
-		self.tx[ser_txhash] = (hex(txidx.blkhash) + ' ' +
-				       hex(txidx.spentmask))
+		try:
+                    self.db.Get('tx:'+ser_txhash)
+                    old_txidx = self.gettxidx(txhash)
+                    self.log.write("WARNING: overwriting duplicate TX %064x, height %d, oldblk %064x, oldspent %x, newblk %064x" % (txhash, self.getheight(), old_txidx.blkhash, old_txidx.spentmask, txidx.blkhash))
+                except KeyError:
+                    pass
+		self.db.Put('tx:'+ser_txhash, hex(txidx.blkhash) + ' ' +
+                                               hex(txidx.spentmask))
 
 		return True
 
 	def gettxidx(self, txhash):
 		ser_txhash = ser_uint256(txhash)
-		if ser_txhash not in self.tx:
+                try:
+                    ser_value = self.db.Get('tx:'+ser_txhash)
+                except KeyError:
 			return None
 
-		ser_value = self.tx[ser_txhash]
 		pos = string.find(ser_value, ' ')
 
 		txidx = TxIdx()
@@ -165,9 +169,11 @@ class ChainDb(object):
 		if checkorphans and blkhash in self.orphans:
 			return True
 		ser_hash = ser_uint256(blkhash)
-		if ser_hash in self.blocks:
-			return True
-		return False
+                try: 
+                    self.db.Get('blocks:'+ser_hash)
+                    return True
+                except KeyError:
+                    return False
 
 	def have_prevblock(self, block):
 		if self.getheight() < 0 and block.sha256 == self.netmagic.block0:
@@ -182,12 +188,14 @@ class ChainDb(object):
 			return block
 
 		ser_hash = ser_uint256(blkhash)
-		if ser_hash not in self.blocks:
-			return None
-
-		f = cStringIO.StringIO(self.blocks[ser_hash])
-		block = CBlock()
-		block.deserialize(f)
+                try:
+                        # Lookup the block index, seek in the file
+                        fpos = long(self.db.Get('blocks:'+ser_hash))
+                        self.blk_read.seek(fpos)
+                        block = CBlock()
+                        block.deserialize(self.blk_read)
+                except KeyError:
+                    return None
 
 		self.blk_cache.put(blkhash, block)
 
@@ -352,9 +360,11 @@ class ChainDb(object):
 					return False
 
 		# update database pointers for best chain
-		self.misc['total_work'] = hex(blkmeta.work)
-		self.misc['height'] = str(blkmeta.height)
-		self.misc['tophash'] = ser_hash
+                batch = leveldb.WriteBatch()
+		batch.Put('misc:total_work', hex(blkmeta.work))
+		batch.Put('misc:height', str(blkmeta.height))
+		batch.Put('misc:tophash', ser_hash)
+                self.db.Write(batch)
 
 		self.log.write("ChainDb: height %d, block %064x" % (
 				blkmeta.height, block.sha256))
@@ -381,7 +391,7 @@ class ChainDb(object):
 	def disconnect_block(self, block):
 		ser_prevhash = ser_uint256(block.hashPrevBlock)
 		prevmeta = BlkMeta()
-		prevmeta.deserialize(self.blkmeta[ser_prevhash])
+		prevmeta.deserialize(self.db.Get('blkmeta:'+ser_prevhash))
 
 		tup = self.unique_outpts(block)
 		if tup is None:
@@ -394,19 +404,23 @@ class ChainDb(object):
 			self.clear_txout(outpt[0], outpt[1])
 
 		# update tx index and memory pool
+		batch = leveldb.WriteBatch()
 		for tx in block.vtx:
 			tx.calc_sha256()
 			ser_hash = ser_uint256(tx.sha256)
-			if ser_hash in self.tx:
-				del self.tx[ser_hash]
+                        try:
+                            batch.Delete('tx:'+ser_hash)
+                        except KeyError:
+                            pass
 
 			if not tx.is_coinbase():
 				self.mempool.add(tx)
 
 		# update database pointers for best chain
-		self.misc['total_work'] = hex(prevmeta.work)
-		self.misc['height'] = str(prevmeta.height)
-		self.misc['tophash'] = ser_prevhash
+		batch.Put('misc:total_work', hex(prevmeta.work))
+		batch.Put('misc:height', str(prevmeta.height))
+		batch.Put('misc:tophash', ser_prevhash)
+                self.db.Write(batch)
 
 		self.log.write("ChainDb(disconn): height %d, block %064x" % (
 				prevmeta.height, block.hashPrevBlock))
@@ -415,11 +429,11 @@ class ChainDb(object):
 
 	def getblockmeta(self, blkhash):
 		ser_hash = ser_uint256(blkhash)
-		if ser_hash not in self.blkmeta:
+                try:
+                    meta = BlkMeta()
+                    meta.deserialize(self.db.Get('blkmeta:'+ser_hash))
+                except KeyError:
 			return None
-
-		meta = BlkMeta()
-		meta.deserialize(self.blkmeta[ser_hash])
 
 		return meta
 	
@@ -481,7 +495,7 @@ class ChainDb(object):
 	def set_best_chain(self, ser_prevhash, ser_hash, block, blkmeta):
 		# the easy case, extending current best chain
 		if (blkmeta.height == 0 or
-		    self.misc['tophash'] == ser_prevhash):
+		    self.db.Get('misc:tophash') == ser_prevhash):
 			return self.connect_block(ser_hash, block, blkmeta)
 
 		# switching from current chain to another, stronger chain
@@ -501,34 +515,43 @@ class ChainDb(object):
 			return False
 
 		top_height = self.getheight()
-		top_work = long(self.misc['total_work'], 16)
+		top_work = long(self.db.Get('misc:total_work'), 16)
 
 		# read metadata for previous block
 		prevmeta = BlkMeta()
 		if top_height >= 0:
 			ser_prevhash = ser_uint256(block.hashPrevBlock)
-			prevmeta.deserialize(self.blkmeta[ser_prevhash])
+			prevmeta.deserialize(self.db.Get('blkmeta:'+ser_prevhash))
 		else:
 			ser_prevhash = ''
 
+                batch = leveldb.WriteBatch()
+
 		# store raw block data
 		ser_hash = ser_uint256(block.sha256)
-		self.blocks[ser_hash] = block.serialize()
+                fpos = self.blk_write.tell()
+                self.blk_write.write(block.serialize())
+                self.blk_write.flush()
+		batch.Put('blocks:'+ser_hash, str(fpos))
 
 		# store metadata related to this block
 		blkmeta = BlkMeta()
 		blkmeta.height = prevmeta.height + 1
 		blkmeta.work = (prevmeta.work +
 				uint256_from_compact(block.nBits))
-		self.blkmeta[ser_hash] = blkmeta.serialize()
+		batch.Put('blkmeta:'+ser_hash, blkmeta.serialize())
 
 		# store list of blocks at this height
 		heightidx = HeightIdx()
 		heightstr = str(blkmeta.height)
-		if heightstr in self.height:
-			heightidx.deserialize(self.height[heightstr])
+                try:
+                    heightidx.deserialize(self.db.Get('height:'+heightstr))
+                except KeyError:
+                    pass
 		heightidx.blocks.append(block.sha256)
-		self.height[heightstr] = heightidx.serialize()
+
+		batch.Put('height:'+heightstr, heightidx.serialize())
+                self.db.Write(batch)
 
 		# if chain is not best chain, proceed no further
 		if (blkmeta.work <= top_work):
@@ -539,9 +562,6 @@ class ChainDb(object):
 		if not self.set_best_chain(ser_prevhash, ser_hash,
 					   block, blkmeta):
 			return False
-
-		if self.fast_dbm and blkmeta.height % 10000 == 0:
-			self.dbsync()
 
 		return True
 
@@ -572,15 +592,15 @@ class ChainDb(object):
 			ser_hash = ser_uint256(hash)
 			if ser_hash in self.blkmeta:
 				blkmeta = BlkMeta()
-				blkmeta.deserialize(self.blkmeta[ser_hash])
+				blkmeta.deserialize(self.db.Get('blkmeta:'+ser_hash))
 				return blkmeta
 		return 0
 
 	def getheight(self):
-		return int(self.misc['height'])
+		return int(self.db.Get('misc:height'))
 
 	def gettophash(self):
-		return uint256_from_str(self.misc['tophash'])
+		return uint256_from_str(self.db.Get('misc:tophash'))
 
 	def loadfile(self, filename):
 		fd = os.open(filename, os.O_RDONLY)

@@ -12,6 +12,7 @@ import json
 import cStringIO
 import struct
 import sys
+import itertools
 
 import ChainDb
 import bitcoin.coredefs
@@ -286,20 +287,22 @@ class RPCExec(object):
 				raise RPCException('400', "Unable to decode JSON data")
 
 			if isinstance(rpcreq, dict):
+                                start_response('200 OK', [('Content-Type', 'application/json')])
 				resp = self.handle_rpc(rpcreq)
+                                respstr = json.dumps(resp) + "\n"
+                                yield respstr
+
 			elif isinstance(rpcreq, list):
-				resp = self.handle_rpc_batch(rpcreq)
+                                start_response('200 OK', [('Content-Type', 'application/json')])
+                                for resp in itertools.imap(self.handle_rpc, repcreq_list):
+                                        respstr = json.dumps(resp) + "\n"
+                                        yield respstr
 			else:
 				raise RPCException('400', "Not a valid JSON-RPC request")
-			respstr = json.dumps(resp) + "\n"
-
-			# Return a json response
-			start_response('200 OK', [('Content-Type', 'application/json')])
-			return respstr
 
 		except RPCException, e:
 			start_response(e.status, [('Content-Type', 'text/plain')], sys.exc_info())
-			return e.message
+			yield e.message
 
 
 	def check_auth(self, hdr):
@@ -358,10 +361,6 @@ class RPCExec(object):
 
 	def json_response(self, resp):
 		pass
-
-	def handle_rpc_batch(self, rpcreq_list):
-		res = []
-		return ''.join(map(self.handle_rpc, repcreq_list))
 
 	def jsonrpc(self, method, params):
 		if method not in VALID_RPCS:

@@ -212,6 +212,8 @@ class NodeConn(Greenlet):
 			self.send_message(gb)
 
 	def got_message(self, message):
+                gevent.sleep()
+
 		if self.last_sent + 30 * 60 < time.time():
 			self.send_message(msg_ping(self.ver_send))
 
@@ -515,17 +517,25 @@ if __name__ == '__main__':
 				  settings['rpcuser'], settings['rpcpass'])
 	rpcserver = gevent.pywsgi.WSGIServer(('', settings['rpcport']), rpcexec.handle_request)
 	t = gevent.Greenlet(rpcserver.serve_forever)
-	t.start()
 	threads.append(t)
 
 	# connect to specified remote node
 	c = peermgr.add(settings['host'], settings['port'])
-	c.start()
 	threads.append(c)
 
-	# program main loop
-	def shutdown():
-		for t in threads: t.kill()
-	gevent.signal(signal.SIGINT, shutdown)
-	gevent.joinall(threads)
+        # program main loop
+        def start(timeout=None):
+                for t in threads: t.start()
+                try:
+                        gevent.joinall(threads,timeout=timeout,
+                                       raise_error=True)
+                finally:
+                        for t in threads: t.kill()
+                        gevent.joinall(threads)
+                        log.write('Flushing database...')
+                        del chaindb.db
+                        chaindb.blk_write.close()
+                        log.write('OK')
+
+        start()
 
