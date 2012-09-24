@@ -182,8 +182,12 @@ class NodeConn(Greenlet):
 		tmsg += h[:4]
 
 		tmsg += data
-		self.sock.sendall(tmsg)
-		self.last_sent = time.time()
+
+		try:
+			self.sock.sendall(tmsg)
+			self.last_sent = time.time()
+		except:
+			self.handle_close()
 
 	def send_getblocks(self, timecheck=True):
 		if not self.getblocks_ok:
