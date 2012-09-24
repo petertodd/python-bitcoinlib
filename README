@@ -42,6 +42,16 @@ The configuration file is a key=value text file, with the following settings:
 	# if present, import these blocks into the block database
 	loadblock=/tmp/blk0001.dat
 
+	# if present, disable all signature checking in new blocks
+	# (disabled by default)
+	nosig=1
+
+	# if present, force signature checking on all blocks,
+	# even those normally skipped because they were prior
+	# to a checkpoint.
+	# (disabled by default)
+	forcesig=1
+
 node.py connects to a single remote node, and does not accept incoming
 P2P connections.  If the connection is lost, node.py exits.
 
