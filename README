@@ -14,6 +14,11 @@ commands.
 It might be useful as the base for a P2P monitoring node, or similar
 tasks.
 
+Dependencies:
+
+	GEvent, http://www.gevent.org/
+	python-leveldb, http://code.google.com/p/py-leveldb/
+
 Command line usage:
 
 	./node.py my-config-file
