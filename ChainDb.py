@@ -91,31 +91,31 @@ class ChainDb(object):
 		self.orphans = {}
 		self.orphan_deps = {}
 
-                # LevelDB to hold:
-                #    tx:*      transaction outputs
-                #    misc:*    state
-                #    height:*  list of blocks at height h
-                #    blkmeta:* block metadata
-                #    blocks:*  block seek point in stream
-                self.blk_write = io.BufferedWriter(io.FileIO(datadir + '/blocks.dat','ab'))
-                self.blk_read = io.BufferedReader(io.FileIO(datadir + '/blocks.dat','rb'))
-                self.db = leveldb.LevelDB(datadir + '/leveldb')
+		# LevelDB to hold:
+		#    tx:*      transaction outputs
+		#    misc:*    state
+		#    height:*  list of blocks at height h
+		#    blkmeta:* block metadata
+		#    blocks:*  block seek point in stream
+		self.blk_write = io.BufferedWriter(io.FileIO(datadir + '/blocks.dat','ab'))
+		self.blk_read = io.BufferedReader(io.FileIO(datadir + '/blocks.dat','rb'))
+		self.db = leveldb.LevelDB(datadir + '/leveldb')
 
-                try:
-                    self.db.Get('misc:height')
-                except KeyError:
+		try:
+		    self.db.Get('misc:height')
+		except KeyError:
 			self.log.write("INITIALIZING EMPTY BLOCKCHAIN DATABASE")
-                        batch = leveldb.WriteBatch()
+			batch = leveldb.WriteBatch()
 			batch.Put('misc:height', str(-1))
 			batch.Put('misc:msg_start', self.netmagic.msg_start)
 			batch.Put('misc:tophash', ser_uint256(0L))
 			batch.Put('misc:total_work', hex(0L))
-                        self.db.Write(batch)
+			self.db.Write(batch)
 
-                try:
-                    start = self.db.Get('misc:msg_start')
-                    if start != self.netmagic.msg_start: raise KeyError
-                except KeyError:
+		try:
+		    start = self.db.Get('misc:msg_start')
+		    if start != self.netmagic.msg_start: raise KeyError
+		except KeyError:
 			self.log.write("Database magic number mismatch. Data corruption or incorrect network?")
 			raise RuntimeError
 
@@ -124,21 +124,21 @@ class ChainDb(object):
 
 
 		try:
-                    self.db.Get('tx:'+ser_txhash)
-                    old_txidx = self.gettxidx(txhash)
-                    self.log.write("WARNING: overwriting duplicate TX %064x, height %d, oldblk %064x, oldspent %x, newblk %064x" % (txhash, self.getheight(), old_txidx.blkhash, old_txidx.spentmask, txidx.blkhash))
-                except KeyError:
-                    pass
+		    self.db.Get('tx:'+ser_txhash)
+		    old_txidx = self.gettxidx(txhash)
+		    self.log.write("WARNING: overwriting duplicate TX %064x, height %d, oldblk %064x, oldspent %x, newblk %064x" % (txhash, self.getheight(), old_txidx.blkhash, old_txidx.spentmask, txidx.blkhash))
+		except KeyError:
+		    pass
 		self.db.Put('tx:'+ser_txhash, hex(txidx.blkhash) + ' ' +
-                                               hex(txidx.spentmask))
+					       hex(txidx.spentmask))
 
 		return True
 
 	def gettxidx(self, txhash):
 		ser_txhash = ser_uint256(txhash)
-                try:
-                    ser_value = self.db.Get('tx:'+ser_txhash)
-                except KeyError:
+		try:
+		    ser_value = self.db.Get('tx:'+ser_txhash)
+		except KeyError:
 			return None
 
 		pos = string.find(ser_value, ' ')
@@ -169,11 +169,11 @@ class ChainDb(object):
 		if checkorphans and blkhash in self.orphans:
 			return True
 		ser_hash = ser_uint256(blkhash)
-                try: 
-                    self.db.Get('blocks:'+ser_hash)
-                    return True
-                except KeyError:
-                    return False
+		try: 
+		    self.db.Get('blocks:'+ser_hash)
+		    return True
+		except KeyError:
+		    return False
 
 	def have_prevblock(self, block):
 		if self.getheight() < 0 and block.sha256 == self.netmagic.block0:
@@ -188,14 +188,14 @@ class ChainDb(object):
 			return block
 
 		ser_hash = ser_uint256(blkhash)
-                try:
-                        # Lookup the block index, seek in the file
-                        fpos = long(self.db.Get('blocks:'+ser_hash))
-                        self.blk_read.seek(fpos)
-                        block = CBlock()
-                        block.deserialize(self.blk_read)
-                except KeyError:
-                    return None
+		try:
+			# Lookup the block index, seek in the file
+			fpos = long(self.db.Get('blocks:'+ser_hash))
+			self.blk_read.seek(fpos)
+			block = CBlock()
+			block.deserialize(self.blk_read)
+		except KeyError:
+		    return None
 
 		self.blk_cache.put(blkhash, block)
 
@@ -360,11 +360,11 @@ class ChainDb(object):
 					return False
 
 		# update database pointers for best chain
-                batch = leveldb.WriteBatch()
+		batch = leveldb.WriteBatch()
 		batch.Put('misc:total_work', hex(blkmeta.work))
 		batch.Put('misc:height', str(blkmeta.height))
 		batch.Put('misc:tophash', ser_hash)
-                self.db.Write(batch)
+		self.db.Write(batch)
 
 		self.log.write("ChainDb: height %d, block %064x" % (
 				blkmeta.height, block.sha256))
@@ -408,10 +408,10 @@ class ChainDb(object):
 		for tx in block.vtx:
 			tx.calc_sha256()
 			ser_hash = ser_uint256(tx.sha256)
-                        try:
-                            batch.Delete('tx:'+ser_hash)
-                        except KeyError:
-                            pass
+			try:
+			    batch.Delete('tx:'+ser_hash)
+			except KeyError:
+			    pass
 
 			if not tx.is_coinbase():
 				self.mempool.add(tx)
@@ -420,7 +420,7 @@ class ChainDb(object):
 		batch.Put('misc:total_work', hex(prevmeta.work))
 		batch.Put('misc:height', str(prevmeta.height))
 		batch.Put('misc:tophash', ser_prevhash)
-                self.db.Write(batch)
+		self.db.Write(batch)
 
 		self.log.write("ChainDb(disconn): height %d, block %064x" % (
 				prevmeta.height, block.hashPrevBlock))
@@ -429,10 +429,10 @@ class ChainDb(object):
 
 	def getblockmeta(self, blkhash):
 		ser_hash = ser_uint256(blkhash)
-                try:
-                    meta = BlkMeta()
-                    meta.deserialize(self.db.Get('blkmeta:'+ser_hash))
-                except KeyError:
+		try:
+		    meta = BlkMeta()
+		    meta.deserialize(self.db.Get('blkmeta:'+ser_hash))
+		except KeyError:
 			return None
 
 		return meta
@@ -525,13 +525,13 @@ class ChainDb(object):
 		else:
 			ser_prevhash = ''
 
-                batch = leveldb.WriteBatch()
+		batch = leveldb.WriteBatch()
 
 		# store raw block data
 		ser_hash = ser_uint256(block.sha256)
-                fpos = self.blk_write.tell()
-                self.blk_write.write(block.serialize())
-                self.blk_write.flush()
+		fpos = self.blk_write.tell()
+		self.blk_write.write(block.serialize())
+		self.blk_write.flush()
 		batch.Put('blocks:'+ser_hash, str(fpos))
 
 		# store metadata related to this block
@@ -544,14 +544,14 @@ class ChainDb(object):
 		# store list of blocks at this height
 		heightidx = HeightIdx()
 		heightstr = str(blkmeta.height)
-                try:
-                    heightidx.deserialize(self.db.Get('height:'+heightstr))
-                except KeyError:
-                    pass
+		try:
+		    heightidx.deserialize(self.db.Get('height:'+heightstr))
+		except KeyError:
+		    pass
 		heightidx.blocks.append(block.sha256)
 
 		batch.Put('height:'+heightstr, heightidx.serialize())
-                self.db.Write(batch)
+		self.db.Write(batch)
 
 		# if chain is not best chain, proceed no further
 		if (blkmeta.work <= top_work):

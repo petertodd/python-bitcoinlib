@@ -287,16 +287,16 @@ class RPCExec(object):
 				raise RPCException('400', "Unable to decode JSON data")
 
 			if isinstance(rpcreq, dict):
-                                start_response('200 OK', [('Content-Type', 'application/json')])
+				start_response('200 OK', [('Content-Type', 'application/json')])
 				resp = self.handle_rpc(rpcreq)
-                                respstr = json.dumps(resp) + "\n"
-                                yield respstr
+				respstr = json.dumps(resp) + "\n"
+				yield respstr
 
 			elif isinstance(rpcreq, list):
-                                start_response('200 OK', [('Content-Type', 'application/json')])
-                                for resp in itertools.imap(self.handle_rpc, repcreq_list):
-                                        respstr = json.dumps(resp) + "\n"
-                                        yield respstr
+				start_response('200 OK', [('Content-Type', 'application/json')])
+				for resp in itertools.imap(self.handle_rpc, repcreq_list):
+					respstr = json.dumps(resp) + "\n"
+					yield respstr
 			else:
 				raise RPCException('400', "Not a valid JSON-RPC request")
 

@@ -212,7 +212,7 @@ class NodeConn(Greenlet):
 			self.send_message(gb)
 
 	def got_message(self, message):
-                gevent.sleep()
+		gevent.sleep()
 
 		if self.last_sent + 30 * 60 < time.time():
 			self.send_message(msg_ping(self.ver_send))
@@ -228,7 +228,7 @@ class NodeConn(Greenlet):
 				return
 
 			if (self.ver_send >= NOBLKS_VERSION_START and
-                            self.ver_send <= NOBLKS_VERSION_END):
+			    self.ver_send <= NOBLKS_VERSION_END):
 				self.getblocks_ok = False
 
 			self.remote_height = message.nStartingHeight
@@ -254,8 +254,8 @@ class NodeConn(Greenlet):
 
 			# special message sent to kick getblocks
 			if (len(message.inv) == 1 and
-                            message.inv[0].type == MSG_BLOCK and
-                            self.chaindb.haveblock(message.inv[0].hash, True)):
+			    message.inv[0].type == MSG_BLOCK and
+			    self.chaindb.haveblock(message.inv[0].hash, True)):
 				self.send_getblocks(False)
 				return
 
@@ -422,10 +422,10 @@ class PeerManager(object):
 
 	def add(self, host, port):
 		self.log.write("PeerManager: connecting to %s:%d" %
-		               (host, port))
+			       (host, port))
 		self.tried[host] = True
 		c = NodeConn(host, port, self.log, self, self.mempool,
-		             self.chaindb, self.netmagic)
+			     self.chaindb, self.netmagic)
 		self.peers.append(c)
 		return c
 
@@ -485,7 +485,7 @@ if __name__ == '__main__':
 		settings['log'] = None
 
 	if ('rpcuser' not in settings or
-            'rpcpass' not in settings):
+	    'rpcpass' not in settings):
 		print "You must set the following in config: rpcuser, rpcpass"
 		sys.exit(1)
 
@@ -523,19 +523,19 @@ if __name__ == '__main__':
 	c = peermgr.add(settings['host'], settings['port'])
 	threads.append(c)
 
-        # program main loop
-        def start(timeout=None):
-                for t in threads: t.start()
-                try:
-                        gevent.joinall(threads,timeout=timeout,
-                                       raise_error=True)
-                finally:
-                        for t in threads: t.kill()
-                        gevent.joinall(threads)
-                        log.write('Flushing database...')
-                        del chaindb.db
-                        chaindb.blk_write.close()
-                        log.write('OK')
+	# program main loop
+	def start(timeout=None):
+		for t in threads: t.start()
+		try:
+			gevent.joinall(threads,timeout=timeout,
+				       raise_error=True)
+		finally:
+			for t in threads: t.kill()
+			gevent.joinall(threads)
+			log.write('Flushing database...')
+			del chaindb.db
+			chaindb.blk_write.close()
+			log.write('OK')
 
-        start()
+	start()
 
