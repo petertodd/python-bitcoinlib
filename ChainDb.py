@@ -212,13 +212,13 @@ class ChainDb(object):
 
 		return True
 
-	def clear_txout(self, txhash, n_idx):
+	def clear_txout(self, txhash, n_idx, batch=None):
 		txidx = self.gettxidx(txhash)
 		if txidx is None:
 			return False
 
 		txidx.spentmask &= ~(1L << n_idx)
-		self.puttxidx(txhash, txidx)
+		self.puttxidx(txhash, txidx, batch)
 
 		return True
 
@@ -401,11 +401,11 @@ class ChainDb(object):
 		outpts = tup[0]
 
 		# mark deps as unspent
+		batch = leveldb.WriteBatch()
 		for outpt in outpts:
-			self.clear_txout(outpt[0], outpt[1])
+			self.clear_txout(outpt[0], outpt[1], batch)
 
 		# update tx index and memory pool
-		batch = leveldb.WriteBatch()
 		for tx in block.vtx:
 			tx.calc_sha256()
 			ser_hash = ser_uint256(tx.sha256)
