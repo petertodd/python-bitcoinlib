@@ -9,7 +9,6 @@
 import gevent
 import gevent.pywsgi
 from gevent import Greenlet
-from gevent import monkey; monkey.patch_all()
 
 import signal
 import struct
