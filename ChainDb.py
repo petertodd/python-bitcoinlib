@@ -102,7 +102,7 @@ class ChainDb(object):
 		self.db = leveldb.LevelDB(datadir + '/leveldb')
 
 		try:
-		    self.db.Get('misc:height')
+			self.db.Get('misc:height')
 		except KeyError:
 			self.log.write("INITIALIZING EMPTY BLOCKCHAIN DATABASE")
 			batch = leveldb.WriteBatch()
@@ -113,8 +113,8 @@ class ChainDb(object):
 			self.db.Write(batch)
 
 		try:
-		    start = self.db.Get('misc:msg_start')
-		    if start != self.netmagic.msg_start: raise KeyError
+			start = self.db.Get('misc:msg_start')
+			if start != self.netmagic.msg_start: raise KeyError
 		except KeyError:
 			self.log.write("Database magic number mismatch. Data corruption or incorrect network?")
 			raise RuntimeError
@@ -124,11 +124,11 @@ class ChainDb(object):
 
 
 		try:
-		    self.db.Get('tx:'+ser_txhash)
-		    old_txidx = self.gettxidx(txhash)
-		    self.log.write("WARNING: overwriting duplicate TX %064x, height %d, oldblk %064x, oldspent %x, newblk %064x" % (txhash, self.getheight(), old_txidx.blkhash, old_txidx.spentmask, txidx.blkhash))
+			self.db.Get('tx:'+ser_txhash)
+			old_txidx = self.gettxidx(txhash)
+			self.log.write("WARNING: overwriting duplicate TX %064x, height %d, oldblk %064x, oldspent %x, newblk %064x" % (txhash, self.getheight(), old_txidx.blkhash, old_txidx.spentmask, txidx.blkhash))
 		except KeyError:
-		    pass
+			pass
 		self.db.Put('tx:'+ser_txhash, hex(txidx.blkhash) + ' ' +
 					       hex(txidx.spentmask))
 
@@ -137,7 +137,7 @@ class ChainDb(object):
 	def gettxidx(self, txhash):
 		ser_txhash = ser_uint256(txhash)
 		try:
-		    ser_value = self.db.Get('tx:'+ser_txhash)
+			ser_value = self.db.Get('tx:'+ser_txhash)
 		except KeyError:
 			return None
 
@@ -170,10 +170,10 @@ class ChainDb(object):
 			return True
 		ser_hash = ser_uint256(blkhash)
 		try: 
-		    self.db.Get('blocks:'+ser_hash)
-		    return True
+			self.db.Get('blocks:'+ser_hash)
+			return True
 		except KeyError:
-		    return False
+			return False
 
 	def have_prevblock(self, block):
 		if self.getheight() < 0 and block.sha256 == self.netmagic.block0:
@@ -195,7 +195,7 @@ class ChainDb(object):
 			block = CBlock()
 			block.deserialize(self.blk_read)
 		except KeyError:
-		    return None
+			return None
 
 		self.blk_cache.put(blkhash, block)
 
@@ -409,9 +409,9 @@ class ChainDb(object):
 			tx.calc_sha256()
 			ser_hash = ser_uint256(tx.sha256)
 			try:
-			    batch.Delete('tx:'+ser_hash)
+				batch.Delete('tx:'+ser_hash)
 			except KeyError:
-			    pass
+				pass
 
 			if not tx.is_coinbase():
 				self.mempool.add(tx)
@@ -430,8 +430,8 @@ class ChainDb(object):
 	def getblockmeta(self, blkhash):
 		ser_hash = ser_uint256(blkhash)
 		try:
-		    meta = BlkMeta()
-		    meta.deserialize(self.db.Get('blkmeta:'+ser_hash))
+			meta = BlkMeta()
+			meta.deserialize(self.db.Get('blkmeta:'+ser_hash))
 		except KeyError:
 			return None
 
@@ -545,9 +545,9 @@ class ChainDb(object):
 		heightidx = HeightIdx()
 		heightstr = str(blkmeta.height)
 		try:
-		    heightidx.deserialize(self.db.Get('height:'+heightstr))
+			heightidx.deserialize(self.db.Get('height:'+heightstr))
 		except KeyError:
-		    pass
+			pass
 		heightidx.blocks.append(block.sha256)
 
 		batch.Put('height:'+heightstr, heightidx.serialize())
