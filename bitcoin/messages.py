@@ -253,3 +253,20 @@ class msg_mempool(object):
 	def __repr__(self):
 		return "msg_mempool()"
 
+def message_to_str(netmagic, message):
+	command = message.command
+	data = message.serialize()
+	tmsg = netmagic.msg_start
+	tmsg += command
+	tmsg += "\x00" * (12 - len(command))
+	tmsg += struct.pack("<I", len(data))
+
+	# add checksum
+	th = hashlib.sha256(data).digest()
+	h = hashlib.sha256(th).digest()
+	tmsg += h[:4]
+
+	tmsg += data
+
+	return tmsg
+

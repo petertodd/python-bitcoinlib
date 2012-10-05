@@ -112,7 +112,7 @@ class NodeConn(Greenlet):
 		vt.addrFrom.port = 0
 		vt.nStartingHeight = self.chaindb.getheight()
 		vt.strSubVer = MY_SUBVERSION
-		self.send_message(vt, True)
+		self.send_message(vt)
 
 	def _run(self):
 		self.log.write(self.dstaddr + " connected")
@@ -164,23 +164,11 @@ class NodeConn(Greenlet):
 			else:
 				self.log.write("UNKNOWN COMMAND %s %s" % (command, repr(msg)))
 
-	def send_message(self, message, pushbuf=False):
+	def send_message(self, message):
 		if verbose_sendmsg(message):
 			self.log.write("send %s" % repr(message))
 
-		command = message.command
-		data = message.serialize()
-		tmsg = self.netmagic.msg_start
-		tmsg += command
-		tmsg += "\x00" * (12 - len(command))
-		tmsg += struct.pack("<I", len(data))
-
-		# add checksum
-		th = hashlib.sha256(data).digest()
-		h = hashlib.sha256(th).digest()
-		tmsg += h[:4]
-
-		tmsg += data
+		tmsg = message_to_str(self.netmagic, message)
 
 		try:
 			self.sock.sendall(tmsg)
