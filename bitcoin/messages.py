@@ -9,6 +9,7 @@
 import struct
 import time
 import random
+import cStringIO
 from coredefs import *
 from core import *
 
@@ -252,6 +253,64 @@ class msg_mempool(object):
 		return ""
 	def __repr__(self):
 		return "msg_mempool()"
+
+messagemap = {
+	"version": msg_version,
+	"verack": msg_verack,
+	"addr": msg_addr,
+	"alert": msg_alert,
+	"inv": msg_inv,
+	"getdata": msg_getdata,
+	"getblocks": msg_getblocks,
+	"tx": msg_tx,
+	"block": msg_block,
+	"getaddr": msg_getaddr,
+	"ping": msg_ping,
+	"pong": msg_pong,
+	"mempool": msg_mempool
+}
+
+def message_read(netmagic, f):
+	try:
+		recvbuf = f.read(4 + 12 + 4 + 4)
+	except IOError:
+		return None
+	
+	# check magic
+	if len(recvbuf) < 4:
+		return
+	if recvbuf[:4] != netmagic.msg_start:
+		raise ValueError("got garbage %s" % repr(recvbuf))
+
+	# check checksum
+	if len(recvbuf) < 4 + 12 + 4 + 4:
+		return
+
+	# remaining header fields: command, msg length, checksum
+	command = recvbuf[4:4+12].split("\x00", 1)[0]
+	msglen = struct.unpack("<i", recvbuf[4+12:4+12+4])[0]
+	checksum = recvbuf[4+12+4:4+12+4+4]
+
+	# read message body
+	try:
+		recvbuf += f.read(msglen)
+	except IOError:
+		return None
+
+	msg = recvbuf[4+12+4+4:4+12+4+4+msglen]
+	th = hashlib.sha256(msg).digest()
+	h = hashlib.sha256(th).digest()
+	if checksum != h[:4]:
+		raise ValueError("got bad checksum %s" % repr(recvbuf))
+	recvbuf = recvbuf[4+12+4+4+msglen:]
+
+	if command in messagemap:
+		f = cStringIO.StringIO(msg)
+		t = messagemap[command]()
+		t.deserialize(f)
+		return t
+	else:
+		return None
 
 def message_to_str(netmagic, message):
 	command = message.command

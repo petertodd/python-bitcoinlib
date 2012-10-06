@@ -16,6 +16,7 @@ from decimal import Decimal
 from Cache import Cache
 from bitcoin.serialize import *
 from bitcoin.core import *
+from bitcoin.messages import msg_block, message_to_str, message_read
 from bitcoin.coredefs import COIN
 from bitcoin.scripteval import VerifySignature
 
@@ -193,8 +194,12 @@ class ChainDb(object):
 			# Lookup the block index, seek in the file
 			fpos = long(self.db.Get('blocks:'+ser_hash))
 			self.blk_read.seek(fpos)
-			block = CBlock()
-			block.deserialize(self.blk_read)
+
+			# read and decode "block" msg
+			msg = message_read(self.netmagic, self.blk_read)
+			if msg is None:
+				return None
+			block = msg.block
 		except KeyError:
 			return None
 
@@ -528,11 +533,18 @@ class ChainDb(object):
 
 		batch = leveldb.WriteBatch()
 
-		# store raw block data
-		ser_hash = ser_uint256(block.sha256)
+		# build network "block" msg, as canonical disk storage form
+		msg = msg_block()
+		msg.block = block
+		msg_data = message_to_str(self.netmagic, msg)
+
+		# write "block" msg to storage
 		fpos = self.blk_write.tell()
-		self.blk_write.write(block.serialize())
+		self.blk_write.write(msg_data)
 		self.blk_write.flush()
+
+		# add index entry
+		ser_hash = ser_uint256(block.sha256)
 		batch.Put('blocks:'+ser_hash, str(fpos))
 
 		# store metadata related to this block
