@@ -88,7 +88,7 @@ class ChainDb(object):
 		self.readonly = readonly
 		self.netmagic = netmagic
 		self.fast_dbm = fast_dbm
-		self.blk_cache = Cache(750)
+		self.blk_cache = Cache(500)
 		self.orphans = {}
 		self.orphan_deps = {}
 
@@ -333,18 +333,18 @@ class ChainDb(object):
 
 		return True
 
-	def tx_connected(self, tx):
+	def tx_is_orphan(self, tx):
 		if not tx.is_valid():
-			return False
+			return None
 
-		block = CBlock()
-		block.vtx.append(tx)
+		for txin in tx.vin:
+			rc = self.txout_spent(txin.prevout)
+			if rc is None:		# not found: orphan
+				return True
+			if rc is True:		# spent? strange
+				return None
 
-		outpts = self.spent_outpts(block)
-		if outpts is None:
-			return False
-
-		return True
+		return False
 
 	def connect_block(self, ser_hash, block, blkmeta):
 		# verify against checkpoint list

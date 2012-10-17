@@ -240,8 +240,8 @@ class NodeConn(Greenlet):
 				self.send_message(want)
 
 		elif message.command == "tx":
-			if not self.chaindb.tx_connected(message.tx):
-				self.log.write("MemPool: Ignoring disconnected TX %064x" % (message.tx.sha256,))
+			if self.chaindb.tx_is_orphan(message.tx):
+				self.log.write("MemPool: Ignoring orphan TX %064x" % (message.tx.sha256,))
 			elif not self.chaindb.tx_signed(message.tx, None, True):
 				self.log.write("MemPool: Ignoring failed-sig TX %064x" % (message.tx.sha256,))
 			else:
