@@ -243,6 +243,19 @@ class ChainDb(object):
 
 		return (outpts, txmap)
 
+	def txout_spent(self, txout):
+		txidx = self.gettxidx(txout.hash)
+		if txidx is None:
+			return None
+
+		if txout.n > 100000:	# outpoint index sanity check
+			return None
+
+		if txidx.spentmask & (1L << txout.n):
+			return True
+
+		return False
+
 	def spent_outpts(self, block):
 		# list of outpoints this block wants to spend
 		l = self.unique_outpts(block)
@@ -254,14 +267,13 @@ class ChainDb(object):
 
 		# pass 1: if outpoint in db, make sure it is unspent
 		for k in outpts.iterkeys():
-			txidx = self.gettxidx(k[0])
-			if txidx is None:
+			outpt = COutPoint()
+			outpt.hash = k[0]
+			outpt.n = k[1]
+			rc = self.txout_spent(outpt)
+			if rc is None:
 				continue
-
-			if k[1] > 100000:	# outpoint index sanity check
-				return None
-
-			if txidx.spentmask & (1L << k[1]):
+			if rc:
 				return None
 
 			outpts[k] = True	# skip in pass 2
