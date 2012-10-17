@@ -1,13 +1,7 @@
 
-- Script engine exists, but is not yet integrated with node.py
-
 - Appears to have difficulty talking to nodes with protocol versions
   between 40000 and 50001, inclusive.
 
 - Truncated or corrupted serialization may crash the program...
   must test and see which exceptions are thrown.
-
-- GDBM is not exactly a fully transactional database, and using
-  multiple GDBM tables means data may get out of sync even if
-  GDBM file integrity is retained during a crash.
 

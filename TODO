@@ -5,8 +5,6 @@ multiple peer support; do something useful with CAddresses
 
 incoming peer support
 
-integrate script verification with node.py
-
 pay to script hash (P2SH, BIP 16)
 
 P2P commands:
