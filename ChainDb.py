@@ -340,7 +340,12 @@ class ChainDb(object):
 		for txin in tx.vin:
 			rc = self.txout_spent(txin.prevout)
 			if rc is None:		# not found: orphan
-				return True
+				try:
+					txfrom = self.mempool.pool[txin.prevout.hash]
+				except:
+					return True
+				if txin.prevout.n >= len(txfrom.vout):
+					return None
 			if rc is True:		# spent? strange
 				return None
 
