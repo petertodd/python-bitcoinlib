@@ -76,6 +76,9 @@ class AuthServiceProxy(object):
                                              HTTP_TIMEOUT)
 
     def __getattr__(self, name):
+        if name[:2] == '__' and name[-2:] == '__':
+            # Python internal stuff
+            raise AttributeError
         if self.__serviceName != None:
             name = "%s.%s" % (self.__serviceName, name)
         return AuthServiceProxy(self.__serviceURL, name)
