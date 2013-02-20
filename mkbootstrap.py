@@ -44,7 +44,7 @@ outf = open('bootstrap.dat', 'wb')
 scanned = 0
 failures = 0
 
-for height in xrange(193000+1):
+for height in xrange(216116+1):
 	heightidx = ChainDb.HeightIdx()
 	heightstr = str(height)
 	try:
