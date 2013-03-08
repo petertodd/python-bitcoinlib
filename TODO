@@ -1,10 +1,6 @@
 
 See BUGS for other info.
 
-multiple peer support; do something useful with CAddresses
-
-incoming peer support
-
 pay to script hash (P2SH, BIP 16)
 
 script opcodes:
