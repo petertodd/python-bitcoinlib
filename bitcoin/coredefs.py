@@ -22,21 +22,21 @@ MEMPOOL_GD_VERSION = 60002
 COIN = 100000000
 
 class NetMagic(object):
-	def __init__(self, msg_start, block0, checkpoints):
-		self.msg_start = msg_start
-		self.block0 = block0
-		self.checkpoints = checkpoints
+    def __init__(self, msg_start, block0, checkpoints):
+        self.msg_start = msg_start
+        self.block0 = block0
+        self.checkpoints = checkpoints
 
-		self.checkpoint_max = 0
-		for height in self.checkpoints.iterkeys():
-			if height > self.checkpoint_max:
-				self.checkpoint_max = height
+        self.checkpoint_max = 0
+        for height in self.checkpoints.iterkeys():
+            if height > self.checkpoint_max:
+                self.checkpoint_max = height
 
 NETWORKS = {
  'mainnet' : NetMagic("\xf9\xbe\xb4\xd9",
-	0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26fL,
-	{
-	 0: 0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26fL,
+    0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26fL,
+    {
+     0: 0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26fL,
          11111: 0x0000000069e244f73d78e8fd29ba2fd2ed618bd6fa2ee92559f542fdb26e7c1dL,
          33333: 0x000000002dd5588a74784eaa7ab0507a18ad16a236e7b1ce69f00d7ddfb5d0a6L,
          74000: 0x0000000000573993a3c9e41ce34471c079dcf5f52a0e824a81e7f953b8661a20L,
@@ -44,13 +44,13 @@ NETWORKS = {
         134444: 0x00000000000005b12ffd4cd315cd34ffd4a594f430ac814c91184a0d42d2b0feL,
         168000: 0x000000000000099e61ea72015e79632f216fe6cb33d7899acb35b75c8303b763L,
         193000: 0x000000000000059f452a5f7340de6682a977387c17010ff6e6c3bd83ca8b1317L,
-	210000: 0x000000000000048b95347e83192f69cf0366076336c639f9b7228e9ba171342eL,
-	216116: 0x00000000000001b4f4b433e81ee46494af945cf96014816a4e2370f11b23df4eL,
-	}),
+    210000: 0x000000000000048b95347e83192f69cf0366076336c639f9b7228e9ba171342eL,
+    216116: 0x00000000000001b4f4b433e81ee46494af945cf96014816a4e2370f11b23df4eL,
+    }),
  'testnet3' : NetMagic("\x0b\x11\x09\x07",
         0x000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943L,
-	{
-	 0: 0x000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943L,
-	})
+    {
+     0: 0x000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943L,
+    })
 }
 
