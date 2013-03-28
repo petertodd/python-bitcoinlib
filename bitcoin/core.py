@@ -11,9 +11,9 @@ import socket
 import binascii
 import time
 import hashlib
-from serialize import *
-from coredefs import *
-from script import CScript
+from bitcoin.serialize import *
+from bitcoin.coredefs import *
+from bitcoin.script import CScript
 
 class CAddress(object):
     def __init__(self, protover=PROTO_VERSION):

@@ -7,11 +7,11 @@
 #
 
 import hashlib
-from serialize import Hash, Hash160, ser_uint256, ser_uint160
-from script import *
-from core import CTxOut, CTransaction
-from key import CKey
-from bignum import bn2vch, vch2bn
+from bitcoin.serialize import Hash, Hash160, ser_uint256, ser_uint160
+from bitcoin.script import *
+from bitcoin.core import CTxOut, CTransaction
+from bitcoin.key import CKey
+from bitcoin.bignum import bn2vch, vch2bn
 
 def SignatureHash(script, txTo, inIdx, hashtype):
     if inIdx >= len(txTo.vin):

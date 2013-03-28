@@ -10,8 +10,8 @@ import struct
 import time
 import random
 import cStringIO
-from coredefs import *
-from core import *
+from bitcoin.coredefs import *
+from bitcoin.core import *
 
 MSG_TX = 1
 MSG_BLOCK = 2
