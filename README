@@ -2,3 +2,8 @@
 This python library provides an easy interface to the bitcoin
 data structures and protocol.
 
+
+Unit tests
+----------
+
+python -m unittest discover

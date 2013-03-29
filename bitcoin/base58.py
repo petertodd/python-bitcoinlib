@@ -8,54 +8,92 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
 
-from bitcoin.serialize import Hash
+from bitcoin.serialize import Hash, ser_uint256
 
 b58_digits = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
-def encode (n):
-    l = []
+from binascii import hexlify, unhexlify
+
+class Base58Error(Exception):
+    pass
+
+class InvalidBase58Error(Base58Error):
+    pass
+
+def encode(b):
+    """Encode bytes to a base58-encoded string"""
+
+    # Convert big-endian bytes to integer
+    n = int('0x0' + hexlify(b), 16)
+
+    # Divide that integer into bas58
+    res = []
     while n > 0:
         n, r = divmod (n, 58)
-        l.insert (0, (b58_digits[r]))
-    return ''.join (l)
+        res.append(b58_digits[r])
+    res = ''.join(res[::-1])
 
-def decode (s):
-    n = 0
-    for ch in s:
-        n *= 58
-        digit = b58_digits.index (ch)
-        n += digit
-    return n
-
-def encode_padded (s):
-    res = base58_encode (int ('0x' + s.encode ('hex'), 16))
+    # Encode leading zeros as base58 zeros
     pad = 0
-    for c in s:
+    for c in b:
         if c == chr(0): pad += 1
         else: break
     return b58_digits[0] * pad + res
 
-def decode_padded (s):
-    pad = 0
+def decode(s):
+    """Decode a base58-encoding string, returning bytes"""
+    if not s:
+        return b''
+
+    # Convert the string to an integer
+    n = 0
     for c in s:
-        if c == b58_digits[0]: pad += 1
-        else: break
-    h = '%x' % base58_decode (s)
+        n *= 58
+        if c not in b58_digits:
+            raise InvalidBase58Error('Character %r is not a valid base58 character' % c)
+        digit = b58_digits.index(c)
+        n += digit
+
+    # Convert the integer to bytes
+    h = '%x' % n
     if len(h) % 2:
         h = '0' + h
-    res = h.decode ('hex')
-    return chr(0) * pad + res
+    res = unhexlify(h)
 
-def key_to_address (s):
-    vs = chr (addrtype) + s
-    check = Hash(vs)[:4]
-    return base58_encode_padded (vs + check)
+    # Add padding back.
+    pad = 0
+    for c in s[:-1]:
+        if c == b58_digits[0]: pad += 1
+        else: break
+    return b'\x00' * pad + res
 
-def address_to_key (s):
-    k = base58_decode_padded (s)
-    hash160, check0 = k[1:-4], k[-4:]
-    check1 = Hash (chr (addrtype) + hash160)[:4]
-    if check0 != check1:
-        return None
-    return hash160
 
+class Base58ChecksumError(Base58Error):
+    pass
+
+class CBase58Data(bytes):
+    def __new__(cls, data, nVersion):
+        self = super(CBase58Data, cls).__new__(cls, data)
+        self.nVersion = nVersion
+        return self
+
+    def __str__(self):
+        vs = chr(self.nVersion) + self
+        check = ser_uint256(Hash(vs))[0:4]
+        return encode(vs + check)
+
+    @classmethod
+    def from_str(cls, s):
+        k = decode(s)
+        addrbyte, data, check0 = k[0], k[1:-4], k[-4:]
+        check1 = ser_uint256(Hash(addrbyte + data))[:4]
+        if check0 != check1:
+            raise Base58ChecksumError('Checksum mismatch: expected %r, calculated %r' % (check0, check1))
+        return cls(data, ord(addrbyte))
+
+
+class CBitcoinAddress(CBase58Data):
+    PUBKEY_ADDRESS = 0
+    SCRIPT_ADDRESS = 5
+    PUBKEY_ADDRESS_TEST = 111
+    SCRIPT_ADDRESS_TEST = 196
