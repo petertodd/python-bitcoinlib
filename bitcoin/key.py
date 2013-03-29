@@ -8,7 +8,7 @@
 import ctypes
 import ctypes.util
 
-ssl = ctypes.cdll.LoadLibrary(ctypes.util.find_library('ssl') or 'libeay32')
+ssl = ctypes.cdll.LoadLibrary (ctypes.util.find_library ('ssl') or 'libeay32')
 
 # this specifies the curve used with ECDSA.
 NID_secp256k1 = 714 # from openssl/obj_mac.h
@@ -107,5 +107,6 @@ if __name__ == '__main__':
     k = CKey()
     k.generate (ec_secret.decode('hex'))
     k.set_compressed(True)
-    print(k.get_privkey ().encode('hex'))
-    print(k.get_pubkey().encode('hex'))
+    print k.get_privkey ().encode('hex')
+    print k.get_pubkey().encode('hex')
+    print k.get_secret().encode('hex')
