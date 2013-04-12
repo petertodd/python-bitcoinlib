@@ -50,10 +50,12 @@ USER_AGENT = "AuthServiceProxy/0.1"
 
 HTTP_TIMEOUT = 30
 
+
 class JSONRPCException(Exception):
     def __init__(self, rpcError):
         Exception.__init__(self)
         self.error = rpcError
+
 
 class AuthServiceProxy(object):
     def __init__(self, serviceURL, serviceName=None):
@@ -69,11 +71,12 @@ class AuthServiceProxy(object):
         authpair = authpair.encode('utf8')
         self.__authhdr = "Basic ".encode('utf8') + base64.b64encode(authpair)
         if self.__url.scheme == 'https':
-            self.__conn = httplib.HTTPSConnection(self.__url.hostname, port, None, None,False,
-                                             HTTP_TIMEOUT)
+            self.__conn = httplib.HTTPSConnection(self.__url.hostname, port,
+                                                  None, None, False,
+                                                  HTTP_TIMEOUT)
         else:
-            self.__conn = httplib.HTTPConnection(self.__url.hostname, port, False,
-                                             HTTP_TIMEOUT)
+            self.__conn = httplib.HTTPConnection(self.__url.hostname, port,
+                                                 False, HTTP_TIMEOUT)
 
     def __getattr__(self, name):
         if name[:2] == '__' and name[-2:] == '__':
@@ -84,50 +87,48 @@ class AuthServiceProxy(object):
         return AuthServiceProxy(self.__serviceURL, name)
 
     def __call__(self, *args):
-         self.__idcnt += 1
+        self.__idcnt += 1
 
-         postdata = json.dumps({
-                'version': '1.1',
-                'method': self.__serviceName,
-                'params': args,
-                'id': self.__idcnt})
-         self.__conn.request('POST', self.__url.path, postdata,
-                 { 'Host' : self.__url.hostname,
-                  'User-Agent' : USER_AGENT,
-                  'Authorization' : self.__authhdr,
-                  'Content-type' : 'application/json' })
+        postdata = json.dumps({'version': '1.1',
+                               'method': self.__serviceName,
+                               'params': args,
+                               'id': self.__idcnt})
+        self.__conn.request('POST', self.__url.path, postdata,
+                            {'Host': self.__url.hostname,
+                             'User-Agent': USER_AGENT,
+                             'Authorization': self.__authhdr,
+                             'Content-type': 'application/json'})
 
-         httpresp = self.__conn.getresponse()
-         if httpresp is None:
-             raise JSONRPCException({
-                     'code' : -342, 'message' : 'missing HTTP response from server'})
+        httpresp = self.__conn.getresponse()
+        if httpresp is None:
+            raise JSONRPCException({
+                'code': -342, 'message': 'missing HTTP response from server'})
 
-         resp = httpresp.read()
-         resp = resp.decode('utf8')
-         resp = json.loads(resp, parse_float=decimal.Decimal)
-         if resp['error'] != None:
-             raise JSONRPCException(resp['error'])
-         elif 'result' not in resp:
-             raise JSONRPCException({
-                     'code' : -343, 'message' : 'missing JSON-RPC result'})
-         else:
-             return resp['result']
+        resp = httpresp.read()
+        resp = resp.decode('utf8')
+        resp = json.loads(resp, parse_float=decimal.Decimal)
+        if resp['error'] != None:
+            raise JSONRPCException(resp['error'])
+        elif 'result' not in resp:
+            raise JSONRPCException({
+                'code': -343, 'message': 'missing JSON-RPC result'})
+        else:
+            return resp['result']
 
     def _batch(self, rpc_call_list):
-         postdata = json.dumps(list(rpc_call_list))
-         self.__conn.request('POST', self.__url.path, postdata,
-                 { 'Host' : self.__url.hostname,
-                  'User-Agent' : USER_AGENT,
-                  'Authorization' : self.__authhdr,
-                  'Content-type' : 'application/json' })
+        postdata = json.dumps(list(rpc_call_list))
+        self.__conn.request('POST', self.__url.path, postdata,
+                            {'Host': self.__url.hostname,
+                             'User-Agent': USER_AGENT,
+                             'Authorization': self.__authhdr,
+                             'Content-type': 'application/json'})
 
-         httpresp = self.__conn.getresponse()
-         if httpresp is None:
-             raise JSONRPCException({
-                     'code' : -342, 'message' : 'missing HTTP response from server'})
+        httpresp = self.__conn.getresponse()
+        if httpresp is None:
+            raise JSONRPCException({
+                'code': -342, 'message': 'missing HTTP response from server'})
 
-         resp = httpresp.read()
-         resp = resp.decode('utf8')
-         resp = json.loads(resp, parse_float=decimal.Decimal)
-         return resp
-
+        resp = httpresp.read()
+        resp = resp.decode('utf8')
+        resp = json.loads(resp, parse_float=decimal.Decimal)
+        return resp
