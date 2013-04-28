@@ -1,4 +1,3 @@
-
 AuthServiceProxy is an improved version of python-jsonrpc.
 
 It includes the following generic improvements:
@@ -12,4 +11,13 @@ It also includes the following bitcoin-specific details:
 
 - sends Basic HTTP authentication headers
 - parses all JSON numbers that look like floats as Decimal
+
+Installation:
+
+- change the first line of setup.py to point to the directory of your installation of python 2.*
+
+- run setup.py
+
+This will only install bitcoinrpc. If you also want to install jsonrpc to preserve backwards compatibiliy,
+you have to edit `bitcoinrpc` with `jsonrpc` in setup.py and run it again.
 
