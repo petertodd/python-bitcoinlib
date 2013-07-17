@@ -72,11 +72,11 @@ class CKey:
         return mb.raw
 
     def sign(self, hash):
-        sig_size = ssl.ECDSA_size(self.k)
-        mb_sig = ctypes.create_string_buffer(sig_size)
-        sig_size0 = ctypes.POINTER(ctypes.c_int)()
+        sig_size0 = ctypes.c_uint32()
+        sig_size0.value = ssl.ECDSA_size(self.k)
+        mb_sig = ctypes.create_string_buffer(sig_size0.value)
         assert 1 == ssl.ECDSA_sign(0, hash, len(hash), mb_sig, ctypes.byref(sig_size0), self.k)
-        return mb_sig.raw
+        return mb_sig.raw[:sig_size0.value]
 
     def verify(self, hash, sig):
         return ssl.ECDSA_verify(0, hash, len(hash), sig, len(sig), self.k)
