@@ -77,6 +77,9 @@ class CBase58Data(bytes):
         self.nVersion = nVersion
         return self
 
+    def __repr__(self):
+        return '%s(%s, %d)' % (self.__class__.__name__, bytes.__repr__(self), self.nVersion)
+
     def __str__(self):
         vs = chr(self.nVersion) + self
         check = ser_uint256(Hash(vs))[0:4]
