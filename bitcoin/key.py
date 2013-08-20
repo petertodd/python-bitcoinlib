@@ -80,7 +80,7 @@ class CKey:
         return mb_sig.raw[:sig_size0.value]
 
     def verify(self, hash, sig):
-        return ssl.ECDSA_verify(0, hash, len(hash), sig, len(sig), self.k)
+        return ssl.ECDSA_verify(0, hash, len(hash), sig, len(sig), self.k) == 1
 
     def set_compressed(self, compressed):
         if compressed:
