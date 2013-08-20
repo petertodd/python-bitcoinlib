@@ -75,11 +75,12 @@ class CKey:
         sig_size0 = ctypes.c_uint32()
         sig_size0.value = ssl.ECDSA_size(self.k)
         mb_sig = ctypes.create_string_buffer(sig_size0.value)
-        assert 1 == ssl.ECDSA_sign(0, hash, len(hash), mb_sig, ctypes.byref(sig_size0), self.k)
+        result = ssl.ECDSA_sign(0, hash, len(hash), mb_sig, ctypes.byref(sig_size0), self.k)
+        assert 1 == result
         return mb_sig.raw[:sig_size0.value]
 
     def verify(self, hash, sig):
-        return ssl.ECDSA_verify(0, hash, len(hash), sig, len(sig), self.k)
+        return ssl.ECDSA_verify(0, hash, len(hash), sig, len(sig), self.k) == 1
 
     def set_compressed(self, compressed):
         if compressed:
@@ -109,4 +110,8 @@ if __name__ == '__main__':
     k.set_compressed(True)
     print k.get_privkey ().encode('hex')
     print k.get_pubkey().encode('hex')
-    print k.get_secret().encode('hex')
+    # not sure this is needed any more: print k.get_secret().encode('hex')
+
+    hash = 'Hello, world!'
+    print k.verify(hash, k.sign(hash))
+
