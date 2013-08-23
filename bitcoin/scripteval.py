@@ -28,7 +28,7 @@ def SignatureHash(script, txTo, inIdx, hashtype):
     if (hashtype & 0x1f) == SIGHASH_NONE:
         txtmp.vout = []
 
-        for i in xrange(len(txtmp.vin)):
+        for i in range(len(txtmp.vin)):
             if i != inIdx:
                 txtmp.vin[i].nSequence = 0
 
@@ -39,11 +39,11 @@ def SignatureHash(script, txTo, inIdx, hashtype):
 
         tmp = txtmp.vout[outIdx]
         txtmp.vout = []
-        for i in xrange(outIdx):
+        for i in range(outIdx):
             txtmp.vout.append(CTxOut())
         txtmp.vout.append(tmp)
 
-        for i in xrange(len(txtmp.vin)):
+        for i in range(len(txtmp.vin)):
             if i != inIdx:
                 txtmp.vin[i].nSequence = 0
 
@@ -99,7 +99,7 @@ def CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
     if len(stack) < i:
         return False
 
-    for k in xrange(sigs_count):
+    for k in range(sigs_count):
         sig = stack[-isig-k]
         # FIXME: find-and-delete sig in script
 
@@ -138,7 +138,7 @@ def CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
 
 def dumpstack(msg, stack):
     print("%s stacksz %d" % (msg, len(stack)))
-    for i in xrange(len(stack)):
+    for i in range(len(stack)):
         vch = stack[i]
         print("#%d: %s" % (i, vch.encode('hex')))
 
@@ -573,7 +573,7 @@ def CastToBigNum(s):
     return v
 
 def CastToBool(s):
-    for i in xrange(len(s)):
+    for i in range(len(s)):
         sv = ord(s[i])
         if sv != 0:
             if (i == (len(s) - 1)) and (sv == 0x80):

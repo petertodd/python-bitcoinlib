@@ -267,7 +267,7 @@ class CBlock(object):
             hashes.append(ser_uint256(tx.sha256))
         while len(hashes) > 1:
             newhashes = []
-            for i in xrange(0, len(hashes), 2):
+            for i in range(0, len(hashes), 2):
                 i2 = min(i+1, len(hashes)-1)
                 newhashes.append(hashlib.sha256(hashlib.sha256(hashes[i] + hashes[i2]).digest()).digest())
             hashes = newhashes

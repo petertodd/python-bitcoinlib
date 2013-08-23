@@ -32,21 +32,21 @@ def ser_string(s):
 
 def deser_uint256(f):
     r = 0L
-    for i in xrange(8):
+    for i in range(8):
         t = struct.unpack(b"<I", f.read(4))[0]
         r += t << (i * 32)
     return r
 
 def ser_uint256(u):
     rs = b""
-    for i in xrange(8):
+    for i in range(8):
         rs += struct.pack(b"<I", u & 0xFFFFFFFFL)
         u >>= 32
     return rs
 
 def ser_uint160(u):
     rs = b""
-    for i in xrange(5):
+    for i in range(5):
         rs += struct.pack(b"<I", u & 0xFFFFFFFFL)
         u >>= 32
     return rs
@@ -54,14 +54,14 @@ def ser_uint160(u):
 def uint160_from_str(s):
     r = 0L
     t = struct.unpack(b"<IIIII", s[:20])
-    for i in xrange(5):
+    for i in range(5):
         r += t[i] << (i * 32)
     return r
 
 def uint256_from_str(s):
     r = 0L
     t = struct.unpack(b"<IIIIIIII", s[:32])
-    for i in xrange(8):
+    for i in range(8):
         r += t[i] << (i * 32)
     return r
 
@@ -83,7 +83,7 @@ def deser_vector(f, c, arg1=None):
     elif nit == 255:
         nit = struct.unpack(b"<Q", f.read(8))[0]
     r = []
-    for i in xrange(nit):
+    for i in range(nit):
         if arg1 is not None:
             t = c(arg1)
         else:
@@ -115,7 +115,7 @@ def deser_uint256_vector(f):
     elif nit == 255:
         nit = struct.unpack(b"<Q", f.read(8))[0]
     r = []
-    for i in xrange(nit):
+    for i in range(nit):
         t = deser_uint256(f)
         r.append(t)
     return r
@@ -143,7 +143,7 @@ def deser_string_vector(f):
     elif nit == 255:
         nit = struct.unpack(b"<Q", f.read(8))[0]
     r = []
-    for i in xrange(nit):
+    for i in range(nit):
         t = deser_string(f)
         r.append(t)
     return r
@@ -171,7 +171,7 @@ def deser_int_vector(f):
     elif nit == 255:
         nit = struct.unpack(b"<Q", f.read(8))[0]
     r = []
-    for i in xrange(nit):
+    for i in range(nit):
         t = struct.unpack(b"<i", f.read(4))[0]
         r.append(t)
     return r
