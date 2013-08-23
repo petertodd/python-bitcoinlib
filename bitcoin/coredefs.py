@@ -34,7 +34,7 @@ class NetMagic(object):
         self.checkpoints = checkpoints
 
         self.checkpoint_max = 0
-        for height in self.checkpoints.iterkeys():
+        for height in self.checkpoints.keys():
             if height > self.checkpoint_max:
                 self.checkpoint_max = height
 
