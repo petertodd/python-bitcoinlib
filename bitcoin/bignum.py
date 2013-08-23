@@ -58,7 +58,7 @@ def bn2mpi(v):
 def mpi2bn(s):
     if len(s) < 4:
         return None
-    s_size = str(s[:4])
+    s_size = bytes(s[:4])
     v_len = struct.unpack(b">I", s_size)[0]
     if len(s) != (v_len + 4):
         return None
@@ -86,7 +86,7 @@ def mpi2vch(s):
     return r
 
 def bn2vch(v):
-    return str(mpi2vch(bn2mpi(v)))
+    return bytes(mpi2vch(bn2mpi(v)))
 
 def vch2mpi(s):
     r = struct.pack(b">I", len(s))   # size

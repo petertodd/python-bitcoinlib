@@ -8,6 +8,15 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import sys
+bchr = chr
+bord = ord
+if sys.version > '3':
+        long = int
+        bchr = lambda x: bytes([x])
+        bord = lambda x: x
+
+import bitcoin.bignum
 import struct
 
 SIGHASH_ALL = 1
@@ -15,145 +24,220 @@ SIGHASH_NONE = 2
 SIGHASH_SINGLE = 3
 SIGHASH_ANYONECANPAY = 0x80
 
+OPCODE_NAMES = {}
+
+_opcode_instances = []
+class CScriptOp(int):
+    __slots__ = []
+
+    def is_pushdata(self):
+        """Return true if the op pushes data to the stack
+
+        Note that OP_0 is considered to be a PUSHDATA op as it pushes an empty
+        string to the stack.
+        """
+        if self <= 0x4e:
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def encode_op_pushdata(d):
+        if len(d) < 0x4c:
+            return b'' + bchr(len(d)) + d # OP_PUSHDATA
+        elif len(d) <= 0xff:
+            return b'\x4c' + bchr(len(d)) + d # OP_PUSHDATA1
+        elif len(d) <= 0xffff:
+            return b'\x4d' + struct.pack(b'<H', len(d)) + d # OP_PUSHDATA2
+        elif len(d) <= 0xffffffff:
+            return b'\x4e' + struct.pack(b'<I', len(d)) + d # OP_PUSHDATA4
+        else:
+            raise ValueError("Data too long to encode in a PUSHDATA op")
+
+    @staticmethod
+    def encode_op_n(n):
+        if not (0 <= n <= 16):
+            raise ValueError('Integer must be in range 0 <= n <= 16, got %d' % n)
+
+        if n == 0:
+            return OP_0
+        else:
+            return OP_1 + n-1
+
+    def decode_op_n(self):
+        if self == OP_0:
+            return 0
+
+        if not (OP_0 <= self <= OP_16):
+            raise ValueError('op %r is not an OP_N' % self)
+
+        return int(self - OP_1+1)
+
+    def is_small_int(self):
+        """Return true if the op pushes a small integer to the stack"""
+        if 0x51 <= self <= 0x60 or self == 0:
+            return True
+        else:
+            return False
+
+    def __repr__(self):
+        if self in OPCODE_NAMES:
+            return OPCODE_NAMES[self]
+        else:
+            return 'CScriptOp(0x%x)' % self
+
+    def __new__(cls, n):
+        try:
+            return _opcode_instances[n]
+        except IndexError:
+            assert len(_opcode_instances) == n
+            _opcode_instances.append(super(CScriptOp, cls).__new__(cls, n))
+            return _opcode_instances[n]
+
+# Populate opcode instance table
+for n in range(0xff+1):
+    CScriptOp(n)
+
+
 # push value
-OP_0 = 0x00
+OP_0 = CScriptOp(0x00)
 OP_FALSE = OP_0
-OP_PUSHDATA1 = 0x4c
-OP_PUSHDATA2 = 0x4d
-OP_PUSHDATA4 = 0x4e
-OP_1NEGATE = 0x4f
-OP_RESERVED = 0x50
-OP_1 = 0x51
+OP_PUSHDATA1 = CScriptOp(0x4c)
+OP_PUSHDATA2 = CScriptOp(0x4d)
+OP_PUSHDATA4 = CScriptOp(0x4e)
+OP_1NEGATE = CScriptOp(0x4f)
+OP_RESERVED = CScriptOp(0x50)
+OP_1 = CScriptOp(0x51)
 OP_TRUE=OP_1
-OP_2 = 0x52
-OP_3 = 0x53
-OP_4 = 0x54
-OP_5 = 0x55
-OP_6 = 0x56
-OP_7 = 0x57
-OP_8 = 0x58
-OP_9 = 0x59
-OP_10 = 0x5a
-OP_11 = 0x5b
-OP_12 = 0x5c
-OP_13 = 0x5d
-OP_14 = 0x5e
-OP_15 = 0x5f
-OP_16 = 0x60
+OP_2 = CScriptOp(0x52)
+OP_3 = CScriptOp(0x53)
+OP_4 = CScriptOp(0x54)
+OP_5 = CScriptOp(0x55)
+OP_6 = CScriptOp(0x56)
+OP_7 = CScriptOp(0x57)
+OP_8 = CScriptOp(0x58)
+OP_9 = CScriptOp(0x59)
+OP_10 = CScriptOp(0x5a)
+OP_11 = CScriptOp(0x5b)
+OP_12 = CScriptOp(0x5c)
+OP_13 = CScriptOp(0x5d)
+OP_14 = CScriptOp(0x5e)
+OP_15 = CScriptOp(0x5f)
+OP_16 = CScriptOp(0x60)
 
 # control
-OP_NOP = 0x61
-OP_VER = 0x62
-OP_IF = 0x63
-OP_NOTIF = 0x64
-OP_VERIF = 0x65
-OP_VERNOTIF = 0x66
-OP_ELSE = 0x67
-OP_ENDIF = 0x68
-OP_VERIFY = 0x69
-OP_RETURN = 0x6a
+OP_NOP = CScriptOp(0x61)
+OP_VER = CScriptOp(0x62)
+OP_IF = CScriptOp(0x63)
+OP_NOTIF = CScriptOp(0x64)
+OP_VERIF = CScriptOp(0x65)
+OP_VERNOTIF = CScriptOp(0x66)
+OP_ELSE = CScriptOp(0x67)
+OP_ENDIF = CScriptOp(0x68)
+OP_VERIFY = CScriptOp(0x69)
+OP_RETURN = CScriptOp(0x6a)
 
 # stack ops
-OP_TOALTSTACK = 0x6b
-OP_FROMALTSTACK = 0x6c
-OP_2DROP = 0x6d
-OP_2DUP = 0x6e
-OP_3DUP = 0x6f
-OP_2OVER = 0x70
-OP_2ROT = 0x71
-OP_2SWAP = 0x72
-OP_IFDUP = 0x73
-OP_DEPTH = 0x74
-OP_DROP = 0x75
-OP_DUP = 0x76
-OP_NIP = 0x77
-OP_OVER = 0x78
-OP_PICK = 0x79
-OP_ROLL = 0x7a
-OP_ROT = 0x7b
-OP_SWAP = 0x7c
-OP_TUCK = 0x7d
+OP_TOALTSTACK = CScriptOp(0x6b)
+OP_FROMALTSTACK = CScriptOp(0x6c)
+OP_2DROP = CScriptOp(0x6d)
+OP_2DUP = CScriptOp(0x6e)
+OP_3DUP = CScriptOp(0x6f)
+OP_2OVER = CScriptOp(0x70)
+OP_2ROT = CScriptOp(0x71)
+OP_2SWAP = CScriptOp(0x72)
+OP_IFDUP = CScriptOp(0x73)
+OP_DEPTH = CScriptOp(0x74)
+OP_DROP = CScriptOp(0x75)
+OP_DUP = CScriptOp(0x76)
+OP_NIP = CScriptOp(0x77)
+OP_OVER = CScriptOp(0x78)
+OP_PICK = CScriptOp(0x79)
+OP_ROLL = CScriptOp(0x7a)
+OP_ROT = CScriptOp(0x7b)
+OP_SWAP = CScriptOp(0x7c)
+OP_TUCK = CScriptOp(0x7d)
 
 # splice ops
-OP_CAT = 0x7e
-OP_SUBSTR = 0x7f
-OP_LEFT = 0x80
-OP_RIGHT = 0x81
-OP_SIZE = 0x82
+OP_CAT = CScriptOp(0x7e)
+OP_SUBSTR = CScriptOp(0x7f)
+OP_LEFT = CScriptOp(0x80)
+OP_RIGHT = CScriptOp(0x81)
+OP_SIZE = CScriptOp(0x82)
 
 # bit logic
-OP_INVERT = 0x83
-OP_AND = 0x84
-OP_OR = 0x85
-OP_XOR = 0x86
-OP_EQUAL = 0x87
-OP_EQUALVERIFY = 0x88
-OP_RESERVED1 = 0x89
-OP_RESERVED2 = 0x8a
+OP_INVERT = CScriptOp(0x83)
+OP_AND = CScriptOp(0x84)
+OP_OR = CScriptOp(0x85)
+OP_XOR = CScriptOp(0x86)
+OP_EQUAL = CScriptOp(0x87)
+OP_EQUALVERIFY = CScriptOp(0x88)
+OP_RESERVED1 = CScriptOp(0x89)
+OP_RESERVED2 = CScriptOp(0x8a)
 
 # numeric
-OP_1ADD = 0x8b
-OP_1SUB = 0x8c
-OP_2MUL = 0x8d
-OP_2DIV = 0x8e
-OP_NEGATE = 0x8f
-OP_ABS = 0x90
-OP_NOT = 0x91
-OP_0NOTEQUAL = 0x92
+OP_1ADD = CScriptOp(0x8b)
+OP_1SUB = CScriptOp(0x8c)
+OP_2MUL = CScriptOp(0x8d)
+OP_2DIV = CScriptOp(0x8e)
+OP_NEGATE = CScriptOp(0x8f)
+OP_ABS = CScriptOp(0x90)
+OP_NOT = CScriptOp(0x91)
+OP_0NOTEQUAL = CScriptOp(0x92)
 
-OP_ADD = 0x93
-OP_SUB = 0x94
-OP_MUL = 0x95
-OP_DIV = 0x96
-OP_MOD = 0x97
-OP_LSHIFT = 0x98
-OP_RSHIFT = 0x99
+OP_ADD = CScriptOp(0x93)
+OP_SUB = CScriptOp(0x94)
+OP_MUL = CScriptOp(0x95)
+OP_DIV = CScriptOp(0x96)
+OP_MOD = CScriptOp(0x97)
+OP_LSHIFT = CScriptOp(0x98)
+OP_RSHIFT = CScriptOp(0x99)
 
-OP_BOOLAND = 0x9a
-OP_BOOLOR = 0x9b
-OP_NUMEQUAL = 0x9c
-OP_NUMEQUALVERIFY = 0x9d
-OP_NUMNOTEQUAL = 0x9e
-OP_LESSTHAN = 0x9f
-OP_GREATERTHAN = 0xa0
-OP_LESSTHANOREQUAL = 0xa1
-OP_GREATERTHANOREQUAL = 0xa2
-OP_MIN = 0xa3
-OP_MAX = 0xa4
+OP_BOOLAND = CScriptOp(0x9a)
+OP_BOOLOR = CScriptOp(0x9b)
+OP_NUMEQUAL = CScriptOp(0x9c)
+OP_NUMEQUALVERIFY = CScriptOp(0x9d)
+OP_NUMNOTEQUAL = CScriptOp(0x9e)
+OP_LESSTHAN = CScriptOp(0x9f)
+OP_GREATERTHAN = CScriptOp(0xa0)
+OP_LESSTHANOREQUAL = CScriptOp(0xa1)
+OP_GREATERTHANOREQUAL = CScriptOp(0xa2)
+OP_MIN = CScriptOp(0xa3)
+OP_MAX = CScriptOp(0xa4)
 
-OP_WITHIN = 0xa5
+OP_WITHIN = CScriptOp(0xa5)
 
 # crypto
-OP_RIPEMD160 = 0xa6
-OP_SHA1 = 0xa7
-OP_SHA256 = 0xa8
-OP_HASH160 = 0xa9
-OP_HASH256 = 0xaa
-OP_CODESEPARATOR = 0xab
-OP_CHECKSIG = 0xac
-OP_CHECKSIGVERIFY = 0xad
-OP_CHECKMULTISIG = 0xae
-OP_CHECKMULTISIGVERIFY = 0xaf
+OP_RIPEMD160 = CScriptOp(0xa6)
+OP_SHA1 = CScriptOp(0xa7)
+OP_SHA256 = CScriptOp(0xa8)
+OP_HASH160 = CScriptOp(0xa9)
+OP_HASH256 = CScriptOp(0xaa)
+OP_CODESEPARATOR = CScriptOp(0xab)
+OP_CHECKSIG = CScriptOp(0xac)
+OP_CHECKSIGVERIFY = CScriptOp(0xad)
+OP_CHECKMULTISIG = CScriptOp(0xae)
+OP_CHECKMULTISIGVERIFY = CScriptOp(0xaf)
 
 # expansion
-OP_NOP1 = 0xb0
-OP_NOP2 = 0xb1
-OP_NOP3 = 0xb2
-OP_NOP4 = 0xb3
-OP_NOP5 = 0xb4
-OP_NOP6 = 0xb5
-OP_NOP7 = 0xb6
-OP_NOP8 = 0xb7
-OP_NOP9 = 0xb8
-OP_NOP10 = 0xb9
+OP_NOP1 = CScriptOp(0xb0)
+OP_NOP2 = CScriptOp(0xb1)
+OP_NOP3 = CScriptOp(0xb2)
+OP_NOP4 = CScriptOp(0xb3)
+OP_NOP5 = CScriptOp(0xb4)
+OP_NOP6 = CScriptOp(0xb5)
+OP_NOP7 = CScriptOp(0xb6)
+OP_NOP8 = CScriptOp(0xb7)
+OP_NOP9 = CScriptOp(0xb8)
+OP_NOP10 = CScriptOp(0xb9)
 
 # template matching params
-OP_SMALLINTEGER = 0xfa
-OP_PUBKEYS = 0xfb
-OP_PUBKEYHASH = 0xfd
-OP_PUBKEY = 0xfe
+OP_SMALLINTEGER = CScriptOp(0xfa)
+OP_PUBKEYS = CScriptOp(0xfb)
+OP_PUBKEYHASH = CScriptOp(0xfd)
+OP_PUBKEY = CScriptOp(0xfe)
 
-OP_INVALIDOPCODE = 0xff
+OP_INVALIDOPCODE = CScriptOp(0xff)
 
 VALID_OPCODES = {
     OP_1NEGATE,
@@ -280,7 +364,7 @@ VALID_OPCODES = {
     OP_PUBKEY,
 }
 
-OPCODE_NAMES = {
+OPCODE_NAMES.update({
     OP_0 : 'OP_0',
     OP_PUSHDATA1 : 'OP_PUSHDATA1',
     OP_PUSHDATA2 : 'OP_PUSHDATA2',
@@ -396,136 +480,275 @@ OPCODE_NAMES = {
     OP_PUBKEYS : 'OP_PUBKEYS',
     OP_PUBKEYHASH : 'OP_PUBKEYHASH',
     OP_PUBKEY : 'OP_PUBKEY',
+    OP_INVALIDOPCODE : 'OP_INVALIDOPCODE',
+})
+
+OPCODES_BY_NAME = {
+    'OP_0' : OP_0,
+    'OP_PUSHDATA1' : OP_PUSHDATA1,
+    'OP_PUSHDATA2' : OP_PUSHDATA2,
+    'OP_PUSHDATA4' : OP_PUSHDATA4,
+    'OP_1NEGATE' : OP_1NEGATE,
+    'OP_RESERVED' : OP_RESERVED,
+    'OP_1' : OP_1,
+    'OP_2' : OP_2,
+    'OP_3' : OP_3,
+    'OP_4' : OP_4,
+    'OP_5' : OP_5,
+    'OP_6' : OP_6,
+    'OP_7' : OP_7,
+    'OP_8' : OP_8,
+    'OP_9' : OP_9,
+    'OP_10' : OP_10,
+    'OP_11' : OP_11,
+    'OP_12' : OP_12,
+    'OP_13' : OP_13,
+    'OP_14' : OP_14,
+    'OP_15' : OP_15,
+    'OP_16' : OP_16,
+    'OP_NOP' : OP_NOP,
+    'OP_VER' : OP_VER,
+    'OP_IF' : OP_IF,
+    'OP_NOTIF' : OP_NOTIF,
+    'OP_VERIF' : OP_VERIF,
+    'OP_VERNOTIF' : OP_VERNOTIF,
+    'OP_ELSE' : OP_ELSE,
+    'OP_ENDIF' : OP_ENDIF,
+    'OP_VERIFY' : OP_VERIFY,
+    'OP_RETURN' : OP_RETURN,
+    'OP_TOALTSTACK' : OP_TOALTSTACK,
+    'OP_FROMALTSTACK' : OP_FROMALTSTACK,
+    'OP_2DROP' : OP_2DROP,
+    'OP_2DUP' : OP_2DUP,
+    'OP_3DUP' : OP_3DUP,
+    'OP_2OVER' : OP_2OVER,
+    'OP_2ROT' : OP_2ROT,
+    'OP_2SWAP' : OP_2SWAP,
+    'OP_IFDUP' : OP_IFDUP,
+    'OP_DEPTH' : OP_DEPTH,
+    'OP_DROP' : OP_DROP,
+    'OP_DUP' : OP_DUP,
+    'OP_NIP' : OP_NIP,
+    'OP_OVER' : OP_OVER,
+    'OP_PICK' : OP_PICK,
+    'OP_ROLL' : OP_ROLL,
+    'OP_ROT' : OP_ROT,
+    'OP_SWAP' : OP_SWAP,
+    'OP_TUCK' : OP_TUCK,
+    'OP_CAT' : OP_CAT,
+    'OP_SUBSTR' : OP_SUBSTR,
+    'OP_LEFT' : OP_LEFT,
+    'OP_RIGHT' : OP_RIGHT,
+    'OP_SIZE' : OP_SIZE,
+    'OP_INVERT' : OP_INVERT,
+    'OP_AND' : OP_AND,
+    'OP_OR' : OP_OR,
+    'OP_XOR' : OP_XOR,
+    'OP_EQUAL' : OP_EQUAL,
+    'OP_EQUALVERIFY' : OP_EQUALVERIFY,
+    'OP_RESERVED1' : OP_RESERVED1,
+    'OP_RESERVED2' : OP_RESERVED2,
+    'OP_1ADD' : OP_1ADD,
+    'OP_1SUB' : OP_1SUB,
+    'OP_2MUL' : OP_2MUL,
+    'OP_2DIV' : OP_2DIV,
+    'OP_NEGATE' : OP_NEGATE,
+    'OP_ABS' : OP_ABS,
+    'OP_NOT' : OP_NOT,
+    'OP_0NOTEQUAL' : OP_0NOTEQUAL,
+    'OP_ADD' : OP_ADD,
+    'OP_SUB' : OP_SUB,
+    'OP_MUL' : OP_MUL,
+    'OP_DIV' : OP_DIV,
+    'OP_MOD' : OP_MOD,
+    'OP_LSHIFT' : OP_LSHIFT,
+    'OP_RSHIFT' : OP_RSHIFT,
+    'OP_BOOLAND' : OP_BOOLAND,
+    'OP_BOOLOR' : OP_BOOLOR,
+    'OP_NUMEQUAL' : OP_NUMEQUAL,
+    'OP_NUMEQUALVERIFY' : OP_NUMEQUALVERIFY,
+    'OP_NUMNOTEQUAL' : OP_NUMNOTEQUAL,
+    'OP_LESSTHAN' : OP_LESSTHAN,
+    'OP_GREATERTHAN' : OP_GREATERTHAN,
+    'OP_LESSTHANOREQUAL' : OP_LESSTHANOREQUAL,
+    'OP_GREATERTHANOREQUAL' : OP_GREATERTHANOREQUAL,
+    'OP_MIN' : OP_MIN,
+    'OP_MAX' : OP_MAX,
+    'OP_WITHIN' : OP_WITHIN,
+    'OP_RIPEMD160' : OP_RIPEMD160,
+    'OP_SHA1' : OP_SHA1,
+    'OP_SHA256' : OP_SHA256,
+    'OP_HASH160' : OP_HASH160,
+    'OP_HASH256' : OP_HASH256,
+    'OP_CODESEPARATOR' : OP_CODESEPARATOR,
+    'OP_CHECKSIG' : OP_CHECKSIG,
+    'OP_CHECKSIGVERIFY' : OP_CHECKSIGVERIFY,
+    'OP_CHECKMULTISIG' : OP_CHECKMULTISIG,
+    'OP_CHECKMULTISIGVERIFY' : OP_CHECKMULTISIGVERIFY,
+    'OP_NOP1' : OP_NOP1,
+    'OP_NOP2' : OP_NOP2,
+    'OP_NOP3' : OP_NOP3,
+    'OP_NOP4' : OP_NOP4,
+    'OP_NOP5' : OP_NOP5,
+    'OP_NOP6' : OP_NOP6,
+    'OP_NOP7' : OP_NOP7,
+    'OP_NOP8' : OP_NOP8,
+    'OP_NOP9' : OP_NOP9,
+    'OP_NOP10' : OP_NOP10,
+    'OP_SMALLINTEGER' : OP_SMALLINTEGER,
+    'OP_PUBKEYS' : OP_PUBKEYS,
+    'OP_PUBKEYHASH' : OP_PUBKEYHASH,
+    'OP_PUBKEY' : OP_PUBKEY,
 }
 
-TEMPLATES = [
-    [ OP_PUBKEY, OP_CHECKSIG ],
-    [ OP_DUP, OP_HASH160, OP_PUBKEYHASH, OP_EQUALVERIFY, OP_CHECKSIG ],
-]
+class CScriptInvalidException(Exception):
+    pass
 
-class CScriptOp(object):
-    def __init__(self):
-        self.op = OP_INVALIDOPCODE
-        self.data = ''
-        self.ser_len = 0
+class CScriptTruncatedPushDataException(CScriptInvalidException):
+    def __init__(self, msg, data):
+        self.data = data
+        super(CScriptTruncatedPushDataException, self).__init__(msg)
 
-class CScript(object):
-    def __init__(self, vch=None):
-        self.vch = vch
+class CScript(bytes):
+    @classmethod
+    def __coerce_instance(cls, other):
+        # Coerce other into bytes
+        if isinstance(other, CScriptOp):
+            other = bchr(other)
+        elif isinstance(other, (int, long)):
+            if 0 <= other <= 16:
+                other = bytes(bchr(CScriptOp.encode_op_n(other)))
+            else:
+                other = CScriptOp.encode_op_pushdata(bitcoin.bignum.bn2vch(other))
+        elif isinstance(other, (bytes, bytearray)):
+            other = CScriptOp.encode_op_pushdata(other)
+        return other
 
-        self.reset()
+    def __add__(self, other):
+        # Do the coercion outside of the try block so that errors in it are
+        # noticed.
+        other = self.__coerce_instance(other)
 
-    def reset(self):
-        self.pc = 0
-        if self.vch is None:
-            self.pend = 0
+        try:
+            # bytes.__add__ always returns bytes instances unfortunately
+            return CScript(super(CScript, self).__add__(other))
+        except TypeError:
+            raise TypeError('Can not add a %r instance to a CScript' % other.__class__)
+
+    def join(self, iterable):
+        # join makes no sense for a CScript()
+        raise NotImplementedError
+
+    def __new__(cls, value=b''):
+        if isinstance(value, bytes) or isinstance(value, bytearray):
+            return super(CScript, cls).__new__(cls, value)
         else:
-            self.pend = len(self.vch)
-        self.pbegincodehash = 0
-        self.sop = None
+            def coerce_iterable(iterable):
+                for instance in iterable:
+                    yield cls.__coerce_instance(instance)
+            # Annoyingly on both python2 and python3 bytes.join() always
+            # returns a bytes instance even when subclassed.
+            return super(CScript, cls).__new__(cls, b''.join(coerce_iterable(value)))
 
-    def getchars(self, n):
-        if (self.pc + n) > self.pend:
-            return None
-
-        s = self.vch[self.pc:self.pc+n]
-        self.pc += n
-
-        return s
-
-    def getop(self):
-        s = self.getchars(1)
-        if s is None:
-            return False
-        opcode = ord(s)
-
-        sop = CScriptOp()
-        sop.op = opcode
-        sop.ser_len = 1
-
-        if opcode > OP_PUSHDATA4:
-            if opcode not in VALID_OPCODES:
-                return False
-            self.sop = sop
-            return True
-
-        if opcode < OP_PUSHDATA1:
-            datasize = opcode
-
-        elif opcode == OP_PUSHDATA1:
-            sop.ser_len += 1
-            s = self.getchars(1)
-            if s is None:
-                return False
-            datasize = ord(s)
-
-        elif opcode == OP_PUSHDATA2:
-            sop.ser_len += 2
-            s = self.getchars(2)
-            if s is None:
-                return False
-            datasize = struct.unpack(b"<H", s)[0]
-
-        elif opcode == OP_PUSHDATA4:
-            sop.ser_len += 4
-            s = self.getchars(4)
-            if s is None:
-                return False
-            datasize = struct.unpack(b"<I", s)[0]
-
-        sop.ser_len += datasize
-        sop.data = self.getchars(datasize)
-        if sop.data is None:
-            return False
-
-        self.sop = sop
-        return True
-
-    def tokenize(self, vch_in=None):
-        if vch_in is not None:
-            self.vch = vch_in
-
-        self.reset()
-        while self.pc < self.pend:
-            if not self.getop():
-                return False
-
-        return True
-
-    def match_temp(self, template, vch_in=None):
-        l = []
+    def raw_iter(self):
         i = 0
-
-        if vch_in is not None:
-            self.vch = vch_in
-
-        self.reset()
-        while self.pc < self.pend:
-            if i >= len(template):
-                return None
-            if not self.getop():
-                return None
-
-            expected_op = template[i]
-            if expected_op == OP_PUBKEYHASH or expected_op == OP_PUBKEY:
-                if self.sop.op > OP_PUSHDATA4:
-                    return None
-                l.append(self.sop.data)
-
-            elif self.sop.op != expected_op:
-                return None
-
+        while i < len(self):
+            opcode = bord(self[i])
             i += 1
 
-        return l
+            if opcode > OP_PUSHDATA4:
+                yield (opcode, None)
+            else:
+                datasize = None
+                pushdata_type = None
+                if opcode < OP_PUSHDATA1:
+                    pushdata_type = 'PUSHDATA(%d)' % opcode
+                    datasize = opcode
 
-    def match_alltemp(self, vch_in=None):
-        for temp in TEMPLATES:
-            l = self.match_temp(temp, vch_in)
-            if l is not None:
-                return l
-        return None
+                elif opcode == OP_PUSHDATA1:
+                    pushdata_type = 'PUSHDATA1'
+                    if i >= len(self):
+                        raise CScriptInvalidException('PUSHDATA1: missing data length')
+                    datasize = bord(self[i])
+                    i += 1
+
+                elif opcode == OP_PUSHDATA2:
+                    pushdata_type = 'PUSHDATA2'
+                    if i + 1 >= len(self):
+                        raise CScriptInvalidException('PUSHDATA2: missing data length')
+                    datasize = bord(self[i]) + (bord(self[i+1]) << 8)
+                    i += 2
+
+                elif opcode == OP_PUSHDATA4:
+                    pushdata_type = 'PUSHDATA4'
+                    if i + 3 >= len(self):
+                        raise CScriptInvalidException('PUSHDATA4: missing data length')
+                    datasize = bord(self[i]) + (bord(self[i+1]) << 8) + (bord(self[i+2]) << 16) + (bord(self[i+3]) << 24)
+                    i += 4
+
+                else:
+                    assert False # shouldn't happen
+
+
+                data = bytes(self[i:i+datasize])
+
+                # Check for truncation
+                if len(data) < datasize:
+                    raise CScriptTruncatedPushDataException('%s: truncated data' % pushdata_type, data)
+
+                i += datasize
+
+                yield (opcode, data)
+
+    def __iter__(self):
+        for (opcode, data) in self.raw_iter():
+            if data is not None:
+                yield data
+            else:
+                opcode = CScriptOp(opcode)
+
+                if opcode.is_small_int():
+                    yield opcode.decode_op_n()
+                else:
+                    yield CScriptOp(opcode)
 
     def __repr__(self):
-        return "CScript(vchsz %d)" % (len(self.vch),)
+        # For Python3 compatibility add b before strings so testcases don't
+        # need to change
+        def _repr(o):
+            if isinstance(o, bytes):
+                return 'b' + repr(o)
+            else:
+                return repr(o)
+        if sys.version > '3':
+            _repr = repr
 
+        ops = []
+        i = iter(self)
+        while True:
+            op = None
+            try:
+                op = _repr(next(i))
+            except CScriptTruncatedPushDataException as err:
+                op = '%s...<ERROR: %s>' % (_repr(err.data), err)
+                break
+            except CScriptInvalidException as err:
+                op = '<ERROR: %s>' % err
+                break
+            except StopIteration:
+                break
+            finally:
+                if op is not None:
+                    ops.append(op)
+
+        return "CScript([%s])" % ', '.join(ops)
+
+    def is_p2sh(self):
+        return (len(self) == 23 and
+                bord(self[0]) == OP_HASH160 and
+                bord(self[1]) == 0x14 and
+                bord(self[22]) == OP_EQUAL)
+
+    def is_unspendable(self):
+        return (len(self) > 0 and
+                bord(self[0]) == OP_RETURN)
