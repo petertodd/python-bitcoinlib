@@ -8,6 +8,8 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 from bitcoin.serialize import Hash, ser_uint256
 
 b58_digits = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
@@ -24,7 +26,7 @@ def encode(b):
     """Encode bytes to a base58-encoded string"""
 
     # Convert big-endian bytes to integer
-    n = int('0x0' + hexlify(b), 16)
+    n = int('0x0' + hexlify(b).decode('utf8'), 16)
 
     # Divide that integer into bas58
     res = []
@@ -34,9 +36,14 @@ def encode(b):
     res = ''.join(res[::-1])
 
     # Encode leading zeros as base58 zeros
+    import sys
+    czero = b'\x00'
+    if sys.version > '3':
+        # In Python3 indexing a bytes returns numbers, not characters.
+        czero = 0
     pad = 0
     for c in b:
-        if c == chr(0): pad += 1
+        if c == czero: pad += 1
         else: break
     return b58_digits[0] * pad + res
 
@@ -58,7 +65,7 @@ def decode(s):
     h = '%x' % n
     if len(h) % 2:
         h = '0' + h
-    res = unhexlify(h)
+    res = unhexlify(h.encode('utf8'))
 
     # Add padding back.
     pad = 0

@@ -6,6 +6,8 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import struct
 
 SIGHASH_ALL = 1
@@ -462,14 +464,14 @@ class CScript(object):
             s = self.getchars(2)
             if s is None:
                 return False
-            datasize = struct.unpack("<H", s)[0]
+            datasize = struct.unpack(b"<H", s)[0]
 
         elif opcode == OP_PUSHDATA4:
             sop.ser_len += 4
             s = self.getchars(4)
             if s is None:
                 return False
-            datasize = struct.unpack("<I", s)[0]
+            datasize = struct.unpack(b"<I", s)[0]
 
         sop.ser_len += datasize
         sop.data = self.getchars(datasize)
@@ -491,38 +493,38 @@ class CScript(object):
         return True
 
     def match_temp(self, template, vch_in=None):
-	l = []
-	i = 0
+        l = []
+        i = 0
 
         if vch_in is not None:
             self.vch = vch_in
 
         self.reset()
         while self.pc < self.pend:
-	    if i >= len(template):
-	    	return None
+            if i >= len(template):
+                return None
             if not self.getop():
                 return None
-	
-	    expected_op = template[i]
-	    if expected_op == OP_PUBKEYHASH or expected_op == OP_PUBKEY:
-	    	if self.sop.op > OP_PUSHDATA4:
-		    return None
-		l.append(self.sop.data)
 
-	    elif self.sop.op != expected_op:
-	    	return None
+            expected_op = template[i]
+            if expected_op == OP_PUBKEYHASH or expected_op == OP_PUBKEY:
+                if self.sop.op > OP_PUSHDATA4:
+                    return None
+                l.append(self.sop.data)
 
-	    i += 1
+            elif self.sop.op != expected_op:
+                return None
+
+            i += 1
 
         return l
 
     def match_alltemp(self, vch_in=None):
         for temp in TEMPLATES:
-	    l = self.match_temp(temp, vch_in)
-	    if l is not None:
-	    	return l
-	return None
+            l = self.match_temp(temp, vch_in)
+            if l is not None:
+                return l
+        return None
 
     def __repr__(self):
         return "CScript(vchsz %d)" % (len(self.vch),)

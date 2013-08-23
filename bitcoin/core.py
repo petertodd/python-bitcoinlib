@@ -6,6 +6,8 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import struct
 import socket
 import binascii
@@ -20,24 +22,24 @@ class CAddress(object):
         self.protover = protover
         self.nTime = 0
         self.nServices = 1
-        self.pchReserved = "\x00" * 10 + "\xff" * 2
+        self.pchReserved = b"\x00" * 10 + b"\xff" * 2
         self.ip = "0.0.0.0"
         self.port = 0
     def deserialize(self, f):
         if self.protover >= CADDR_TIME_VERSION:
-            self.nTime = struct.unpack("<I", f.read(4))[0]
-        self.nServices = struct.unpack("<Q", f.read(8))[0]
+            self.nTime = struct.unpack(b"<I", f.read(4))[0]
+        self.nServices = struct.unpack(b"<Q", f.read(8))[0]
         self.pchReserved = f.read(12)
         self.ip = socket.inet_ntoa(f.read(4))
-        self.port = struct.unpack(">H", f.read(2))[0]
+        self.port = struct.unpack(b">H", f.read(2))[0]
     def serialize(self):
-        r = ""
+        r = b""
         if self.protover >= CADDR_TIME_VERSION:
-            r += struct.pack("<I", self.nTime)
-        r += struct.pack("<Q", self.nServices)
+            r += struct.pack(b"<I", self.nTime)
+        r += struct.pack(b"<Q", self.nServices)
         r += self.pchReserved
         r += socket.inet_aton(self.ip)
-        r += struct.pack(">H", self.port)
+        r += struct.pack(b">H", self.port)
         return r
     def __repr__(self):
         return "CAddress(nTime=%d nServices=%i ip=%s port=%i)" % (self.nTime, self.nServices, self.ip, self.port)
@@ -49,13 +51,13 @@ class CInv(object):
         2: "Block"}
     def __init__(self):
         self.type = 0
-        self.hash = 0L
+        self.hash = 0
     def deserialize(self, f):
-        self.type = struct.unpack("<i", f.read(4))[0]
+        self.type = struct.unpack(b"<i", f.read(4))[0]
         self.hash = deser_uint256(f)
     def serialize(self):
-        r = ""
-        r += struct.pack("<i", self.type)
+        r = b""
+        r += struct.pack(b"<i", self.type)
         r += ser_uint256(self.hash)
         return r
     def __repr__(self):
@@ -66,11 +68,11 @@ class CBlockLocator(object):
         self.nVersion = PROTO_VERSION
         self.vHave = []
     def deserialize(self, f):
-        self.nVersion = struct.unpack("<i", f.read(4))[0]
+        self.nVersion = struct.unpack(b"<i", f.read(4))[0]
         self.vHave = deser_uint256_vector(f)
     def serialize(self):
-        r = ""
-        r += struct.pack("<i", self.nVersion)
+        r = b""
+        r += struct.pack(b"<i", self.nVersion)
         r += ser_uint256_vector(self.vHave)
         return r
     def __repr__(self):
@@ -82,11 +84,11 @@ class COutPoint(object):
         self.n = 0
     def deserialize(self, f):
         self.hash = deser_uint256(f)
-        self.n = struct.unpack("<I", f.read(4))[0]
+        self.n = struct.unpack(b"<I", f.read(4))[0]
     def serialize(self):
-        r = ""
+        r = b""
         r += ser_uint256(self.hash)
-        r += struct.pack("<I", self.n)
+        r += struct.pack(b"<I", self.n)
         return r
     def set_null(self):
         self.hash = 0
@@ -102,18 +104,18 @@ class COutPoint(object):
 class CTxIn(object):
     def __init__(self):
         self.prevout = COutPoint()
-        self.scriptSig = ""
+        self.scriptSig = b""
         self.nSequence = 0xffffffff
     def deserialize(self, f):
         self.prevout = COutPoint()
         self.prevout.deserialize(f)
         self.scriptSig = deser_string(f)
-        self.nSequence = struct.unpack("<I", f.read(4))[0]
+        self.nSequence = struct.unpack(b"<I", f.read(4))[0]
     def serialize(self):
-        r = ""
+        r = b""
         r += self.prevout.serialize()
         r += ser_string(self.scriptSig)
-        r += struct.pack("<I", self.nSequence)
+        r += struct.pack(b"<I", self.nSequence)
         return r
     def is_final(self):
         return (self.nSequence == 0xffffffff)
@@ -133,13 +135,13 @@ class CTxIn(object):
 class CTxOut(object):
     def __init__(self):
         self.nValue = -1
-        self.scriptPubKey = ""
+        self.scriptPubKey = b""
     def deserialize(self, f):
-        self.nValue = struct.unpack("<q", f.read(8))[0]
+        self.nValue = struct.unpack(b"<q", f.read(8))[0]
         self.scriptPubKey = deser_string(f)
     def serialize(self):
-        r = ""
-        r += struct.pack("<q", self.nValue)
+        r = b""
+        r += struct.pack(b"<q", self.nValue)
         r += ser_string(self.scriptPubKey)
         return r
     def is_valid(self):
@@ -170,16 +172,16 @@ class CTransaction(object):
         self.dPriority = None
         self.ser_size = 0
     def deserialize(self, f):
-        self.nVersion = struct.unpack("<i", f.read(4))[0]
+        self.nVersion = struct.unpack(b"<i", f.read(4))[0]
         self.vin = deser_vector(f, CTxIn)
         self.vout = deser_vector(f, CTxOut)
-        self.nLockTime = struct.unpack("<I", f.read(4))[0]
+        self.nLockTime = struct.unpack(b"<I", f.read(4))[0]
     def serialize(self):
-        r = ""
-        r += struct.pack("<i", self.nVersion)
+        r = b""
+        r += struct.pack(b"<i", self.nVersion)
         r += ser_vector(self.vin)
         r += ser_vector(self.vout)
-        r += struct.pack("<I", self.nLockTime)
+        r += struct.pack(b"<I", self.nLockTime)
         return r
     def calc_sha256(self):
         if self.sha256 is None:
@@ -233,21 +235,21 @@ class CBlock(object):
         self.vtx = []
         self.sha256 = None
     def deserialize(self, f):
-        self.nVersion = struct.unpack("<i", f.read(4))[0]
+        self.nVersion = struct.unpack(b"<i", f.read(4))[0]
         self.hashPrevBlock = deser_uint256(f)
         self.hashMerkleRoot = deser_uint256(f)
-        self.nTime = struct.unpack("<I", f.read(4))[0]
-        self.nBits = struct.unpack("<I", f.read(4))[0]
-        self.nNonce = struct.unpack("<I", f.read(4))[0]
+        self.nTime = struct.unpack(b"<I", f.read(4))[0]
+        self.nBits = struct.unpack(b"<I", f.read(4))[0]
+        self.nNonce = struct.unpack(b"<I", f.read(4))[0]
         self.vtx = deser_vector(f, CTransaction)
     def serialize_hdr(self):
-        r = ""
-        r += struct.pack("<i", self.nVersion)
+        r = b""
+        r += struct.pack(b"<i", self.nVersion)
         r += ser_uint256(self.hashPrevBlock)
         r += ser_uint256(self.hashMerkleRoot)
-        r += struct.pack("<I", self.nTime)
-        r += struct.pack("<I", self.nBits)
-        r += struct.pack("<I", self.nNonce)
+        r += struct.pack(b"<I", self.nTime)
+        r += struct.pack(b"<I", self.nBits)
+        r += struct.pack(b"<I", self.nNonce)
         return r
     def serialize(self):
         r = self.serialize_hdr()
@@ -265,7 +267,7 @@ class CBlock(object):
             hashes.append(ser_uint256(tx.sha256))
         while len(hashes) > 1:
             newhashes = []
-            for i in xrange(0, len(hashes), 2):
+            for i in range(0, len(hashes), 2):
                 i2 = min(i+1, len(hashes)-1)
                 newhashes.append(hashlib.sha256(hashlib.sha256(hashes[i] + hashes[i2]).digest()).digest())
             hashes = newhashes
@@ -293,35 +295,35 @@ class CUnsignedAlert(object):
         self.nMaxVer = 0
         self.setSubVer = []
         self.nPriority = 0
-        self.strComment = ""
-        self.strStatusBar = ""
-        self.strReserved = ""
+        self.strComment = b""
+        self.strStatusBar = b""
+        self.strReserved = b""
     def deserialize(self, f):
-        self.nVersion = struct.unpack("<i", f.read(4))[0]
-        self.nRelayUntil = struct.unpack("<q", f.read(8))[0]
-        self.nExpiration = struct.unpack("<q", f.read(8))[0]
-        self.nID = struct.unpack("<i", f.read(4))[0]
-        self.nCancel = struct.unpack("<i", f.read(4))[0]
+        self.nVersion = struct.unpack(b"<i", f.read(4))[0]
+        self.nRelayUntil = struct.unpack(b"<q", f.read(8))[0]
+        self.nExpiration = struct.unpack(b"<q", f.read(8))[0]
+        self.nID = struct.unpack(b"<i", f.read(4))[0]
+        self.nCancel = struct.unpack(b"<i", f.read(4))[0]
         self.setCancel = deser_int_vector(f)
-        self.nMinVer = struct.unpack("<i", f.read(4))[0]
-        self.nMaxVer = struct.unpack("<i", f.read(4))[0]
+        self.nMinVer = struct.unpack(b"<i", f.read(4))[0]
+        self.nMaxVer = struct.unpack(b"<i", f.read(4))[0]
         self.setSubVer = deser_string_vector(f)
-        self.nPriority = struct.unpack("<i", f.read(4))[0]
+        self.nPriority = struct.unpack(b"<i", f.read(4))[0]
         self.strComment = deser_string(f)
         self.strStatusBar = deser_string(f)
         self.strReserved = deser_string(f)
     def serialize(self):
-        r = ""
-        r += struct.pack("<i", self.nVersion)
-        r += struct.pack("<q", self.nRelayUntil)
-        r += struct.pack("<q", self.nExpiration)
-        r += struct.pack("<i", self.nID)
-        r += struct.pack("<i", self.nCancel)
+        r = b""
+        r += struct.pack(b"<i", self.nVersion)
+        r += struct.pack(b"<q", self.nRelayUntil)
+        r += struct.pack(b"<q", self.nExpiration)
+        r += struct.pack(b"<i", self.nID)
+        r += struct.pack(b"<i", self.nCancel)
         r += ser_int_vector(self.setCancel)
-        r += struct.pack("<i", self.nMinVer)
-        r += struct.pack("<i", self.nMaxVer)
+        r += struct.pack(b"<i", self.nMinVer)
+        r += struct.pack(b"<i", self.nMaxVer)
         r += ser_string_vector(self.setSubVer)
-        r += struct.pack("<i", self.nPriority)
+        r += struct.pack(b"<i", self.nPriority)
         r += ser_string(self.strComment)
         r += ser_string(self.strStatusBar)
         r += ser_string(self.strReserved)
@@ -331,13 +333,13 @@ class CUnsignedAlert(object):
 
 class CAlert(object):
     def __init__(self):
-        self.vchMsg = ""
-        self.vchSig = ""
+        self.vchMsg = b""
+        self.vchSig = b""
     def deserialize(self, f):
         self.vchMsg = deser_string(f)
         self.vchSig = deser_string(f)
     def serialize(self):
-        r = ""
+        r = b""
         r += ser_string(self.vchMsg)
         r += ser_string(self.vchSig)
         return r

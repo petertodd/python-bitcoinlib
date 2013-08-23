@@ -6,6 +6,8 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import struct
 import math
 from bitcoin.serialize import *
@@ -91,7 +93,7 @@ class CBloomFilter(object):
         # Not useful for a client, so not implemented yet.
         raise NotImplementedError
 
-    __struct = struct.Struct("<IIB")
+    __struct = struct.Struct(b'<IIB')
     def deserialize(self, f):
         self.vData = deser_string(f)
         (self.nHashFuncs,

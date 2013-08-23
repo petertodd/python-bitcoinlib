@@ -6,6 +6,12 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+import sys
+if sys.version > '3':
+    long = int
+
 import hashlib
 from bitcoin.serialize import Hash, Hash160, ser_uint256, ser_uint160
 from bitcoin.script import *
@@ -15,33 +21,33 @@ from bitcoin.bignum import bn2vch, vch2bn
 
 def SignatureHash(script, txTo, inIdx, hashtype):
     if inIdx >= len(txTo.vin):
-        return (0L, "inIdx %d out of range (%d)" % (inIdx, len(txTo.vin)))
+        return (0, "inIdx %d out of range (%d)" % (inIdx, len(txTo.vin)))
     txtmp = CTransaction()
     txtmp.copy(txTo)
 
     for txin in txtmp.vin:
-        txin.scriptSig = ''
+        txin.scriptSig = b''
     txtmp.vin[inIdx].scriptSig = script.vch
 
     if (hashtype & 0x1f) == SIGHASH_NONE:
         txtmp.vout = []
 
-        for i in xrange(len(txtmp.vin)):
+        for i in range(len(txtmp.vin)):
             if i != inIdx:
                 txtmp.vin[i].nSequence = 0
 
     elif (hashtype & 0x1f) == SIGHASH_SINGLE:
         outIdx = inIdx
         if outIdx >= len(txtmp.vout):
-            return (0L, "outIdx %d out of range (%d)" % (outIdx, len(txtmp.vout)))
+            return (0, "outIdx %d out of range (%d)" % (outIdx, len(txtmp.vout)))
 
         tmp = txtmp.vout[outIdx]
         txtmp.vout = []
-        for i in xrange(outIdx):
+        for i in range(outIdx):
             txtmp.vout.append(CTxOut())
         txtmp.vout.append(tmp)
 
-        for i in xrange(len(txtmp.vin)):
+        for i in range(len(txtmp.vin)):
             if i != inIdx:
                 txtmp.vin[i].nSequence = 0
 
@@ -51,7 +57,7 @@ def SignatureHash(script, txTo, inIdx, hashtype):
         txtmp.vin.append(tmp)
 
     s = txtmp.serialize()
-    s += struct.pack("<I", hashtype)
+    s += struct.pack(b"<I", hashtype)
 
     hash = Hash(s)
 
@@ -70,7 +76,7 @@ def CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
     sig = sig[:-1]
 
     tup = SignatureHash(script, txTo, inIdx, hashtype)
-    if tup[0] == 0L:
+    if tup[0] == 0:
         return False
     return key.verify(ser_uint256(tup[0]), sig)
 
@@ -97,7 +103,7 @@ def CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
     if len(stack) < i:
         return False
 
-    for k in xrange(sigs_count):
+    for k in range(sigs_count):
         sig = stack[-isig-k]
         # FIXME: find-and-delete sig in script
 
@@ -122,9 +128,9 @@ def CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
         i -= 1
 
     if success:
-        stack.append("\x01")
+        stack.append(b"\x01")
     else:
-        stack.append("\x00")
+        stack.append(b"\x00")
 
     if opcode == OP_CHECKMULTISIGVERIFY:
         if success:
@@ -136,7 +142,7 @@ def CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
 
 def dumpstack(msg, stack):
     print("%s stacksz %d" % (msg, len(stack)))
-    for i in xrange(len(stack)):
+    for i in range(len(stack)):
         vch = stack[i]
         print("#%d: %s" % (i, vch.encode('hex')))
 
@@ -176,10 +182,10 @@ def UnaryOp(opcode, stack):
             bn = -bn
 
     elif opcode == OP_NOT:
-        bn = long(bn == 0L)
+        bn = long(bn == 0)
 
     elif opcode == OP_0NOTEQUAL:
-        bn = long(bn != 0L)
+        bn = long(bn != 0)
 
     else:
         return False
@@ -230,10 +236,10 @@ def BinOp(opcode, stack):
         bn = bn1 >> bn2
 
     elif opcode == OP_BOOLAND:
-        bn = long(bn1 != 0L and bn2 != 0L)
+        bn = long(bn1 != 0 and bn2 != 0)
 
     elif opcode == OP_BOOLOR:
-        bn = long(bn1 != 0L or bn2 != 0L)
+        bn = long(bn1 != 0 or bn2 != 0)
 
     elif opcode == OP_NUMEQUAL or opcode == OP_NUMEQUALVERIFY:
         bn = long(bn1 == bn2)
@@ -374,11 +380,11 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
                       txTo, inIdx, hashtype)
             if ok:
                 if sop.op != OP_CHECKSIGVERIFY:
-                    stack.append("\x01")
+                    stack.append(b"\x01")
             else:
                 if sop.op == OP_CHECKSIGVERIFY:
                     return False
-                stack.append("\x00")
+                stack.append(b"\x00")
 
         elif fExec and sop.op == OP_CODESEPARATOR:
             script.pbegincodehash = script.pc
@@ -416,9 +422,9 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 
             is_equal = (v1 == v2)
             if is_equal:
-                stack.append("\x01")
+                stack.append(b"\x01")
             else:
-                stack.append("\x00")
+                stack.append(b"\x00")
 
             if sop.op == OP_EQUALVERIFY:
                 if is_equal:
@@ -556,9 +562,9 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
             bn1 = CastToBigNum(stack.pop())
             v = (bn2 <= bn1) and (bn1 < bn3)
             if v:
-                stack.append("\x01")
+                stack.append(b"\x01")
             else:
-                stack.append("\x00")
+                stack.append(b"\x00")
 
         elif fExec:
             #print("Unsupported opcode", OPCODE_NAMES[sop.op])
@@ -571,7 +577,7 @@ def CastToBigNum(s):
     return v
 
 def CastToBool(s):
-    for i in xrange(len(s)):
+    for i in range(len(s)):
         sv = ord(s[i])
         if sv != 0:
             if (i == (len(s) - 1)) and (sv == 0x80):

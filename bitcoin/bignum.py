@@ -6,6 +6,8 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import struct
 
 
@@ -15,7 +17,7 @@ def bn_bytes(v, have_ext=False):
     ext = 0
     if have_ext:
         ext = 1
-    return ((v.bit_length()+7)/8) + ext
+    return ((v.bit_length()+7)//8) + ext
 
 def bn2bin(v):
     s = bytearray()
@@ -26,7 +28,7 @@ def bn2bin(v):
     return s
 
 def bin2bn(s):
-    l = 0L
+    l = 0
     for ch in s:
         l = (l << 8) | ch
     return l
@@ -41,7 +43,7 @@ def bn2mpi(v):
         neg = True
         v = -v
 
-    s = struct.pack(">I", bn_bytes(v, have_ext))
+    s = struct.pack(b">I", bn_bytes(v, have_ext))
     ext = bytearray()
     if have_ext:
         ext.append(0)
@@ -57,11 +59,11 @@ def mpi2bn(s):
     if len(s) < 4:
         return None
     s_size = str(s[:4])
-    v_len = struct.unpack(">I", s_size)[0]
+    v_len = struct.unpack(b">I", s_size)[0]
     if len(s) != (v_len + 4):
         return None
     if v_len == 0:
-        return 0L
+        return 0
 
     v_str = bytearray(s[4:])
     neg = False
@@ -87,7 +89,7 @@ def bn2vch(v):
     return str(mpi2vch(bn2mpi(v)))
 
 def vch2mpi(s):
-    r = struct.pack(">I", len(s))   # size
+    r = struct.pack(b">I", len(s))   # size
     r += s[::-1]            # reverse string, converting LE->BE
     return r
 
