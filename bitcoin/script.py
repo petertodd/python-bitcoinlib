@@ -493,38 +493,38 @@ class CScript(object):
         return True
 
     def match_temp(self, template, vch_in=None):
-	l = []
-	i = 0
+        l = []
+        i = 0
 
         if vch_in is not None:
             self.vch = vch_in
 
         self.reset()
         while self.pc < self.pend:
-	    if i >= len(template):
-	    	return None
+            if i >= len(template):
+                return None
             if not self.getop():
                 return None
-	
-	    expected_op = template[i]
-	    if expected_op == OP_PUBKEYHASH or expected_op == OP_PUBKEY:
-	    	if self.sop.op > OP_PUSHDATA4:
-		    return None
-		l.append(self.sop.data)
 
-	    elif self.sop.op != expected_op:
-	    	return None
+            expected_op = template[i]
+            if expected_op == OP_PUBKEYHASH or expected_op == OP_PUBKEY:
+                if self.sop.op > OP_PUSHDATA4:
+                    return None
+                l.append(self.sop.data)
 
-	    i += 1
+            elif self.sop.op != expected_op:
+                return None
+
+            i += 1
 
         return l
 
     def match_alltemp(self, vch_in=None):
         for temp in TEMPLATES:
-	    l = self.match_temp(temp, vch_in)
-	    if l is not None:
-	    	return l
-	return None
+            l = self.match_temp(temp, vch_in)
+            if l is not None:
+                return l
+        return None
 
     def __repr__(self):
         return "CScript(vchsz %d)" % (len(self.vch),)
