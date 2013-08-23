@@ -6,6 +6,8 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import struct
 
 SIGHASH_ALL = 1
@@ -462,14 +464,14 @@ class CScript(object):
             s = self.getchars(2)
             if s is None:
                 return False
-            datasize = struct.unpack("<H", s)[0]
+            datasize = struct.unpack(b"<H", s)[0]
 
         elif opcode == OP_PUSHDATA4:
             sop.ser_len += 4
             s = self.getchars(4)
             if s is None:
                 return False
-            datasize = struct.unpack("<I", s)[0]
+            datasize = struct.unpack(b"<I", s)[0]
 
         sop.ser_len += datasize
         sop.data = self.getchars(datasize)

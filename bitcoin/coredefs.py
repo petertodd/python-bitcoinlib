@@ -6,6 +6,8 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 PROTO_VERSION = 60002
 
 CADDR_TIME_VERSION = 31402

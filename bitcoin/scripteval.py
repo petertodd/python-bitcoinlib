@@ -6,6 +6,8 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import hashlib
 from bitcoin.serialize import Hash, Hash160, ser_uint256, ser_uint160
 from bitcoin.script import *
@@ -20,7 +22,7 @@ def SignatureHash(script, txTo, inIdx, hashtype):
     txtmp.copy(txTo)
 
     for txin in txtmp.vin:
-        txin.scriptSig = ''
+        txin.scriptSig = b''
     txtmp.vin[inIdx].scriptSig = script.vch
 
     if (hashtype & 0x1f) == SIGHASH_NONE:
@@ -51,7 +53,7 @@ def SignatureHash(script, txTo, inIdx, hashtype):
         txtmp.vin.append(tmp)
 
     s = txtmp.serialize()
-    s += struct.pack("<I", hashtype)
+    s += struct.pack(b"<I", hashtype)
 
     hash = Hash(s)
 
@@ -122,9 +124,9 @@ def CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
         i -= 1
 
     if success:
-        stack.append("\x01")
+        stack.append(b"\x01")
     else:
-        stack.append("\x00")
+        stack.append(b"\x00")
 
     if opcode == OP_CHECKMULTISIGVERIFY:
         if success:
@@ -374,11 +376,11 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
                       txTo, inIdx, hashtype)
             if ok:
                 if sop.op != OP_CHECKSIGVERIFY:
-                    stack.append("\x01")
+                    stack.append(b"\x01")
             else:
                 if sop.op == OP_CHECKSIGVERIFY:
                     return False
-                stack.append("\x00")
+                stack.append(b"\x00")
 
         elif fExec and sop.op == OP_CODESEPARATOR:
             script.pbegincodehash = script.pc
@@ -416,9 +418,9 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 
             is_equal = (v1 == v2)
             if is_equal:
-                stack.append("\x01")
+                stack.append(b"\x01")
             else:
-                stack.append("\x00")
+                stack.append(b"\x00")
 
             if sop.op == OP_EQUALVERIFY:
                 if is_equal:
@@ -556,9 +558,9 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
             bn1 = CastToBigNum(stack.pop())
             v = (bn2 <= bn1) and (bn1 < bn3)
             if v:
-                stack.append("\x01")
+                stack.append(b"\x01")
             else:
-                stack.append("\x00")
+                stack.append(b"\x00")
 
         elif fExec:
             #print("Unsupported opcode", OPCODE_NAMES[sop.op])

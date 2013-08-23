@@ -6,6 +6,8 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import struct
 from bitcoin.serialize import *
 from bitcoin.coredefs import *
@@ -32,7 +34,7 @@ def MurmurHash3(nHashSeed, vDataToHash):
     while i < len(vDataToHash) - len(vDataToHash) % 4 \
           and len(vDataToHash) - i >= 4:
 
-        k1 = struct.unpack("<L", vDataToHash[i:i+4])[0]
+        k1 = struct.unpack(b"<L", vDataToHash[i:i+4])[0]
 
         k1 = (k1 * c1) & 0xFFFFFFFF
         k1 = ROTL32(k1, 15)
@@ -48,11 +50,11 @@ def MurmurHash3(nHashSeed, vDataToHash):
     k1 = 0
     j = (len(vDataToHash) // 4) * 4
     if len(vDataToHash) & 3 >= 3:
-        k1 ^= struct.unpack('<B', vDataToHash[j+2])[0] << 16
+        k1 ^= struct.unpack(b'<B', vDataToHash[j+2])[0] << 16
     if len(vDataToHash) & 3 >= 2:
-        k1 ^= struct.unpack('<B', vDataToHash[j+1])[0] << 8
+        k1 ^= struct.unpack(b'<B', vDataToHash[j+1])[0] << 8
     if len(vDataToHash) & 3 >= 1:
-        k1 ^= struct.unpack('<B', vDataToHash[j])[0]
+        k1 ^= struct.unpack(b'<B', vDataToHash[j])[0]
 
     k1 &= 0xFFFFFFFF
     k1 = (k1 * c1) & 0xFFFFFFFF
