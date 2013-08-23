@@ -49,12 +49,17 @@ def MurmurHash3(nHashSeed, vDataToHash):
     # tail
     k1 = 0
     j = (len(vDataToHash) // 4) * 4
+    import sys
+    bord = ord
+    if sys.version > '3':
+        # In Py3 indexing bytes returns numbers, not characters
+        bord = lambda x: x
     if len(vDataToHash) & 3 >= 3:
-        k1 ^= struct.unpack(b'<B', vDataToHash[j+2])[0] << 16
+        k1 ^= bord(vDataToHash[j+2]) << 16
     if len(vDataToHash) & 3 >= 2:
-        k1 ^= struct.unpack(b'<B', vDataToHash[j+1])[0] << 8
+        k1 ^= bord(vDataToHash[j+1]) << 8
     if len(vDataToHash) & 3 >= 1:
-        k1 ^= struct.unpack(b'<B', vDataToHash[j])[0]
+        k1 ^= bord(vDataToHash[j])
 
     k1 &= 0xFFFFFFFF
     k1 = (k1 * c1) & 0xFFFFFFFF

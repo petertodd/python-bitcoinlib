@@ -11,6 +11,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import struct
 import hashlib
 
+# Py3 compatibility
+import sys
+bchr = chr
+if sys.version > '3':
+    bchr = lambda x: bytes([x])
+
 def deser_string(f):
     nit = struct.unpack(b"<B", f.read(1))[0]
     if nit == 253:
@@ -23,12 +29,12 @@ def deser_string(f):
 
 def ser_string(s):
     if len(s) < 253:
-        return chr(len(s)) + s
+        return bchr(len(s)) + s
     elif len(s) < 0x10000:
-        return chr(253) + struct.pack(b"<H", len(s)) + s
+        return bchr(253) + struct.pack(b"<H", len(s)) + s
     elif len(s) < 0x100000000:
-        return chr(254) + struct.pack(b"<I", len(s)) + s
-    return chr(255) + struct.pack(b"<Q", len(s)) + s
+        return bchr(254) + struct.pack(b"<I", len(s)) + s
+    return bchr(255) + struct.pack(b"<Q", len(s)) + s
 
 def deser_uint256(f):
     r = 0
@@ -95,13 +101,13 @@ def deser_vector(f, c, arg1=None):
 def ser_vector(l):
     r = b""
     if len(l) < 253:
-        r = chr(len(l))
+        r = bchr(len(l))
     elif len(l) < 0x10000:
-        r = chr(253) + struct.pack(b"<H", len(l))
+        r = bchr(253) + struct.pack(b"<H", len(l))
     elif len(l) < 0x100000000:
-        r = chr(254) + struct.pack(b"<I", len(l))
+        r = bchr(254) + struct.pack(b"<I", len(l))
     else:
-        r = chr(255) + struct.pack(b"<Q", len(l))
+        r = bchr(255) + struct.pack(b"<Q", len(l))
     for i in l:
         r += i.serialize()
     return r
@@ -123,13 +129,13 @@ def deser_uint256_vector(f):
 def ser_uint256_vector(l):
     r = b""
     if len(l) < 253:
-        r = chr(len(l))
+        r = bchr(len(l))
     elif len(s) < 0x10000:
-        r = chr(253) + struct.pack(b"<H", len(l))
+        r = bchr(253) + struct.pack(b"<H", len(l))
     elif len(s) < 0x100000000:
-        r = chr(254) + struct.pack(b"<I", len(l))
+        r = bchr(254) + struct.pack(b"<I", len(l))
     else:
-        r = chr(255) + struct.pack(b"<Q", len(l))
+        r = bchr(255) + struct.pack(b"<Q", len(l))
     for i in l:
         r += ser_uint256(i)
     return r
@@ -151,13 +157,13 @@ def deser_string_vector(f):
 def ser_string_vector(l):
     r = b""
     if len(l) < 253:
-        r = chr(len(l))
+        r = bchr(len(l))
     elif len(s) < 0x10000:
-        r = chr(253) + struct.pack(b"<H", len(l))
+        r = bchr(253) + struct.pack(b"<H", len(l))
     elif len(s) < 0x100000000:
-        r = chr(254) + struct.pack(b"<I", len(l))
+        r = bchr(254) + struct.pack(b"<I", len(l))
     else:
-        r = chr(255) + struct.pack(b"<Q", len(l))
+        r = bchr(255) + struct.pack(b"<Q", len(l))
     for sv in l:
         r += ser_string(sv)
     return r
@@ -179,13 +185,13 @@ def deser_int_vector(f):
 def ser_int_vector(l):
     r = b""
     if len(l) < 253:
-        r = chr(len(l))
+        r = bchr(len(l))
     elif len(s) < 0x10000:
-        r = chr(253) + struct.pack(b"<H", len(l))
+        r = bchr(253) + struct.pack(b"<H", len(l))
     elif len(s) < 0x100000000:
-        r = chr(254) + struct.pack(b"<I", len(l))
+        r = bchr(254) + struct.pack(b"<I", len(l))
     else:
-        r = chr(255) + struct.pack(b"<Q", len(l))
+        r = bchr(255) + struct.pack(b"<Q", len(l))
     for i in l:
         r += struct.pack(b"<i", i)
     return r
