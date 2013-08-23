@@ -26,12 +26,12 @@ def ser_string(s):
         return chr(len(s)) + s
     elif len(s) < 0x10000:
         return chr(253) + struct.pack(b"<H", len(s)) + s
-    elif len(s) < 0x100000000L:
+    elif len(s) < 0x100000000:
         return chr(254) + struct.pack(b"<I", len(s)) + s
     return chr(255) + struct.pack(b"<Q", len(s)) + s
 
 def deser_uint256(f):
-    r = 0L
+    r = 0
     for i in range(8):
         t = struct.unpack(b"<I", f.read(4))[0]
         r += t << (i * 32)
@@ -40,26 +40,26 @@ def deser_uint256(f):
 def ser_uint256(u):
     rs = b""
     for i in range(8):
-        rs += struct.pack(b"<I", u & 0xFFFFFFFFL)
+        rs += struct.pack(b"<I", u & 0xFFFFFFFF)
         u >>= 32
     return rs
 
 def ser_uint160(u):
     rs = b""
     for i in range(5):
-        rs += struct.pack(b"<I", u & 0xFFFFFFFFL)
+        rs += struct.pack(b"<I", u & 0xFFFFFFFF)
         u >>= 32
     return rs
 
 def uint160_from_str(s):
-    r = 0L
+    r = 0
     t = struct.unpack(b"<IIIII", s[:20])
     for i in range(5):
         r += t[i] << (i * 32)
     return r
 
 def uint256_from_str(s):
-    r = 0L
+    r = 0
     t = struct.unpack(b"<IIIIIIII", s[:32])
     for i in range(8):
         r += t[i] << (i * 32)
@@ -67,7 +67,7 @@ def uint256_from_str(s):
 
 def uint256_from_compact(c):
     nbytes = (c >> 24) & 0xFF
-    v = (c & 0xFFFFFFL) << (8 * (nbytes - 3))
+    v = (c & 0xFFFFFF) << (8 * (nbytes - 3))
     return v
 
 def uint256_to_shortstr(u):
@@ -98,7 +98,7 @@ def ser_vector(l):
         r = chr(len(l))
     elif len(l) < 0x10000:
         r = chr(253) + struct.pack(b"<H", len(l))
-    elif len(l) < 0x100000000L:
+    elif len(l) < 0x100000000:
         r = chr(254) + struct.pack(b"<I", len(l))
     else:
         r = chr(255) + struct.pack(b"<Q", len(l))
@@ -126,7 +126,7 @@ def ser_uint256_vector(l):
         r = chr(len(l))
     elif len(s) < 0x10000:
         r = chr(253) + struct.pack(b"<H", len(l))
-    elif len(s) < 0x100000000L:
+    elif len(s) < 0x100000000:
         r = chr(254) + struct.pack(b"<I", len(l))
     else:
         r = chr(255) + struct.pack(b"<Q", len(l))
@@ -154,7 +154,7 @@ def ser_string_vector(l):
         r = chr(len(l))
     elif len(s) < 0x10000:
         r = chr(253) + struct.pack(b"<H", len(l))
-    elif len(s) < 0x100000000L:
+    elif len(s) < 0x100000000:
         r = chr(254) + struct.pack(b"<I", len(l))
     else:
         r = chr(255) + struct.pack(b"<Q", len(l))
@@ -182,7 +182,7 @@ def ser_int_vector(l):
         r = chr(len(l))
     elif len(s) < 0x10000:
         r = chr(253) + struct.pack(b"<H", len(l))
-    elif len(s) < 0x100000000L:
+    elif len(s) < 0x100000000:
         r = chr(254) + struct.pack(b"<I", len(l))
     else:
         r = chr(255) + struct.pack(b"<Q", len(l))

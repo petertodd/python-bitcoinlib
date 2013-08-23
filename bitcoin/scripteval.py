@@ -8,6 +8,10 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import sys
+if sys.version > '3':
+    long = int
+
 import hashlib
 from bitcoin.serialize import Hash, Hash160, ser_uint256, ser_uint160
 from bitcoin.script import *
@@ -17,7 +21,7 @@ from bitcoin.bignum import bn2vch, vch2bn
 
 def SignatureHash(script, txTo, inIdx, hashtype):
     if inIdx >= len(txTo.vin):
-        return (0L, "inIdx %d out of range (%d)" % (inIdx, len(txTo.vin)))
+        return (0, "inIdx %d out of range (%d)" % (inIdx, len(txTo.vin)))
     txtmp = CTransaction()
     txtmp.copy(txTo)
 
@@ -35,7 +39,7 @@ def SignatureHash(script, txTo, inIdx, hashtype):
     elif (hashtype & 0x1f) == SIGHASH_SINGLE:
         outIdx = inIdx
         if outIdx >= len(txtmp.vout):
-            return (0L, "outIdx %d out of range (%d)" % (outIdx, len(txtmp.vout)))
+            return (0, "outIdx %d out of range (%d)" % (outIdx, len(txtmp.vout)))
 
         tmp = txtmp.vout[outIdx]
         txtmp.vout = []
@@ -72,7 +76,7 @@ def CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
     sig = sig[:-1]
 
     tup = SignatureHash(script, txTo, inIdx, hashtype)
-    if tup[0] == 0L:
+    if tup[0] == 0:
         return False
     return key.verify(ser_uint256(tup[0]), sig)
 
@@ -178,10 +182,10 @@ def UnaryOp(opcode, stack):
             bn = -bn
 
     elif opcode == OP_NOT:
-        bn = long(bn == 0L)
+        bn = long(bn == 0)
 
     elif opcode == OP_0NOTEQUAL:
-        bn = long(bn != 0L)
+        bn = long(bn != 0)
 
     else:
         return False
@@ -232,10 +236,10 @@ def BinOp(opcode, stack):
         bn = bn1 >> bn2
 
     elif opcode == OP_BOOLAND:
-        bn = long(bn1 != 0L and bn2 != 0L)
+        bn = long(bn1 != 0 and bn2 != 0)
 
     elif opcode == OP_BOOLOR:
-        bn = long(bn1 != 0L or bn2 != 0L)
+        bn = long(bn1 != 0 or bn2 != 0)
 
     elif opcode == OP_NUMEQUAL or opcode == OP_NUMEQUALVERIFY:
         bn = long(bn1 == bn2)
