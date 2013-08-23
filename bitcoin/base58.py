@@ -26,7 +26,7 @@ def encode(b):
     """Encode bytes to a base58-encoded string"""
 
     # Convert big-endian bytes to integer
-    n = int('0x0' + hexlify(b), 16)
+    n = int('0x0' + hexlify(b).decode('utf8'), 16)
 
     # Divide that integer into bas58
     res = []
@@ -60,7 +60,7 @@ def decode(s):
     h = '%x' % n
     if len(h) % 2:
         h = '0' + h
-    res = unhexlify(h)
+    res = unhexlify(h.encode('utf8'))
 
     # Add padding back.
     pad = 0

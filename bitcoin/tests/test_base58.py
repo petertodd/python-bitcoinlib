@@ -20,7 +20,7 @@ def load_test_vector(name):
 class Test_base58(unittest.TestCase):
     def test_encode_decode(self):
         for exp_bin, exp_base58 in load_test_vector('base58_encode_decode.json'):
-            exp_bin = unhexlify(exp_bin)
+            exp_bin = unhexlify(exp_bin.encode('utf8'))
 
             act_base58 = encode(exp_bin)
             act_bin = decode(exp_base58)
