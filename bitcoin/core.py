@@ -17,6 +17,28 @@ from bitcoin.serialize import *
 from bitcoin.coredefs import *
 from bitcoin.script import CScript
 
+def hex_str(b):
+    if sys.version > '3':
+        return binascii.hexlify(b).decode('utf8')
+    else:
+        return binascii.hexlify(b)
+
+def _x(h):
+    """Convert a hex string to bytes"""
+    import sys
+    if sys.version > '3':
+        return binascii.unhexlify(h.encode('utf8'))
+    else:
+        return binascii.unhexlify(h)
+
+def str_money_value(value):
+    """Convert an integer money value to a fixed point string"""
+    r = '%i.%08i' % (value // 100000000, value % 100000000)
+    r = r.rstrip('0')
+    if r[-1] == '.':
+        r += '0'
+    return r
+
 class CAddress(object):
     def __init__(self, protover=PROTO_VERSION):
         self.protover = protover
@@ -79,9 +101,15 @@ class CBlockLocator(object):
         return "CBlockLocator(nVersion=%i vHave=%s)" % (self.nVersion, repr(self.vHave))
 
 class COutPoint(object):
-    def __init__(self):
-        self.hash = 0
-        self.n = 0
+    """The combination of a transaction hash and an index n into its vout"""
+    __slots__ = ['hash', 'n']
+    def __init__(self, hash=b'\x00'*32, n=0xffffffff):
+        if not len(hash) == 32:
+            raise ValueError('COutPoint: hash must be exactly 32 bytes; got %d bytes' % len(hash))
+        self.hash = hash
+        if not (0 <= n <= 0xffffffff):
+            raise ValueError('COutPoint: n must be in range 0x0 to 0xffffffff; got %x' % n)
+        self.n = n
     def deserialize(self, f):
         self.hash = f.read(32)
         self.n = struct.unpack(b"<I", f.read(4))[0]
@@ -90,22 +118,29 @@ class COutPoint(object):
         r += self.hash
         r += struct.pack(b"<I", self.n)
         return r
-    def set_null(self):
-        self.hash = 0
-        self.n = 0xffffffff
     def is_null(self):
-        return ((self.hash == 0) and (self.n == 0xffffffff))
-    def copy(self, old_outpt):
-        self.hash = old_outpt.hash
-        self.n = old_outpt.n
+        return ((self.hash == b'\x00'*32) and (self.n == 0xffffffff))
     def __repr__(self):
-        return "COutPoint(hash=%064x n=%i)" % (self.hash, self.n)
+        if self.is_null():
+            return 'COutPoint()'
+        else:
+            return 'COutPoint(_x(%r), %i)' % (hex_str(self.hash), self.n)
 
 class CTxIn(object):
-    def __init__(self):
-        self.prevout = COutPoint()
-        self.scriptSig = b""
-        self.nSequence = 0xffffffff
+    """An input of a transaction
+
+    Contains the location of the previous transaction's output that it claims,
+    and a signature that matches the output's public key.
+    """
+    __slots__ = ['prevout', 'scriptSig', 'nSequence']
+    def __init__(self, prevout=None, scriptSig=CScript(), nSequence = 0xffffffff):
+        if prevout is None:
+            prevout = COutPoint()
+        self.prevout = prevout
+        self.scriptSig = scriptSig
+        if not (0 <= nSequence <= 0xffffffff):
+            raise ValueError('CTxIn: nSequence must be an integer between 0x0 and 0xffffffff; got %x' % nSequence)
+        self.nSequence = nSequence
     def deserialize(self, f):
         self.prevout = COutPoint()
         self.prevout.deserialize(f)
@@ -119,23 +154,18 @@ class CTxIn(object):
         return r
     def is_final(self):
         return (self.nSequence == 0xffffffff)
-    def is_valid(self):
-        script = CScript()
-        if not script.tokenize(self.scriptSig):
-            return False
-        return True
-    def copy(self, old_txin):
-        self.prevout = COutPoint()
-        self.prevout.copy(old_txin.prevout)
-        self.scriptSig = old_txin.scriptSig
-        self.nSequence = old_txin.nSequence
     def __repr__(self):
-        return "CTxIn(prevout=%s scriptSig=%s nSequence=%i)" % (repr(self.prevout), binascii.hexlify(self.scriptSig), self.nSequence)
+        return "CTxIn(%s, %s, 0x%x)" % (repr(self.prevout), repr(self.scriptSig), self.nSequence)
 
 class CTxOut(object):
-    def __init__(self):
-        self.nValue = -1
-        self.scriptPubKey = b""
+    """An output of a transaction
+
+    Contains the public key that the next input must be able to sign with to
+    claim it.
+    """
+    def __init__(self, nValue=-1, scriptPubKey=CScript()):
+        self.nValue = nValue
+        self.scriptPubKey = scriptPubKey
     def deserialize(self, f):
         self.nValue = struct.unpack(b"<q", f.read(8))[0]
         self.scriptPubKey = deser_string(f)
@@ -147,30 +177,29 @@ class CTxOut(object):
     def is_valid(self):
         if not MoneyRange(self.nValue):
             return False
-        script = CScript()
-        if not script.tokenize(self.scriptPubKey):
+        if not self.scriptPubKey.is_valid():
             return False
         return True
-    def copy(self, old_txout):
-        self.nValue = old_txout.nValue
-        self.scriptPubKey = old_txout.scriptPubKey
     def __repr__(self):
-        return "CTxOut(nValue=%i.%08i scriptPubKey=%s)" % (self.nValue // 100000000, self.nValue % 100000000, binascii.hexlify(self.scriptPubKey))
+        if self.nValue >= 0:
+            return "CTxOut(%s*COIN, %r)" % (str_money_value(self.nValue), self.scriptPubKey)
+        else:
+            return "CTxOut(%d, %r)" % (self.nValue, self.scriptPubKey)
 
 class CTransaction(object):
-    def __init__(self):
-        # serialized
-        self.nVersion = 1
-        self.vin = []
-        self.vout = []
-        self.nLockTime = 0
-
-        # used at runtime
-        self.sha256 = None
-        self.nFeesPaid = 0
-        self.dFeePerKB = None
-        self.dPriority = None
-        self.ser_size = 0
+    """A transaction"""
+    __slots__ = ['nVersion', 'vin', 'vout', 'nLockTime']
+    def __init__(self, vin=None, vout=None, nLockTime=0, nVersion=1):
+        if vin is None:
+            vin = []
+        if vout is None:
+            vout = []
+        self.nVersion = nVersion
+        self.vin = vin
+        self.vout = vout
+        if not (0 <= nLockTime <= 0xffffffff):
+            raise ValueError('CTransaction: nLockTime must be in range 0x0 to 0xffffffff; got %x' % nLockTime)
+        self.nLockTime = nLockTime
     def deserialize(self, f):
         self.nVersion = struct.unpack(b"<i", f.read(4))[0]
         self.vin = deser_vector(f, CTxIn)
@@ -183,46 +212,10 @@ class CTransaction(object):
         r += ser_vector(self.vout)
         r += struct.pack(b"<I", self.nLockTime)
         return r
-    def calc_sha256(self):
-        if self.sha256 is None:
-            self.sha256 = Hash(self.serialize())
-    def is_valid(self):
-        self.calc_sha256()
-        if not self.is_coinbase():
-            for tin in self.vin:
-                if not tin.is_valid():
-                    return False
-        for tout in self.vout:
-            if not tout.is_valid():
-                return False
-        return True
-    def is_final(self):
-        for tin in self.vin:
-            if not tin.is_final():
-                return False
-        return True
     def is_coinbase(self):
         return len(self.vin) == 1 and self.vin[0].prevout.is_null()
-
-    def copy(self, old_tx):
-        self.nVersion = old_tx.nVersion
-        self.vin = []
-        self.vout = []
-        self.nLockTime = old_tx.nLockTime
-        self.sha256 = None
-
-        for old_txin in old_tx.vin:
-            txin = CTxIn()
-            txin.copy(old_txin)
-            self.vin.append(txin)
-
-        for old_txout in old_tx.vout:
-            txout = CTxOut()
-            txout.copy(old_txout)
-            self.vout.append(txout)
-
     def __repr__(self):
-        return "CTransaction(nVersion=%i vin=%s vout=%s nLockTime=%i)" % (self.nVersion, repr(self.vin), repr(self.vout), self.nLockTime)
+        return "CTransaction(%r, %r, %i, %i)" % (self.vin, self.vout, self.nLockTime, self.nVersion)
 
 class CBlock(object):
     def __init__(self):
