@@ -57,11 +57,11 @@ class CAddress(object):
         self.port = 0
     def deserialize(self, f):
         if self.protover >= CADDR_TIME_VERSION:
-            self.nTime = struct.unpack(b"<I", f.read(4))[0]
-        self.nServices = struct.unpack(b"<Q", f.read(8))[0]
-        self.pchReserved = f.read(12)
-        self.ip = socket.inet_ntoa(f.read(4))
-        self.port = struct.unpack(b">H", f.read(2))[0]
+            self.nTime = struct.unpack(b"<I", ser_read(f,4))[0]
+        self.nServices = struct.unpack(b"<Q", ser_read(f,8))[0]
+        self.pchReserved = ser_read(f,12)
+        self.ip = socket.inet_ntoa(ser_read(f,4))
+        self.port = struct.unpack(b">H", ser_read(f,2))[0]
     def serialize(self):
         r = b""
         if self.protover >= CADDR_TIME_VERSION:
@@ -83,8 +83,8 @@ class CInv(object):
         self.type = 0
         self.hash = 0
     def deserialize(self, f):
-        self.type = struct.unpack(b"<i", f.read(4))[0]
-        self.hash = f.read(32)
+        self.type = struct.unpack(b"<i", ser_read(f,4))[0]
+        self.hash = ser_read(f,32)
     def serialize(self):
         r = b""
         r += struct.pack(b"<i", self.type)
@@ -98,7 +98,7 @@ class CBlockLocator(object):
         self.nVersion = PROTO_VERSION
         self.vHave = []
     def deserialize(self, f):
-        self.nVersion = struct.unpack(b"<i", f.read(4))[0]
+        self.nVersion = struct.unpack(b"<i", ser_read(f,4))[0]
         self.vHave = deser_uint256_vector(f)
     def serialize(self):
         r = b""
@@ -122,8 +122,8 @@ class COutPoint(Serializable):
 
     @classmethod
     def stream_deserialize(cls, f):
-        hash = f.read(32)
-        n = struct.unpack(b"<I", f.read(4))[0]
+        hash = ser_read(f,32)
+        n = struct.unpack(b"<I", ser_read(f,4))[0]
         return cls(hash, n)
 
     def stream_serialize(self, f):
@@ -160,13 +160,13 @@ class CTxIn(Serializable):
     @classmethod
     def stream_deserialize(cls, f):
         prevout = COutPoint.stream_deserialize(f)
-        scriptSig = CScript(stream_deser_bytes(f))
-        nSequence = struct.unpack(b"<I", f.read(4))[0]
+        scriptSig = CScript(BytesSerializer.stream_deserialize(f))
+        nSequence = struct.unpack(b"<I", ser_read(f,4))[0]
         return cls(prevout, scriptSig, nSequence)
 
     def stream_serialize(self, f):
         self.prevout.stream_serialize(f)
-        stream_ser_bytes(self.scriptSig, f)
+        BytesSerializer.stream_serialize(self.scriptSig, f)
         f.write(struct.pack(b"<I", self.nSequence))
 
     def is_final(self):
@@ -189,13 +189,13 @@ class CTxOut(Serializable):
 
     @classmethod
     def stream_deserialize(cls, f):
-        nValue = struct.unpack(b"<q", f.read(8))[0]
-        scriptPubKey = CScript(stream_deser_bytes(f))
+        nValue = struct.unpack(b"<q", ser_read(f,8))[0]
+        scriptPubKey = CScript(BytesSerializer.stream_deserialize(f))
         return cls(nValue, scriptPubKey)
 
     def stream_serialize(self, f):
         f.write(struct.pack(b"<q", self.nValue))
-        stream_ser_bytes(self.scriptPubKey, f)
+        BytesSerializer.stream_serialize(self.scriptPubKey, f)
 
     def is_valid(self):
         if not MoneyRange(self.nValue):
@@ -228,16 +228,16 @@ class CTransaction(Serializable):
 
     @classmethod
     def stream_deserialize(cls, f):
-        nVersion = struct.unpack(b"<i", f.read(4))[0]
-        vin = stream_deser_vector(f, CTxIn)
-        vout = stream_deser_vector(f, CTxOut)
-        nLockTime = struct.unpack(b"<I", f.read(4))[0]
+        nVersion = struct.unpack(b"<i", ser_read(f,4))[0]
+        vin = VectorSerializer.stream_deserialize(CTxIn, f)
+        vout = VectorSerializer.stream_deserialize(CTxOut, f)
+        nLockTime = struct.unpack(b"<I", ser_read(f,4))[0]
         return cls(vin, vout, nLockTime, nVersion)
 
     def stream_serialize(self, f):
         f.write(struct.pack(b"<i", self.nVersion))
-        stream_ser_vector(self.vin, f)
-        stream_ser_vector(self.vout, f)
+        VectorSerializer.stream_serialize(CTxIn, self.vin, f)
+        VectorSerializer.stream_serialize(CTxOut, self.vout, f)
         f.write(struct.pack(b"<I", self.nLockTime))
 
     def is_coinbase(self):
@@ -262,12 +262,12 @@ class CBlockHeader(Serializable):
 
     @classmethod
     def stream_deserialize(cls, f):
-        nVersion = struct.unpack(b"<i", f.read(4))[0]
-        hashPrevBlock = f.read(32)
-        hashMerkleRoot = f.read(32)
-        nTime = struct.unpack(b"<I", f.read(4))[0]
-        nBits = struct.unpack(b"<I", f.read(4))[0]
-        nNonce = struct.unpack(b"<I", f.read(4))[0]
+        nVersion = struct.unpack(b"<i", ser_read(f,4))[0]
+        hashPrevBlock = ser_read(f,32)
+        hashMerkleRoot = ser_read(f,32)
+        nTime = struct.unpack(b"<I", ser_read(f,4))[0]
+        nBits = struct.unpack(b"<I", ser_read(f,4))[0]
+        nNonce = struct.unpack(b"<I", ser_read(f,4))[0]
         return cls(nVersion, hashPrevBlock, hashMerkleRoot, nTime, nBits, nNonce)
 
     def stream_serialize(self, f):
@@ -318,12 +318,12 @@ class CBlock(CBlockHeader):
     @classmethod
     def stream_deserialize(cls, f):
         self = super(CBlock, cls).stream_deserialize(f)
-        self.vtx = stream_deser_vector(f, CTransaction)
+        self.vtx = VectorSerializer.stream_deserialize(CTransaction, f)
         return self
 
     def stream_serialize(self, f):
         super(CBlock, self).stream_serialize(f)
-        stream_ser_vector(self.vtx, f)
+        VectorSerializer.stream_serialize(CTransaction, self.vtx, f)
 
     @staticmethod
     def calc_merkle_root_from_hashes(hashes):
@@ -357,16 +357,16 @@ class CUnsignedAlert(object):
         self.strStatusBar = b""
         self.strReserved = b""
     def deserialize(self, f):
-        self.nVersion = struct.unpack(b"<i", f.read(4))[0]
-        self.nRelayUntil = struct.unpack(b"<q", f.read(8))[0]
-        self.nExpiration = struct.unpack(b"<q", f.read(8))[0]
-        self.nID = struct.unpack(b"<i", f.read(4))[0]
-        self.nCancel = struct.unpack(b"<i", f.read(4))[0]
+        self.nVersion = struct.unpack(b"<i", ser_read(f,4))[0]
+        self.nRelayUntil = struct.unpack(b"<q", ser_read(f,8))[0]
+        self.nExpiration = struct.unpack(b"<q", ser_read(f,8))[0]
+        self.nID = struct.unpack(b"<i", ser_read(f,4))[0]
+        self.nCancel = struct.unpack(b"<i", ser_read(f,4))[0]
         self.setCancel = deser_int_vector(f)
-        self.nMinVer = struct.unpack(b"<i", f.read(4))[0]
-        self.nMaxVer = struct.unpack(b"<i", f.read(4))[0]
+        self.nMinVer = struct.unpack(b"<i", ser_read(f,4))[0]
+        self.nMaxVer = struct.unpack(b"<i", ser_read(f,4))[0]
         self.setSubVer = deser_string_vector(f)
-        self.nPriority = struct.unpack(b"<i", f.read(4))[0]
+        self.nPriority = struct.unpack(b"<i", ser_read(f,4))[0]
         self.strComment = deser_string(f)
         self.strStatusBar = deser_string(f)
         self.strReserved = deser_string(f)

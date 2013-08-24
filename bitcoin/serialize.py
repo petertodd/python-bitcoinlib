@@ -22,6 +22,32 @@ if sys.version > '3':
 else:
     from cStringIO import StringIO as BytesIO
 
+MAX_SIZE = 0x02000000
+
+class SerializationError(Exception):
+    pass
+
+class SerializationTruncationError(Exception):
+    """Serialized data was truncated
+
+    Thrown by deserialize() and stream_deserialize()
+    """
+    pass
+
+def ser_read(f, n):
+    """Read from a stream safely
+
+    Raises SerializationError and SerializationTruncationError appropriately.
+    Use this instead of f.read() in your classes stream_(de)serialization()
+    functions.
+    """
+    if n > MAX_SIZE:
+        raise SerializationError('Asked to read 0x%x bytes; MAX_SIZE exceeded')
+    r = f.read(n)
+    if len(r) < n:
+        raise SerializationTruncationError()
+    return r
+
 class Serializable(object):
     def stream_serialize(self, f):
         raise NotImplementedError
@@ -46,38 +72,98 @@ class Serializable(object):
                     (self.__class__, other.__class__))
         return self.serialize() == other.serialize()
 
-def stream_ser_varint(i, f):
-    if i < 0xfd:
-        f.write(bchr(i))
-    elif i <= 0xffff:
-        f.write(bchr(0xfd))
-        f.write(struct.pack(b'<H', i))
-    elif i <= 0xffffffff:
-        f.write(bchr(0xfe))
-        f.write(struct.pack(b'<I', i))
-    else:
-        f.write(bchr(0xff))
-        f.write(struct.pack(b'<Q', i))
+class Serializer(object):
+    def __new__(cls):
+        raise NotImplementedError
 
-def stream_deser_varint(f):
-    r = bord(f.read(1))
-    if r < 0xfd:
+    @classmethod
+    def stream_serialize(cls, obj, f):
+        raise NotImplementedError
+    @classmethod
+    def stream_deserialize(cls, f):
+        raise NotImplementedError
+
+    @classmethod
+    def serialize(cls, obj):
+        f = BytesIO()
+        cls.stream_serialize(obj, f)
+        return f.getvalue()
+
+    @classmethod
+    def deserialize(cls, buf):
+        return cls.stream_deserialize(BytesIO(buf))
+
+class VarIntSerializer(Serializer):
+    """Serialization of variable length ints"""
+    @classmethod
+    def stream_serialize(cls, i, f):
+        if i < 0:
+            raise ValueError('varint must be non-negative integer')
+        elif i < 0xfd:
+            f.write(bchr(i))
+        elif i <= 0xffff:
+            f.write(bchr(0xfd))
+            f.write(struct.pack(b'<H', i))
+        elif i <= 0xffffffff:
+            f.write(bchr(0xfe))
+            f.write(struct.pack(b'<I', i))
+        else:
+            f.write(bchr(0xff))
+            f.write(struct.pack(b'<Q', i))
+
+    @classmethod
+    def stream_deserialize(cls, f):
+        r = bord(ser_read(f, 1))
+        if r < 0xfd:
+            return r
+        elif r == 0xfd:
+            return struct.unpack(b'<H', ser_read(f, 2))[0]
+        elif r == 0xfe:
+            return struct.unpack(b'<I', ser_read(f, 4))[0]
+        else:
+            return struct.unpack(b'<Q', ser_read(f, 8))[0]
+
+class BytesSerializer(Serializer):
+    @classmethod
+    def stream_serialize(cls, b, f):
+        VarIntSerializer.stream_serialize(len(b), f)
+        f.write(b)
+
+    @classmethod
+    def stream_deserialize(cls, f):
+        l = VarIntSerializer.stream_deserialize(f)
+        return ser_read(f, l)
+
+class VectorSerializer(Serializer):
+    @classmethod
+    def stream_serialize(cls, inner_cls, objs, f):
+        VarIntSerializer.stream_serialize(len(objs), f)
+        for obj in objs:
+            inner_cls.stream_serialize(obj, f)
+
+    @classmethod
+    def stream_deserialize(cls, inner_cls, f):
+        n = VarIntSerializer.stream_deserialize(f)
+        r = []
+        for i in range(n):
+            r.append(inner_cls.stream_deserialize(f))
         return r
-    elif i == 0xfd:
-        return struct.unpack(b'<H', f.read(2))
-    elif i == 0xfe:
-        return struct.unpack(b'<I', f.read(4))
-    else:
-        return struct.unpack(b'<Q', f.read(8))
 
-def stream_deser_bytes(f):
-    l = stream_deser_varint(f)
-    return f.read(l)
+class uint256VectorSerializer(Serializer):
+    @classmethod
+    def stream_serialize(cls, inner_cls, objs, f):
+        VarIntSerializer.stream_serialize(len(objs), f)
+        for obj in objs:
+            assert len(obj) == 32
+            f.write(obj)
 
-def stream_ser_bytes(b, f):
-    l = len(b)
-    stream_ser_varint(l, f)
-    f.write(b)
+    @classmethod
+    def stream_deserialize(cls, inner_cls, f):
+        n = VarIntSerializer.stream_deserialize(f)
+        r = []
+        for i in range(n):
+            r.append(ser_read(f, 32))
+        return r
 
 def uint256_from_str(s):
     r = 0
@@ -94,74 +180,6 @@ def uint256_from_compact(c):
 def uint256_to_shortstr(u):
     s = "%064x" % (u,)
     return s[:16]
-
-def stream_deser_vector(f, cls):
-    n = stream_deser_varint(f)
-    r = []
-    for i in range(n):
-        r.append(cls.stream_deserialize(f))
-    return r
-
-def stream_ser_vector(l, f):
-    stream_ser_varint(len(l), f)
-    for i in l:
-        i.stream_serialize(f)
-
-def deser_uint256_vector(f):
-    nit = struct.unpack(b"<B", f.read(1))[0]
-    if nit == 253:
-        nit = struct.unpack(b"<H", f.read(2))[0]
-    elif nit == 254:
-        nit = struct.unpack(b"<I", f.read(4))[0]
-    elif nit == 255:
-        nit = struct.unpack(b"<Q", f.read(8))[0]
-    r = []
-    for i in range(nit):
-        t = f.read(32)
-        r.append(t)
-    return r
-
-def ser_uint256_vector(l):
-    r = b""
-    if len(l) < 253:
-        r = bchr(len(l))
-    elif len(s) < 0x10000:
-        r = bchr(253) + struct.pack(b"<H", len(l))
-    elif len(s) < 0x100000000:
-        r = bchr(254) + struct.pack(b"<I", len(l))
-    else:
-        r = bchr(255) + struct.pack(b"<Q", len(l))
-    for i in l:
-        r += i
-    return r
-
-def deser_string_vector(f):
-    nit = struct.unpack(b"<B", f.read(1))[0]
-    if nit == 253:
-        nit = struct.unpack(b"<H", f.read(2))[0]
-    elif nit == 254:
-        nit = struct.unpack(b"<I", f.read(4))[0]
-    elif nit == 255:
-        nit = struct.unpack(b"<Q", f.read(8))[0]
-    r = []
-    for i in range(nit):
-        t = f.read(32)
-        r.append(t)
-    return r
-
-def ser_string_vector(l):
-    r = b""
-    if len(l) < 253:
-        r = bchr(len(l))
-    elif len(s) < 0x10000:
-        r = bchr(253) + struct.pack(b"<H", len(l))
-    elif len(s) < 0x100000000:
-        r = bchr(254) + struct.pack(b"<I", len(l))
-    else:
-        r = bchr(255) + struct.pack(b"<Q", len(l))
-    for sv in l:
-        r += ser_string(sv)
-    return r
 
 def deser_int_vector(f):
     nit = struct.unpack(b"<B", f.read(1))[0]

@@ -97,10 +97,10 @@ class CBloomFilter(Serializable):
     __struct = struct.Struct(b'<IIB')
     @classmethod
     def stream_deserialize(cls, f):
-        vData = stream_deser_bytes(f)
+        vData = BytesSerializer.stream_deserialize(f)
         (nHashFuncs,
          nTweak,
-         nFlags) = self.__struct.unpack(f.read(self.__struct.size))
+         nFlags) = self.__struct.unpack(_ser_read(f, self.__struct.size))
         self = cls()
         self.vData = vData
         self.nHashFuncs = nHashFuncs
@@ -110,8 +110,8 @@ class CBloomFilter(Serializable):
 
     def stream_serialize(self, f):
         if sys.version > '3':
-            stream_ser_bytes(self.vData, f)
+            BytesSerializer.stream_serialize(self.vData, f)
         else:
             # 2.7 has problems with f.write(bytearray())
-            stream_ser_bytes(bytes(self.vData), f)
+            BytesSerializer.stream_serialize(bytes(self.vData), f)
         f.write(self.__struct.pack(self.nHashFuncs, self.nTweak, self.nFlags))
