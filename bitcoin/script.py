@@ -753,3 +753,15 @@ class CScript(bytes):
     def is_unspendable(self):
         return (len(self) > 0 and
                 bord(self[0]) == OP_RETURN)
+
+    def is_valid(self):
+        """Return True if the script is valid, False otherwise
+
+        The script is valid if all PUSHDATA's are valid; invalid opcodes do not
+        make is_valid() return False.
+        """
+        try:
+            list(self)
+        except CScriptInvalidException:
+            return False
+        return True

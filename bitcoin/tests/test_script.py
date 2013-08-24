@@ -236,3 +236,15 @@ class Test_CScript(unittest.TestCase):
         T(b'6a', True)
         T(b'6a6a', True)
         T(b'6a51', True)
+
+    def test_is_valid(self):
+        def T(serialized, b):
+            script = CScript(unhexlify(serialized))
+            self.assertEqual(script.is_valid(), b)
+
+        T(b'', True)
+        T(b'00', True)
+        T(b'01', False)
+
+        # invalid opcodes do not by themselves make a script invalid
+        T(b'ff', True)
