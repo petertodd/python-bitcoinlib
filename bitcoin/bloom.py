@@ -9,13 +9,14 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import struct
+import sys
 import math
 from bitcoin.serialize import *
 from bitcoin.coredefs import *
 from bitcoin.core import *
 from bitcoin.hash import MurmurHash3
 
-class CBloomFilter(object):
+class CBloomFilter(Serializable):
     # 20,000 items with fp rate < 0.1% or 10,000 items and <0.0001%
     MAX_BLOOM_FILTER_SIZE = 36000
     MAX_HASH_FUNCS = 50
@@ -94,12 +95,23 @@ class CBloomFilter(object):
         raise NotImplementedError
 
     __struct = struct.Struct(b'<IIB')
-    def deserialize(self, f):
-        self.vData = deser_string(f)
-        (self.nHashFuncs,
-         self.nTweak,
-         self.nFlags) = self.__struct.unpack(f.read(self.__struct.size))
+    @classmethod
+    def stream_deserialize(cls, f):
+        vData = stream_deser_bytes(f)
+        (nHashFuncs,
+         nTweak,
+         nFlags) = self.__struct.unpack(f.read(self.__struct.size))
+        self = cls()
+        self.vData = vData
+        self.nHashFuncs = nHashFuncs
+        self.nTweak = nTweak
+        self.nFlags = nFlags
+        return self
 
-    def serialize(self):
-        r = ser_string(self.vData)
-        return r + self.__struct.pack(self.nHashFuncs, self.nTweak, self.nFlags)
+    def stream_serialize(self, f):
+        if sys.version > '3':
+            stream_ser_bytes(self.vData, f)
+        else:
+            # 2.7 has problems with f.write(bytearray())
+            stream_ser_bytes(bytes(self.vData), f)
+        f.write(self.__struct.pack(self.nHashFuncs, self.nTweak, self.nFlags))

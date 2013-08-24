@@ -100,9 +100,10 @@ class CBlockLocator(object):
     def __repr__(self):
         return "CBlockLocator(nVersion=%i vHave=%s)" % (self.nVersion, repr(self.vHave))
 
-class COutPoint(object):
+class COutPoint(Serializable):
     """The combination of a transaction hash and an index n into its vout"""
     __slots__ = ['hash', 'n']
+
     def __init__(self, hash=b'\x00'*32, n=0xffffffff):
         if not len(hash) == 32:
             raise ValueError('COutPoint: hash must be exactly 32 bytes; got %d bytes' % len(hash))
@@ -110,29 +111,35 @@ class COutPoint(object):
         if not (0 <= n <= 0xffffffff):
             raise ValueError('COutPoint: n must be in range 0x0 to 0xffffffff; got %x' % n)
         self.n = n
-    def deserialize(self, f):
-        self.hash = f.read(32)
-        self.n = struct.unpack(b"<I", f.read(4))[0]
-    def serialize(self):
-        r = b""
-        r += self.hash
-        r += struct.pack(b"<I", self.n)
-        return r
+
+    @classmethod
+    def stream_deserialize(cls, f):
+        hash = f.read(32)
+        n = struct.unpack(b"<I", f.read(4))[0]
+        return cls(hash, n)
+
+    def stream_serialize(self, f):
+        assert len(self.hash) == 32
+        f.write(self.hash)
+        f.write(struct.pack(b"<I", self.n))
+
     def is_null(self):
         return ((self.hash == b'\x00'*32) and (self.n == 0xffffffff))
+
     def __repr__(self):
         if self.is_null():
             return 'COutPoint()'
         else:
             return 'COutPoint(_x(%r), %i)' % (hex_str(self.hash), self.n)
 
-class CTxIn(object):
+class CTxIn(Serializable):
     """An input of a transaction
 
     Contains the location of the previous transaction's output that it claims,
     and a signature that matches the output's public key.
     """
     __slots__ = ['prevout', 'scriptSig', 'nSequence']
+
     def __init__(self, prevout=None, scriptSig=CScript(), nSequence = 0xffffffff):
         if prevout is None:
             prevout = COutPoint()
@@ -141,54 +148,64 @@ class CTxIn(object):
         if not (0 <= nSequence <= 0xffffffff):
             raise ValueError('CTxIn: nSequence must be an integer between 0x0 and 0xffffffff; got %x' % nSequence)
         self.nSequence = nSequence
-    def deserialize(self, f):
-        self.prevout = COutPoint()
-        self.prevout.deserialize(f)
-        self.scriptSig = deser_string(f)
-        self.nSequence = struct.unpack(b"<I", f.read(4))[0]
-    def serialize(self):
-        r = b""
-        r += self.prevout.serialize()
-        r += ser_string(self.scriptSig)
-        r += struct.pack(b"<I", self.nSequence)
-        return r
+
+    @classmethod
+    def stream_deserialize(cls, f):
+        prevout = COutPoint.stream_deserialize(f)
+        scriptSig = CScript(stream_deser_bytes(f))
+        nSequence = struct.unpack(b"<I", f.read(4))[0]
+        return cls(prevout, scriptSig, nSequence)
+
+    def stream_serialize(self, f):
+        self.prevout.stream_serialize(f)
+        stream_ser_bytes(self.scriptSig, f)
+        f.write(struct.pack(b"<I", self.nSequence))
+
     def is_final(self):
         return (self.nSequence == 0xffffffff)
+
     def __repr__(self):
         return "CTxIn(%s, %s, 0x%x)" % (repr(self.prevout), repr(self.scriptSig), self.nSequence)
 
-class CTxOut(object):
+class CTxOut(Serializable):
     """An output of a transaction
 
     Contains the public key that the next input must be able to sign with to
     claim it.
     """
+    __slots__ = ['nValue', 'scriptPubKey']
+
     def __init__(self, nValue=-1, scriptPubKey=CScript()):
         self.nValue = nValue
         self.scriptPubKey = scriptPubKey
-    def deserialize(self, f):
-        self.nValue = struct.unpack(b"<q", f.read(8))[0]
-        self.scriptPubKey = deser_string(f)
-    def serialize(self):
-        r = b""
-        r += struct.pack(b"<q", self.nValue)
-        r += ser_string(self.scriptPubKey)
-        return r
+
+    @classmethod
+    def stream_deserialize(cls, f):
+        nValue = struct.unpack(b"<q", f.read(8))[0]
+        scriptPubKey = CScript(stream_deser_bytes(f))
+        return cls(nValue, scriptPubKey)
+
+    def stream_serialize(self, f):
+        f.write(struct.pack(b"<q", self.nValue))
+        stream_ser_bytes(self.scriptPubKey, f)
+
     def is_valid(self):
         if not MoneyRange(self.nValue):
             return False
         if not self.scriptPubKey.is_valid():
             return False
         return True
+
     def __repr__(self):
         if self.nValue >= 0:
             return "CTxOut(%s*COIN, %r)" % (str_money_value(self.nValue), self.scriptPubKey)
         else:
             return "CTxOut(%d, %r)" % (self.nValue, self.scriptPubKey)
 
-class CTransaction(object):
+class CTransaction(Serializable):
     """A transaction"""
     __slots__ = ['nVersion', 'vin', 'vout', 'nLockTime']
+
     def __init__(self, vin=None, vout=None, nLockTime=0, nVersion=1):
         if vin is None:
             vin = []
@@ -200,20 +217,24 @@ class CTransaction(object):
         if not (0 <= nLockTime <= 0xffffffff):
             raise ValueError('CTransaction: nLockTime must be in range 0x0 to 0xffffffff; got %x' % nLockTime)
         self.nLockTime = nLockTime
-    def deserialize(self, f):
-        self.nVersion = struct.unpack(b"<i", f.read(4))[0]
-        self.vin = deser_vector(f, CTxIn)
-        self.vout = deser_vector(f, CTxOut)
-        self.nLockTime = struct.unpack(b"<I", f.read(4))[0]
-    def serialize(self):
-        r = b""
-        r += struct.pack(b"<i", self.nVersion)
-        r += ser_vector(self.vin)
-        r += ser_vector(self.vout)
-        r += struct.pack(b"<I", self.nLockTime)
-        return r
+
+    @classmethod
+    def stream_deserialize(cls, f):
+        nVersion = struct.unpack(b"<i", f.read(4))[0]
+        vin = stream_deser_vector(f, CTxIn)
+        vout = stream_deser_vector(f, CTxOut)
+        nLockTime = struct.unpack(b"<I", f.read(4))[0]
+        return cls(vin, vout, nLockTime, nVersion)
+
+    def stream_serialize(self, f):
+        f.write(struct.pack(b"<i", self.nVersion))
+        stream_ser_vector(self.vin, f)
+        stream_ser_vector(self.vout, f)
+        f.write(struct.pack(b"<I", self.nLockTime))
+
     def is_coinbase(self):
         return len(self.vin) == 1 and self.vin[0].prevout.is_null()
+
     def __repr__(self):
         return "CTransaction(%r, %r, %i, %i)" % (self.vin, self.vout, self.nLockTime, self.nVersion)
 
