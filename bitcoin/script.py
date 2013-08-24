@@ -653,11 +653,12 @@ class CScript(bytes):
     def raw_iter(self):
         i = 0
         while i < len(self):
+            sop_idx = i
             opcode = bord(self[i])
             i += 1
 
             if opcode > OP_PUSHDATA4:
-                yield (opcode, None)
+                yield (opcode, None, sop_idx)
             else:
                 datasize = None
                 pushdata_type = None
@@ -698,10 +699,10 @@ class CScript(bytes):
 
                 i += datasize
 
-                yield (opcode, data)
+                yield (opcode, data, sop_idx)
 
     def __iter__(self):
-        for (opcode, data) in self.raw_iter():
+        for (opcode, data, sop_idx) in self.raw_iter():
             if data is not None:
                 yield data
             else:
