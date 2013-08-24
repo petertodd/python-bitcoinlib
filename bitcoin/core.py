@@ -17,19 +17,28 @@ from bitcoin.serialize import *
 from bitcoin.coredefs import *
 from bitcoin.script import CScript
 
-def hex_str(b):
-    if sys.version > '3':
-        return binascii.hexlify(b).decode('utf8')
-    else:
-        return binascii.hexlify(b)
+def x(h):
+    """Convert a little-endian hex string to bytes
 
-def _x(h):
-    """Convert a hex string to bytes"""
+    Lets you write uint256's and uint160's the way the Satoshi codebase shows
+    them.
+    """
     import sys
     if sys.version > '3':
-        return binascii.unhexlify(h.encode('utf8'))
+        return binascii.unhexlify(h.encode('utf8'))[::-1]
     else:
-        return binascii.unhexlify(h)
+        return binascii.unhexlify(h)[::-1]
+
+def b2x(b):
+    """Convert bytes to a little-endian hex string
+
+    For use with x()
+    """
+    if sys.version > '3':
+        return binascii.hexlify(b[::-1]).decode('utf8')
+    else:
+        return binascii.hexlify(b[::-1])
+
 
 def str_money_value(value):
     """Convert an integer money value to a fixed point string"""
@@ -130,7 +139,7 @@ class COutPoint(Serializable):
         if self.is_null():
             return 'COutPoint()'
         else:
-            return 'COutPoint(_x(%r), %i)' % (hex_str(self.hash), self.n)
+            return 'COutPoint(x(%r), %i)' % (b2x(self.hash), self.n)
 
 class CTxIn(Serializable):
     """An input of a transaction
