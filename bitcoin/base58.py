@@ -10,7 +10,7 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from bitcoin.serialize import Hash, ser_uint256
+from bitcoin.serialize import Hash
 
 b58_digits = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
@@ -89,14 +89,14 @@ class CBase58Data(bytes):
 
     def __str__(self):
         vs = chr(self.nVersion) + self
-        check = ser_uint256(Hash(vs))[0:4]
+        check = Hash(vs)[0:4]
         return encode(vs + check)
 
     @classmethod
     def from_str(cls, s):
         k = decode(s)
         addrbyte, data, check0 = k[0], k[1:-4], k[-4:]
-        check1 = ser_uint256(Hash(addrbyte + data))[:4]
+        check1 = Hash(addrbyte + data)[:4]
         if check0 != check1:
             raise Base58ChecksumError('Checksum mismatch: expected %r, calculated %r' % (check0, check1))
         return cls(data, ord(addrbyte))

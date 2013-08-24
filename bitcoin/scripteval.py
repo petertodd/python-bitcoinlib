@@ -15,7 +15,7 @@ if sys.version > '3':
     bord = lambda x: x
 
 import hashlib
-from bitcoin.serialize import Hash, Hash160, ser_uint256, ser_uint160
+from bitcoin.serialize import Hash, Hash160
 from bitcoin.script import *
 from bitcoin.core import CTxOut, CTransaction
 from bitcoin.key import CKey
@@ -80,7 +80,7 @@ def CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
     tup = SignatureHash(script, txTo, inIdx, hashtype)
     if tup[0] == 0:
         return False
-    return key.verify(ser_uint256(tup[0]), sig)
+    return key.verify(tup[0], sig)
 
 def CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
     i = 1
@@ -439,12 +439,12 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
         elif fExec and sop == OP_HASH160:
             if len(stack) < 1:
                 return False
-            stack.append(ser_uint160(Hash160(stack.pop())))
+            stack.append(Hash160(stack.pop()))
 
         elif fExec and sop == OP_HASH256:
             if len(stack) < 1:
                 return False
-            stack.append(ser_uint256(Hash(stack.pop())))
+            stack.append(Hash(stack.pop()))
 
         elif sop == OP_IF or sop == OP_NOTIF:
             val = False
