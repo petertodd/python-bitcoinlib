@@ -39,7 +39,6 @@ def b2x(b):
     else:
         return binascii.hexlify(b[::-1])
 
-
 def str_money_value(value):
     """Convert an integer money value to a fixed point string"""
     r = '%i.%08i' % (value // 100000000, value % 100000000)
@@ -247,64 +246,100 @@ class CTransaction(Serializable):
     def __repr__(self):
         return "CTransaction(%r, %r, %i, %i)" % (self.vin, self.vout, self.nLockTime, self.nVersion)
 
-class CBlock(object):
-    def __init__(self):
-        self.nVersion = 1
-        self.hashPrevBlock = 0
-        self.hashMerkleRoot = 0
-        self.nTime = 0
-        self.nBits = 0
-        self.nNonce = 0
-        self.vtx = []
-        self.sha256 = None
-    def deserialize(self, f):
-        self.nVersion = struct.unpack(b"<i", f.read(4))[0]
-        self.hashPrevBlock = f.read(32)
-        self.hashMerkleRoot = f.read(32)
-        self.nTime = struct.unpack(b"<I", f.read(4))[0]
-        self.nBits = struct.unpack(b"<I", f.read(4))[0]
-        self.nNonce = struct.unpack(b"<I", f.read(4))[0]
-        self.vtx = deser_vector(f, CTransaction)
-    def serialize_hdr(self):
-        r = b""
-        r += struct.pack(b"<i", self.nVersion)
-        r += self.hashPrevBlock
-        r += self.hashMerkleRoot
-        r += struct.pack(b"<I", self.nTime)
-        r += struct.pack(b"<I", self.nBits)
-        r += struct.pack(b"<I", self.nNonce)
-        return r
-    def serialize(self):
-        r = self.serialize_hdr()
-        r += ser_vector(self.vtx)
-        return r
-    def calc_sha256(self):
-        if self.sha256 is None:
-            self.sha256 = Hash(self.serialize_hdr())
-    def calc_merkle(self):
-        hashes = []
-        for tx in self.vtx:
-            if not tx.is_valid():
-                return None
-            tx.calc_sha256()
-            hashes.append(tx.sha256)
+class CBlockHeader(Serializable):
+    """A block header"""
+    __slots__ = ['nVersion', 'hashPrevBlock', 'hashMerkleRoot', 'nTime', 'nBits', 'nBits']
+
+    def __init__(self, nVersion=2, hashPrevBlock=None, hashMerkleRoot=None, nTime=None, nBits=None, nNonce=None):
+        self.nVersion = nVersion
+        assert len(hashPrevBlock) == 32
+        self.hashPrevBlock = hashPrevBlock
+        assert len(hashMerkleRoot) == 32
+        self.hashMerkleRoot = hashMerkleRoot
+        self.nTime = nTime
+        self.nBits = nBits
+        self.nNonce = nNonce
+
+    @classmethod
+    def stream_deserialize(cls, f):
+        nVersion = struct.unpack(b"<i", f.read(4))[0]
+        hashPrevBlock = f.read(32)
+        hashMerkleRoot = f.read(32)
+        nTime = struct.unpack(b"<I", f.read(4))[0]
+        nBits = struct.unpack(b"<I", f.read(4))[0]
+        nNonce = struct.unpack(b"<I", f.read(4))[0]
+        return cls(nVersion, hashPrevBlock, hashMerkleRoot, nTime, nBits, nNonce)
+
+    def stream_serialize(self, f):
+        f.write(struct.pack(b"<i", self.nVersion))
+        assert len(self.hashPrevBlock) == 32
+        f.write(self.hashPrevBlock)
+        assert len(self.hashMerkleRoot) == 32
+        f.write(self.hashMerkleRoot)
+        f.write(struct.pack(b"<I", self.nTime))
+        f.write(struct.pack(b"<I", self.nBits))
+        f.write(struct.pack(b"<I", self.nNonce))
+
+    def is_pow_valid(self):
+        """Return True if the proof-of-work is valid"""
+        hash = Hash(self.serialize())
+        target = uint256_from_compact(self.nBits)
+        return hash < target
+
+    @staticmethod
+    def calc_difficulty(nBits):
+        """Calculate difficulty from nBits target"""
+        nShift = (nBits >> 24) & 0xff
+        dDiff = float(0x0000ffff) / float(nBits & 0x00ffffff)
+        while nShift < 29:
+            dDiff *= 256.0
+            nShift += 1
+        while nShift > 29:
+            dDiff /= 256.0
+            nShift -= 1
+        return dDiff
+    difficulty = property(lambda self: CBlockHeader.calc_difficulty(self.nBits))
+
+    def __repr__(self):
+        return "%s(%i, x(%s), x(%s), %s, 0x%08x, 0x%08x)" % \
+                (self.__class__.__name__, self.nVersion, b2x(self.hashPrevBlock), b2x(self.hashMerkleRoot),
+                 self.nTime, self.nBits, self.nNonce)
+
+class CBlock(CBlockHeader):
+    """A block including all transactions in it"""
+    __slots__ = ['vtx']
+
+    def __init__(self, nVersion=2, hashPrevBlock=None, hashMerkleRoot=None, nTime=None, nBits=None, nNonce=None, vtx=None):
+        super(CBlock, self).__init__(nVersion, hashPrevBlock, hashMerkleRoot, nTime, nBits, nNonce)
+        if not vtx:
+            vtx = []
+        self.vtx = vtx
+
+    @classmethod
+    def stream_deserialize(cls, f):
+        self = super(CBlock, cls).stream_deserialize(f)
+        self.vtx = stream_deser_vector(f, CTransaction)
+        return self
+
+    def stream_serialize(self, f):
+        super(CBlock, self).stream_serialize(f)
+        stream_ser_vector(self.vtx, f)
+
+    @staticmethod
+    def calc_merkle_root_from_hashes(hashes):
         while len(hashes) > 1:
             newhashes = []
             for i in range(0, len(hashes), 2):
                 i2 = min(i+1, len(hashes)-1)
                 newhashes.append(hashlib.sha256(hashlib.sha256(hashes[i] + hashes[i2]).digest()).digest())
             hashes = newhashes
-        return uint256_from_str(hashes[0])
-    def is_valid(self):
-        self.calc_sha256()
-        target = uint256_from_compact(self.nBits)
-        if self.sha256 > target:
-            return False
-        if self.calc_merkle() != self.hashMerkleRoot:
-            return False
-        return True
-    def __repr__(self):
-        return "CBlock(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x nTime=%s nBits=%08x nNonce=%08x vtx=%s)" % (self.nVersion, self.hashPrevBlock, self.hashMerkleRoot, time.ctime(self.nTime), self.nBits, self.nNonce, repr(self.vtx))
+        return hashes[0]
+
+    def calc_merkle_root(self):
+        hashes = []
+        for tx in self.vtx:
+            hashes.append(Hash(tx.serialize()))
+        return CBlock.calc_merkle_root_from_hashes(hashes)
 
 class CUnsignedAlert(object):
     def __init__(self):
