@@ -30,17 +30,6 @@ _opcode_instances = []
 class CScriptOp(int):
     __slots__ = []
 
-    def is_pushdata(self):
-        """Return true if the op pushes data to the stack
-
-        Note that OP_0 is considered to be a PUSHDATA op as it pushes an empty
-        string to the stack.
-        """
-        if self <= 0x4e:
-            return True
-        else:
-            return False
-
     @staticmethod
     def encode_op_pushdata(d):
         if len(d) < 0x4c:
@@ -749,6 +738,13 @@ class CScript(bytes):
                 bord(self[0]) == OP_HASH160 and
                 bord(self[1]) == 0x14 and
                 bord(self[22]) == OP_EQUAL)
+
+    def is_push_only(self):
+        for (op, op_data, idx) in self.raw_iter():
+            # Note how OP_RESERVED is considered a pushdata op.
+            if op > OP_16:
+                return False
+        return True
 
     def is_unspendable(self):
         return (len(self) > 0 and

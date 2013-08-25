@@ -225,6 +225,42 @@ class Test_CScript(unittest.TestCase):
         # NOT a P2SH txout due to the non-optimal PUSHDATA encoding
         T(b'a94c146567e91196c49e1dffd09d5759f6bbc0c6d4c2e587', False)
 
+    def test_is_push_only(self):
+        def T(serialized, b):
+            script = CScript(unhexlify(serialized))
+            self.assertEqual(script.is_push_only(), b)
+
+        T(b'', True)
+        T(b'00', True)
+        T(b'0101', True)
+        T(b'4c00', True)
+        T(b'4d0000', True)
+        T(b'4e00000000', True)
+        T(b'4f', True)
+
+        # OP_RESERVED *is* considered to be a pushdata op by is_push_only!
+        # Or specifically, the IsPushOnly() used in P2SH validation.
+        T(b'50', True)
+
+        T(b'51', True)
+        T(b'52', True)
+        T(b'53', True)
+        T(b'54', True)
+        T(b'55', True)
+        T(b'56', True)
+        T(b'57', True)
+        T(b'58', True)
+        T(b'59', True)
+        T(b'5a', True)
+        T(b'5b', True)
+        T(b'5c', True)
+        T(b'5d', True)
+        T(b'5e', True)
+        T(b'5f', True)
+        T(b'60', True)
+
+        T(b'61', False)
+
     def test_is_unspendable(self):
         def T(serialized, b):
             script = CScript(unhexlify(serialized))
