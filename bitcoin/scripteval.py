@@ -21,6 +21,44 @@ from bitcoin.core import CTxOut, CTransaction
 from bitcoin.key import CKey
 from bitcoin.bignum import bn2vch, vch2bn
 
+nMaxNumSize = 4
+MAX_SCRIPT_SIZE = 10000
+MAX_SCRIPT_ELEMENT_SIZE = 520
+MAX_SCRIPT_OPCODES = 201
+MAX_STACK_ITEMS = 1000
+
+# Invalid even when occuring in an unexecuted OP_IF branch due to either being
+# disabled, or never implemented.
+disabled_opcodes = set((OP_VERIF, OP_VERNOTIF,
+                        OP_CAT, OP_SUBSTR, OP_LEFT, OP_RIGHT, OP_INVERT, OP_AND,
+                        OP_OR, OP_XOR, OP_2MUL, OP_2DIV, OP_MUL, OP_DIV, OP_MOD,
+                        OP_LSHIFT, OP_RSHIFT))
+
+class EvalScriptError(Exception):
+    def __init__(self, msg):
+        super(EvalScriptError, self).__init__('EvalScript: %s' % msg)
+
+def MissingOpArgumentsError(opcode, stack, n):
+    return EvalScriptError('missing arguments for %s; need %d items, but only %d on stack' %
+                                   (OPCODE_NAMES[opcode], n, len(stack)))
+
+def CastToBigNum(s):
+    v = vch2bn(s)
+    if len(s) > nMaxNumSize:
+        raise EvalScriptError('CastToBigNum(): overflow')
+    return v
+
+def CastToBool(s):
+    for i in range(len(s)):
+        sv = bord(s[i])
+        if sv != 0:
+            if (i == (len(s) - 1)) and (sv == 0x80):
+                return False
+            return True
+
+    return False
+
+
 def SignatureHash(script, txTo, inIdx, hashtype):
     if inIdx >= len(txTo.vin):
         return (0, "inIdx %d out of range (%d)" % (inIdx, len(txTo.vin)))
@@ -85,7 +123,7 @@ def CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
 def CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
     i = 1
     if len(stack) < i:
-        return False
+        raise MissingOpArgumentsError(opcode, stack, i)
 
     keys_count = CastToBigNum(stack[-i])
     if keys_count < 0 or keys_count > 20:
@@ -103,7 +141,7 @@ def CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
     isig = i
     i += sigs_count
     if len(stack) < i:
-        return False
+        raise MissingOpArgumentsError(opcode, stack, i)
 
     for k in range(sigs_count):
         sig = stack[-isig-k]
@@ -142,11 +180,6 @@ def CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
 
     return True
 
-def dumpstack(msg, stack):
-    print("%s stacksz %d" % (msg, len(stack)))
-    for i in range(len(stack)):
-        vch = stack[i]
-        print("#%d: %s" % (i, vch.encode('hex')))
 
 ISA_UNOP = {
     OP_1ADD,
@@ -161,7 +194,7 @@ ISA_UNOP = {
 
 def UnaryOp(opcode, stack):
     if len(stack) < 1:
-        return False
+        raise MissingOpArgumentsError(opcode, stack, 1)
     bn = CastToBigNum(stack.pop())
 
     if opcode == OP_1ADD:
@@ -169,12 +202,6 @@ def UnaryOp(opcode, stack):
 
     elif opcode == OP_1SUB:
         bn -= 1
-
-    elif opcode == OP_2MUL:
-        bn <<= 1
-
-    elif opcode == OP_2DIV:
-        bn >>= 1
 
     elif opcode == OP_NEGATE:
         bn = -bn
@@ -216,7 +243,7 @@ ISA_BINOP = {
 
 def BinOp(opcode, stack):
     if len(stack) < 2:
-        return False
+        raise MissingOpArgumentsError(opcode, stack, 2)
 
     bn2 = CastToBigNum(stack.pop())
     bn1 = CastToBigNum(stack.pop())
@@ -226,16 +253,6 @@ def BinOp(opcode, stack):
 
     elif opcode == OP_SUB:
         bn = bn1 - bn2
-
-    elif opcode == OP_LSHIFT:
-        if bn2 < 0 or bn2 > 2048:
-            return False
-        bn = bn1 << bn2
-
-    elif opcode == OP_RSHIFT:
-        if bn2 < 0 or bn2 > 2048:
-            return False
-        bn = bn1 >> bn2
 
     elif opcode == OP_BOOLAND:
         bn = long(bn1 != 0 and bn2 != 0)
@@ -274,7 +291,8 @@ def BinOp(opcode, stack):
             bn = bn2
 
     else:
-        return False            # unknown binop opcode
+        assert False # unknown binop opcode, shouldn't happen
+        return False # Python strips out assertions with -O flag...
 
     stack.append(bn2vch(bn))
 
@@ -292,18 +310,42 @@ def CheckExec(vfExec):
             return False
     return True
 
+
 def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
+    if len(scriptIn) > MAX_SCRIPT_SIZE:
+        raise EvalScriptError('script too large; got %d bytes; maximum %d bytes' %
+                (len(scriptIn), MAX_SCRIPT_SIZE))
+
     altstack = []
     vfExec = []
     pbegincodehash = 0
+    nOpCount = 0
     for (sop, sop_data, sop_pc) in scriptIn.raw_iter():
         fExec = CheckExec(vfExec)
 
-        if fExec and sop <= OP_PUSHDATA4:
-            stack.append(sop_data)
-            continue
+        if sop in disabled_opcodes:
+            raise EvalScriptError('opcode %s is disabled' % OPCODE_NAMES[sop])
 
-        elif fExec and sop == OP_1NEGATE or ((sop >= OP_1) and (sop <= OP_16)):
+        if sop > OP_16:
+            nOpCount += 1
+            if nOpCount > MAX_SCRIPT_OPCODES:
+                raise EvalScriptError('max opcode count exceeded')
+
+        def check_args(n):
+            if len(stack) < n:
+                raise MissingOpArgumentsError(sop, stack, n)
+
+
+        if sop <= OP_PUSHDATA4:
+            if len(sop_data) > MAX_SCRIPT_ELEMENT_SIZE:
+                raise EvalScriptError('PUSHDATA of length %d; maximum allowed is %d' %
+                        (len(sop_data), MAX_SCRIPT_ELEMENT_SIZE))
+
+            elif fExec:
+                stack.append(sop_data)
+                continue
+
+        elif fExec and (sop == OP_1NEGATE or ((sop >= OP_1) and (sop <= OP_16))):
             v = sop - (OP_1 - 1)
             stack.append(bn2vch(v))
 
@@ -316,30 +358,35 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
                 return False
 
         elif fExec and sop == OP_2DROP:
-            if len(stack) < 2:
-                return False
+            check_args(2)
             stack.pop()
             stack.pop()
 
         elif fExec and sop == OP_2DUP:
-            if len(stack) < 2:
-                return False
+            check_args(2)
             v1 = stack[-2]
             v2 = stack[-1]
             stack.append(v1)
             stack.append(v2)
 
         elif fExec and sop == OP_2OVER:
-            if len(stack) < 4:
-                return False
+            check_args(4)
             v1 = stack[-4]
             v2 = stack[-3]
             stack.append(v1)
             stack.append(v2)
 
+        elif fExec and sop == OP_2ROT:
+            check_args(6)
+            v1 = stack[-6]
+            v2 = stack[-5]
+            del stack[-6]
+            del stack[-5]
+            stack.append(v1)
+            stack.append(v2)
+
         elif fExec and sop == OP_2SWAP:
-            if len(stack) < 4:
-                return False
+            check_args(4)
             tmp = stack[-4]
             stack[-4] = stack[-2]
             stack[-2] = tmp
@@ -349,8 +396,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
             stack[-1] = tmp
 
         elif fExec and sop == OP_3DUP:
-            if len(stack) < 3:
-                return False
+            check_args(3)
             v1 = stack[-3]
             v2 = stack[-2]
             v3 = stack[-1]
@@ -366,8 +412,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
                 return False
 
         elif fExec and sop == OP_CHECKSIG or sop == OP_CHECKSIGVERIFY:
-            if len(stack) < 2:
-                return False
+            check_args(2)
             vchPubKey = stack.pop()
             vchSig = stack.pop()
             tmpScript = CScript(scriptIn[pbegincodehash:])
@@ -392,19 +437,17 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
             stack.append(bn2vch(bn))
 
         elif fExec and sop == OP_DROP:
-            if len(stack) < 1:
-                return False
+            check_args(1)
             stack.pop()
 
         elif fExec and sop == OP_DUP:
-            if len(stack) < 1:
-                return False
+            check_args(1)
             v = stack[-1]
             stack.append(v)
 
         elif sop == OP_ELSE:
             if len(vfExec) == 0:
-                return False
+                raise EvalScriptError('ELSE found without preceeding IF')
             vfExec[-1] = not vfExec[-1]
 
         elif sop == OP_ENDIF:
@@ -413,8 +456,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
             vfExec.pop()
 
         elif fExec and sop == OP_EQUAL or sop == OP_EQUALVERIFY:
-            if len(stack) < 2:
-                return False
+            check_args(2)
             v1 = stack.pop()
             v2 = stack.pop()
 
@@ -432,26 +474,23 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 
         elif fExec and sop == OP_FROMALTSTACK:
             if len(altstack) < 1:
-                return False
+                raise MissingOpArgumentsError(sop, altstack, 1)
             v = altstack.pop()
             stack.append(v)
 
         elif fExec and sop == OP_HASH160:
-            if len(stack) < 1:
-                return False
+            check_args(1)
             stack.append(Hash160(stack.pop()))
 
         elif fExec and sop == OP_HASH256:
-            if len(stack) < 1:
-                return False
+            check_args(1)
             stack.append(Hash(stack.pop()))
 
         elif sop == OP_IF or sop == OP_NOTIF:
             val = False
 
             if fExec:
-                if len(stack) < 1:
-                    return False
+                check_args(1)
                 vch = stack.pop()
                 val = CastToBool(vch)
                 if sop == OP_NOTIF:
@@ -459,30 +498,27 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 
             vfExec.append(val)
 
+
         elif fExec and sop == OP_IFDUP:
-            if len(stack) < 1:
-                return False
+            check_args(1)
             vch = stack[-1]
             if CastToBool(vch):
                 stack.append(vch)
 
         elif fExec and sop == OP_NIP:
-            if len(stack) < 2:
-                return False
+            check_args(2)
             del stack[-2]
 
         elif fExec and sop == OP_NOP or (sop >= OP_NOP1 and sop <= OP_NOP10):
             pass
 
         elif fExec and sop == OP_OVER:
-            if len(stack) < 2:
-                return False
+            check_args(2)
             vch = stack[-2]
             stack.append(vch)
 
         elif fExec and sop == OP_PICK or sop == OP_ROLL:
-            if len(stack) < 2:
-                return False
+            check_args(2)
             n = CastToBigNum(stack.pop())
             if n < 0 or n >= len(stack):
                 return False
@@ -495,16 +531,14 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
             return False
 
         elif fExec and sop == OP_RIPEMD160:
-            if len(stack) < 1:
-                return False
+            check_args(1)
 
             h = hashlib.new('ripemd160')
             h.update(stack.pop())
             stack.append(h.digest())
 
         elif fExec and sop == OP_ROT:
-            if len(stack) < 3:
-                return False
+            check_args(3)
             tmp = stack[-3]
             stack[-3] = stack[-2]
             stack[-2] = tmp
@@ -514,32 +548,31 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
             stack[-1] = tmp
 
         elif fExec and sop == OP_SIZE:
-            if len(stack) < 1:
-                return False
+            check_args(1)
             bn = len(stack[-1])
             stack.append(bn2vch(bn))
 
+        elif fExec and sop == OP_SHA1:
+            check_args(1)
+            stack.append(hashlib.sha1(stack.pop()).digest())
+
         elif fExec and sop == OP_SHA256:
-            if len(stack) < 1:
-                return False
+            check_args(1)
             stack.append(hashlib.sha256(stack.pop()).digest())
 
         elif fExec and sop == OP_SWAP:
-            if len(stack) < 2:
-                return False
+            check_args(2)
             tmp = stack[-2]
             stack[-2] = stack[-1]
             stack[-1] = tmp
 
         elif fExec and sop == OP_TOALTSTACK:
-            if len(stack) < 1:
-                return False
+            check_args(1)
             v = stack.pop()
             altstack.append(v)
 
         elif fExec and sop == OP_TUCK:
-            if len(stack) < 2:
-                return False
+            check_args(2)
             vch = stack[-1]
             stack.insert(len(stack) - 2, vch)
 
@@ -553,8 +586,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
                 return False
 
         elif fExec and sop == OP_WITHIN:
-            if len(stack) < 3:
-                return False
+            check_args(3)
             bn3 = CastToBigNum(stack.pop())
             bn2 = CastToBigNum(stack.pop())
             bn1 = CastToBigNum(stack.pop())
@@ -565,8 +597,15 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
                 stack.append(b"\x00")
 
         elif fExec:
-            #print("Unsupported opcode", OPCODE_NAMES[sop])
-            return False
+            raise EvalScriptError('unsupported opcode 0x%x' % sop)
+
+        # size limits
+        if len(stack) + len(altstack) > MAX_STACK_ITEMS:
+            raise EvalScriptError('max stack items limit reached')
+
+    # Unterminated IF/NOTIF/ELSE block
+    if len(vfExec):
+        raise EvalScriptError('Unterminated IF/ELSE block')
 
     return True
 
@@ -575,20 +614,9 @@ def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
         return _EvalScript(stack, scriptIn, txTo, inIdx, hashtype)
     except CScriptInvalidException:
         return False
+    except EvalScriptError:
+        return False
 
-def CastToBigNum(s):
-    v = vch2bn(s)
-    return v
-
-def CastToBool(s):
-    for i in range(len(s)):
-        sv = bord(s[i])
-        if sv != 0:
-            if (i == (len(s) - 1)) and (sv == 0x80):
-                return False
-            return True
-
-    return False
 
 def VerifyScript(scriptSig, scriptPubKey, txTo, inIdx, hashtype):
     stack = []
