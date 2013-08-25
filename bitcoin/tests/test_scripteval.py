@@ -51,21 +51,17 @@ def load_test_vectors(name):
             scriptSig = parse_script(scriptSig)
             scriptPubKey = parse_script(scriptPubKey)
 
-            yield (scriptSig, scriptPubKey, comment)
+            yield (scriptSig, scriptPubKey, comment, test_case)
 
 
 class Test_EvalScript(unittest.TestCase):
+    flags = (SCRIPT_VERIFY_P2SH, SCRIPT_VERIFY_STRICTENC)
     def test_script_valid(self):
-        for scriptSig, scriptPubKey, comment in load_test_vectors('script_valid.json'):
-            if not VerifyScript(scriptSig, scriptPubKey, None, 0, SIGHASH_NONE):
-                print('%r %r %r' % (scriptSig, scriptPubKey, comment))
-                print('FAILED')
+        for scriptSig, scriptPubKey, comment, test_case in load_test_vectors('script_valid.json'):
+            if not VerifyScript(scriptSig, scriptPubKey, None, 0, SIGHASH_NONE, flags=self.flags):
+                self.fail('Script FAILED: %r %r %r' % (scriptSig, scriptPubKey, comment))
 
     def test_script_invalid(self):
-        for scriptSig, scriptPubKey, comment in load_test_vectors('script_invalid.json'):
-            if VerifyScript(scriptSig, scriptPubKey, None, 0, SIGHASH_NONE):
-                try:
-                    print('%r %r %r' % (scriptSig, scriptPubKey, comment))
-                except CScriptInvalidException:
-                    print('%r %r %r' % (bytes(scriptSig), bytes(scriptPubKey), comment))
-                print('FAILED! (due to success)')
+        for scriptSig, scriptPubKey, comment, test_case in load_test_vectors('script_invalid.json'):
+            if VerifyScript(scriptSig, scriptPubKey, None, 0, SIGHASH_NONE, flags=self.flags):
+                self.fail('Script FAILED: (by succeeding) %r %r %r' % (scriptSig, scriptPubKey, comment))

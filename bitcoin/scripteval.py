@@ -27,6 +27,11 @@ MAX_SCRIPT_ELEMENT_SIZE = 520
 MAX_SCRIPT_OPCODES = 201
 MAX_STACK_ITEMS = 1000
 
+SCRIPT_VERIFY_P2SH = object()
+SCRIPT_VERIFY_STRICTENC = object()
+SCRIPT_VERIFY_EVEN_S = object()
+SCRIPT_VERIFY_NOCACHE = object()
+
 # Invalid even when occuring in an unexecuted OP_IF branch due to either being
 # disabled, or never implemented.
 disabled_opcodes = set((OP_VERIF, OP_VERNOTIF,
@@ -311,7 +316,7 @@ def CheckExec(vfExec):
     return True
 
 
-def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
+def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=()):
     if len(scriptIn) > MAX_SCRIPT_SIZE:
         raise EvalScriptError('script too large; got %d bytes; maximum %d bytes' %
                 (len(scriptIn), MAX_SCRIPT_SIZE))
@@ -609,24 +614,49 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
 
     return True
 
-def EvalScript(stack, scriptIn, txTo, inIdx, hashtype):
+def EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=()):
     try:
-        return _EvalScript(stack, scriptIn, txTo, inIdx, hashtype)
+        return _EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=flags)
     except CScriptInvalidException:
         return False
     except EvalScriptError:
         return False
 
 
-def VerifyScript(scriptSig, scriptPubKey, txTo, inIdx, hashtype):
+def VerifyScript(scriptSig, scriptPubKey, txTo, inIdx, hashtype, flags=()):
     stack = []
-    if not EvalScript(stack, scriptSig, txTo, inIdx, hashtype):
+    if not EvalScript(stack, scriptSig, txTo, inIdx, hashtype, flags=flags):
         return False
-    if not EvalScript(stack, scriptPubKey, txTo, inIdx, hashtype):
+    if SCRIPT_VERIFY_P2SH in flags:
+        stackCopy = list(stack)
+    if not EvalScript(stack, scriptPubKey, txTo, inIdx, hashtype, flags=flags):
         return False
     if len(stack) == 0:
         return False
-    return CastToBool(stack[-1])
+    if not CastToBool(stack[-1]):
+        return False
+
+    # Additional validation for spend-to-script-hash transactions
+    if SCRIPT_VERIFY_P2SH in flags and scriptPubKey.is_p2sh():
+        if not scriptSig.is_push_only():
+            return False
+
+        # stackCopy cannot be empty here, because if it was the
+        # P2SH  HASH <> EQUAL  scriptPubKey would be evaluated with
+        # an empty stack and the EvalScript above would return false.
+        assert len(stackCopy)
+
+        pubKey2 = CScript(stackCopy.pop())
+
+        if not EvalScript(stackCopy, pubKey2, txTo, inIdx, hashtype, flags=flags):
+            return False
+
+        if not len(stackCopy):
+            return False
+
+        return CastToBool(stack[-1])
+
+    return True
 
 def VerifySignature(txFrom, txTo, inIdx, hashtype):
     if inIdx >= len(txTo.vin):
