@@ -53,7 +53,8 @@ HTTP_TIMEOUT = 30
 
 class JSONRPCException(Exception):
     def __init__(self, rpc_error):
-        Exception.__init__(self)
+        super(JSONRPCException, self).__init__('msg: %r  code: %r' %
+                (rpc_error['message'], rpc_error['code']))
         self.error = rpc_error
 
 
