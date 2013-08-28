@@ -69,10 +69,10 @@ class AuthServiceProxy(object):
         self.__id_count = 0
         authpair = "%s:%s" % (self.__url.username, self.__url.password)
         authpair = authpair.encode('utf8')
-        self.__auth_header = "Basic %s" % base64.b64encode(authpair)
-        
-        if connection: 
-            # Callables re-use the connection of the original proxy 
+        self.__auth_header = b"Basic " + base64.b64encode(authpair)
+
+        if connection:
+            # Callables re-use the connection of the original proxy
             self.__conn = connection
         elif self.__url.scheme == 'https':
             self.__conn = httplib.HTTPSConnection(self.__url.hostname, port,
