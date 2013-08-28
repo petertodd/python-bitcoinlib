@@ -33,26 +33,39 @@
 # along with this software; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 try:
     import http.client as httplib
 except ImportError:
     import httplib
 import base64
+import binascii
 import decimal
 import json
 import os
 import platform
+import sys
 try:
     import urllib.parse as urlparse
 except ImportError:
     import urlparse
 
+from bitcoin.core import x, b2x, CBlock, CTransaction, COutPoint, CTxOut
+from bitcoin.script import CScript
 from bitcoin.coredefs import COIN
 from bitcoin.base58 import CBitcoinAddress
 
 USER_AGENT = "AuthServiceProxy/0.1"
 
 HTTP_TIMEOUT = 30
+
+# (un)hexlify to/from unicode, needed for Python3
+unhexlify = binascii.unhexlify
+hexlify = binascii.hexlify
+if sys.version > '3':
+    unhexlify = lambda h: binascii.unhexlify(h.encode('utf8'))
+    hexlify = lambda b: binascii.hexlify(b).decode('utf8')
 
 
 class JSONRPCException(Exception):
@@ -214,9 +227,41 @@ class Proxy(RawProxy):
         super(Proxy, self).__init__(service_url=service_url, service_port=service_port, btc_conf_file=btc_conf_file,
                                     timeout=HTTP_TIMEOUT,
                                     **kwargs)
+    def getaccountaddress(self, account=None):
+        """Return the current Bitcoin address for receiving payments to this account."""
+        r = self._call('getaccountaddress', account)
+        return CBitcoinAddress.from_str(r)
+
+    def getblock(self, block_hash):
+        """Get block <block_hash>
+
+        Raises IndexError if block_hash is not valid.
+        """
+        try:
+            block_hash = b2x(block_hash)
+        except TypeError:
+            raise TypeError('%s.getblock(): block_hash must be bytes; got %r instance' %
+                    (self.__class__.__name__, block_hash.__class__))
+        try:
+            r = self._call('getblock', block_hash, False)
+        except JSONRPCException as ex:
+            raise IndexError('%s.getblock(): %s (%d)' %
+                    (self.__class__.__name__, ex.error['message'], ex.error['code']))
+        return CBlock.deserialize(unhexlify(r))
+
+    def getblockhash(self, height):
+        """Return hash of block in best-block-chain at height.
+
+        Raises IndexError if height is not valid.
+        """
+        try:
+            return x(self._call('getblockhash', height))
+        except JSONRPCException as ex:
+            raise IndexError('%s.getblockhash(): %s (%d)' %
+                    (self.__class__.__name__, ex.error['message'], ex.error['code']))
 
     def getinfo(self):
-        """Returns an object containing various state info"""
+        """Return an object containing various state info"""
         r = self._call('getinfo')
         r['balance'] = int(r['balance'] * COIN)
         r['paytxfee'] = int(r['paytxfee'] * COIN)
@@ -236,13 +281,113 @@ class Proxy(RawProxy):
 
         return CBitcoinAddress.from_str(r)
 
-    def getaccountaddress(self, account=None):
-        """Return the current Bitcoin address for receiving payments to this account."""
-        r = self._call('getaccountaddress', account)
-        return CBitcoinAddress.from_str(r)
+    def getrawtransaction(self, txid, verbose=False):
+        """Return transaction with hash txid
+
+        Raises IndexError if transaction not found.
+
+        verbse - If true a dict is returned instead with additional information
+                 on the transaction.
+
+        Note that if all txouts are spent and the transaction index is not
+        enabled the transaction may not be available.
+        """
+        try:
+            r = self._call('getrawtransaction', b2x(txid), 1 if verbose else 0)
+        except JSONRPCException as ex:
+            raise IndexError('%s.getrawtransaction(): %s (%d)' %
+                    (self.__class__.__name__, ex.error['message'], ex.error['code']))
+        if verbose:
+            r['tx'] = CTransaction.deserialize(unhexlify(r['hex']))
+            del r['hex']
+            del r['txid']
+            del r['version']
+            del r['locktime']
+            del r['vin']
+            del r['vout']
+            r['blockhash'] = x(r['blockhash']) if 'blockhash' in r else None
+        else:
+            r = CTransaction.deserialize(unhexlify(r))
+
+        return r
+
+    def gettxout(self, outpoint, includemempool=True):
+        """Return details about an unspent transaction output.
+
+        Raises IndexError if outpoint is not found or was spent.
+
+        includemempool - Include mempool txouts
+        """
+        r = self._call('gettxout', b2x(outpoint.hash), outpoint.n, includemempool)
+
+        if r is None:
+            raise IndexError('%s.gettxout(): unspent txout %r not found' % (self.__class__.__name__, outpoint))
+
+        r['txout'] = CTxOut(int(r['value'] * COIN),
+                            CScript(unhexlify(r['scriptPubKey']['hex'])))
+        del r['value']
+        del r['scriptPubKey']
+        r['bestblock'] = x(r['bestblock'])
+        return r
+
+    def listunspent(self, minconf=0, maxconf=9999999, addrs=None):
+        """Return unspent transaction outputs in wallet
+
+        Outputs will have between minconf and maxconf (inclusive)
+        confirmations, optionally filtered to only include txouts paid to
+        addresses in addrs.
+        """
+        r = None
+        if addrs is None:
+            r = self._call('listunspent', minconf, maxconf)
+        else:
+            addrs = [str(addr) for addr in addrs]
+            r = self._call('listunspent', minconf, maxconf, addrs)
+
+        r2 = []
+        for unspent in r:
+            unspent['outpoint'] = COutPoint(x(unspent['txid']), unspent['vout'])
+            del unspent['txid']
+            del unspent['vout']
+
+            unspent['address'] = CBitcoinAddress.from_str(unspent['address'])
+            unspent['scriptPubKey'] = CScript(unhexlify(unspent['scriptPubKey']))
+            unspent['amount'] = int(unspent['amount'] * COIN)
+            r2.append(unspent)
+        return r2
+
+    def sendrawtransaction(self, tx):
+        """Submit transaction to local node and network."""
+        hextx = hexlify(tx.serialize())
+        r = self._call('sendrawtransaction', hextx)
+        return r
+
+    def signrawtransaction(self, tx):
+        """Sign inputs for transaction
+
+        FIXME: implement options
+        """
+        hextx = hexlify(tx.serialize())
+        r = self._call('signrawtransaction', hextx)
+        r['tx'] = CTransaction.deserialize(unhexlify(r['hex']))
+        del r['hex']
+        return r
+
+    def submitblock(self, block, params=None):
+        """Submit a new block to the network.
+
+        params is optional and is currently ignored by bitcoind. See
+        https://en.bitcoin.it/wiki/BIP_0022 for full specification.
+        """
+        hexblock = hexlify(block.serialize())
+        if params is not None:
+            return self._call('submitblock', hexblock, params)
+        else:
+            return self._call('submitblock', hexblock)
 
     def validateaddress(self, address):
         """Return information about an address"""
         r = self._call('validateaddress', str(address))
         r['address'] = CBitcoinAddress.from_str(r['address'])
+        r['pubkey'] = unhexlify(r['pubkey'])
         return r
