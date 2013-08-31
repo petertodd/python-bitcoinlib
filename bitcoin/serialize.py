@@ -68,9 +68,11 @@ class Serializable(object):
     def __eq__(self, other):
         if (not isinstance(other, self.__class__) and
             not isinstance(self, other.__class__)):
-            raise TypeError("Can't compare equality between %r instance and %r instance" %
-                    (self.__class__, other.__class__))
+            return NotImplemented
         return self.serialize() == other.serialize()
+
+    def __ne__(self, other):
+        return not (self == other)
 
 class Serializer(object):
     def __new__(cls):
