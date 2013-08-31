@@ -21,7 +21,7 @@ from bitcoin.bignum import bn2vch, vch2bn
 
 def SignatureHash(script, txTo, inIdx, hashtype):
     if inIdx >= len(txTo.vin):
-        return (0, "inIdx %d out of range (%d)" % (inIdx, len(txTo.vin)))
+        return (1, "inIdx %d out of range (%d)" % (inIdx, len(txTo.vin)))
     txtmp = CTransaction()
     txtmp.copy(txTo)
 
@@ -39,7 +39,7 @@ def SignatureHash(script, txTo, inIdx, hashtype):
     elif (hashtype & 0x1f) == SIGHASH_SINGLE:
         outIdx = inIdx
         if outIdx >= len(txtmp.vout):
-            return (0, "outIdx %d out of range (%d)" % (outIdx, len(txtmp.vout)))
+            return (1, "outIdx %d out of range (%d)" % (outIdx, len(txtmp.vout)))
 
         tmp = txtmp.vout[outIdx]
         txtmp.vout = []
@@ -76,8 +76,6 @@ def CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
     sig = sig[:-1]
 
     tup = SignatureHash(script, txTo, inIdx, hashtype)
-    if tup[0] == 0:
-        return False
     return key.verify(ser_uint256(tup[0]), sig)
 
 def CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
