@@ -42,6 +42,8 @@ class CKey:
             group = ssl.EC_KEY_get0_group(self.k)
             pub_key = ssl.EC_POINT_new(group)
             ctx = ssl.BN_CTX_new()
+            if not ssl.EC_POINT_mul(group, pub_key, priv_key, None, None, ctx):
+                raise ValueError("Could not derive public key from the supplied secret.")
             ssl.EC_POINT_mul(group, pub_key, priv_key, None, None, ctx)
             ssl.EC_KEY_set_private_key(self.k, priv_key)
             ssl.EC_KEY_set_public_key(self.k, pub_key)
