@@ -95,7 +95,7 @@ class CBase58Data(bytes):
     @classmethod
     def from_str(cls, s):
         k = decode(s)
-        addrbyte, data, check0 = k[0], k[1:-4], k[-4:]
+        addrbyte, data, check0 = k[0:1], k[1:-4], k[-4:]
         check1 = Hash(addrbyte + data)[:4]
         if check0 != check1:
             raise Base58ChecksumError('Checksum mismatch: expected %r, calculated %r' % (check0, check1))
