@@ -8,6 +8,7 @@ import os
 
 from binascii import unhexlify
 
+from bitcoin.core import x
 from bitcoin.script import *
 
 class Test_CScriptOp(unittest.TestCase):
@@ -195,24 +196,24 @@ class Test_CScript(unittest.TestCase):
         T( CScript([1, 2, 3]),
           'CScript([1, 2, 3])')
 
-        T( CScript([1, b'z\xc9w\xd87=\xf8u\xec\xed\xa3b)\x8e]\t\xd4\xb7+S', OP_DROP]),
-          "CScript([1, b'z\\xc9w\\xd87=\\xf8u\\xec\\xed\\xa3b)\\x8e]\\t\\xd4\\xb7+S', OP_DROP])")
+        T( CScript([1, x('7ac977d8373df875eceda362298e5d09d4b72b53'), OP_DROP]),
+          "CScript([1, x('7ac977d8373df875eceda362298e5d09d4b72b53'), OP_DROP])")
 
         T(CScript(unhexlify(b'0001ff515261ff')),
-          "CScript([b'', b'\\xff', 1, 2, OP_NOP, OP_INVALIDOPCODE])")
+          "CScript([x(''), x('ff'), 1, 2, OP_NOP, OP_INVALIDOPCODE])")
 
         # truncated scripts
         T(CScript(unhexlify(b'6101')),
-          "CScript([OP_NOP, b''...<ERROR: PUSHDATA(1): truncated data>])")
+          "CScript([OP_NOP, x('')...<ERROR: PUSHDATA(1): truncated data>])")
 
         T(CScript(unhexlify(b'614bff')),
-          "CScript([OP_NOP, b'\\xff'...<ERROR: PUSHDATA(75): truncated data>])")
+          "CScript([OP_NOP, x('ff')...<ERROR: PUSHDATA(75): truncated data>])")
 
         T(CScript(unhexlify(b'614c')),
           "CScript([OP_NOP, <ERROR: PUSHDATA1: missing data length>])")
 
         T(CScript(unhexlify(b'614c0200')),
-          "CScript([OP_NOP, b'\\x00'...<ERROR: PUSHDATA1: truncated data>])")
+          "CScript([OP_NOP, x('00')...<ERROR: PUSHDATA1: truncated data>])")
 
     def test_is_p2sh(self):
         def T(serialized, b):

@@ -18,6 +18,7 @@ if sys.version > '3':
 
 import bitcoin.bignum
 import struct
+import bitcoin.core
 
 SIGHASH_ALL = 1
 SIGHASH_NONE = 2
@@ -707,11 +708,9 @@ class CScript(bytes):
         # need to change
         def _repr(o):
             if isinstance(o, bytes):
-                return 'b' + repr(o)
+                return "x('%s')" % bitcoin.core.b2x(o)
             else:
                 return repr(o)
-        if sys.version > '3':
-            _repr = repr
 
         ops = []
         i = iter(self)

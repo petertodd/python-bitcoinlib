@@ -18,6 +18,21 @@ from bitcoin.coredefs import *
 from bitcoin.script import CScript
 
 def x(h):
+    """Convert a hex string to bytes"""
+    import sys
+    if sys.version > '3':
+        return binascii.unhexlify(h.encode('utf8'))
+    else:
+        return binascii.unhexlify(h)
+
+def b2x(b):
+    """Convert bytes to a hex string"""
+    if sys.version > '3':
+        return binascii.hexlify(b).decode('utf8')
+    else:
+        return binascii.hexlify(b)
+
+def lx(h):
     """Convert a little-endian hex string to bytes
 
     Lets you write uint256's and uint160's the way the Satoshi codebase shows
@@ -29,10 +44,11 @@ def x(h):
     else:
         return binascii.unhexlify(h)[::-1]
 
-def b2x(b):
+def b2lx(b):
     """Convert bytes to a little-endian hex string
 
-    For use with x()
+    Lets you show uint256's and uint160's the way the Satoshi codebase shows
+    them.
     """
     if sys.version > '3':
         return binascii.hexlify(b[::-1]).decode('utf8')
@@ -138,7 +154,7 @@ class COutPoint(Serializable):
         if self.is_null():
             return 'COutPoint()'
         else:
-            return 'COutPoint(x(%r), %i)' % (b2x(self.hash), self.n)
+            return 'COutPoint(lx(%r), %i)' % (b2lx(self.hash), self.n)
 
 class CTxIn(Serializable):
     """An input of a transaction
@@ -301,8 +317,8 @@ class CBlockHeader(Serializable):
     difficulty = property(lambda self: CBlockHeader.calc_difficulty(self.nBits))
 
     def __repr__(self):
-        return "%s(%i, x(%s), x(%s), %s, 0x%08x, 0x%08x)" % \
-                (self.__class__.__name__, self.nVersion, b2x(self.hashPrevBlock), b2x(self.hashMerkleRoot),
+        return "%s(%i, lx(%s), lx(%s), %s, 0x%08x, 0x%08x)" % \
+                (self.__class__.__name__, self.nVersion, b2lx(self.hashPrevBlock), b2lx(self.hashMerkleRoot),
                  self.nTime, self.nBits, self.nNonce)
 
 class CBlock(CBlockHeader):
