@@ -31,5 +31,3 @@ class Test_base58(unittest.TestCase):
     def test_invalid_base58_exception(self):
         with self.assertRaises(InvalidBase58Error):
             decode('#')
-
-    # FIXME: need to test CBitcoinAddress

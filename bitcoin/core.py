@@ -13,9 +13,11 @@ import socket
 import binascii
 import time
 import hashlib
+import bitcoin.base58 as base58
+import bitcoin.script as script
+
 from bitcoin.serialize import *
 from bitcoin.coredefs import *
-from bitcoin.script import CScript
 
 def x(h):
     """Convert a hex string to bytes"""
@@ -62,6 +64,25 @@ def str_money_value(value):
     if r[-1] == '.':
         r += '0'
     return r
+
+class CBitcoinAddress(base58.CBase58Data):
+    """A Bitcoin address"""
+    PUBKEY_ADDRESS = 0
+    SCRIPT_ADDRESS = 5
+    PUBKEY_ADDRESS_TEST = 111
+    SCRIPT_ADDRESS_TEST = 196
+
+    def to_scriptPubKey(self):
+        """Convert an address to a scriptPubKey"""
+        if self.nVersion in (self.PUBKEY_ADDRESS, self.PUBKEY_ADDRESS_TEST):
+            return script.CScript([script.OP_DUP, script.OP_HASH160, self, script.OP_EQUALVERIFY, script.OP_CHECKSIG])
+
+        elif self.nVersion in (self.SCRIPT_ADDRESS, self.SCRIPT_ADDRESS_TEST):
+            return script.CScript([script.OP_HASH160, self, script.OP_EQUAL])
+
+        else:
+            raise ValueError("CBitcoinAddress: Don't know how to convert version %d to a scriptPubKey" % self.nVersion)
+
 
 class CAddress(object):
     def __init__(self, protover=PROTO_VERSION):
@@ -164,7 +185,7 @@ class CTxIn(Serializable):
     """
     __slots__ = ['prevout', 'scriptSig', 'nSequence']
 
-    def __init__(self, prevout=None, scriptSig=CScript(), nSequence = 0xffffffff):
+    def __init__(self, prevout=None, scriptSig=script.CScript(), nSequence = 0xffffffff):
         if prevout is None:
             prevout = COutPoint()
         self.prevout = prevout
@@ -176,7 +197,7 @@ class CTxIn(Serializable):
     @classmethod
     def stream_deserialize(cls, f):
         prevout = COutPoint.stream_deserialize(f)
-        scriptSig = CScript(BytesSerializer.stream_deserialize(f))
+        scriptSig = script.CScript(BytesSerializer.stream_deserialize(f))
         nSequence = struct.unpack(b"<I", ser_read(f,4))[0]
         return cls(prevout, scriptSig, nSequence)
 
@@ -199,14 +220,14 @@ class CTxOut(Serializable):
     """
     __slots__ = ['nValue', 'scriptPubKey']
 
-    def __init__(self, nValue=-1, scriptPubKey=CScript()):
-        self.nValue = nValue
+    def __init__(self, nValue=-1, scriptPubKey=script.CScript()):
+        self.nValue = int(nValue)
         self.scriptPubKey = scriptPubKey
 
     @classmethod
     def stream_deserialize(cls, f):
         nValue = struct.unpack(b"<q", ser_read(f,8))[0]
-        scriptPubKey = CScript(BytesSerializer.stream_deserialize(f))
+        scriptPubKey = script.CScript(BytesSerializer.stream_deserialize(f))
         return cls(nValue, scriptPubKey)
 
     def stream_serialize(self, f):

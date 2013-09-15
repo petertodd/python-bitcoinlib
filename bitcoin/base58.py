@@ -10,6 +10,14 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import sys
+bchr = chr
+bord = ord
+if sys.version > '3':
+        long = int
+        bchr = lambda x: bytes([x])
+        bord = lambda x: x
+
 from bitcoin.serialize import Hash
 
 b58_digits = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
@@ -79,31 +87,27 @@ class Base58ChecksumError(Base58Error):
     pass
 
 class CBase58Data(bytes):
-    def __new__(cls, data, nVersion):
-        self = super(CBase58Data, cls).__new__(cls, data)
-        self.nVersion = nVersion
-        return self
-
-    def __repr__(self):
-        return '%s(%s, %d)' % (self.__class__.__name__, bytes.__repr__(self), self.nVersion)
-
-    def __str__(self):
-        vs = chr(self.nVersion) + self
-        check = Hash(vs)[0:4]
-        return encode(vs + check)
-
-    @classmethod
-    def from_str(cls, s):
+    def __new__(cls, s):
         k = decode(s)
         addrbyte, data, check0 = k[0:1], k[1:-4], k[-4:]
         check1 = Hash(addrbyte + data)[:4]
         if check0 != check1:
             raise Base58ChecksumError('Checksum mismatch: expected %r, calculated %r' % (check0, check1))
-        return cls(data, ord(addrbyte))
+        return cls.from_bytes(data, ord(addrbyte))
 
+    @classmethod
+    def from_bytes(cls, data, nVersion):
+        self = super(CBase58Data, cls).__new__(cls, data)
+        self.nVersion = nVersion
+        return self
 
-class CBitcoinAddress(CBase58Data):
-    PUBKEY_ADDRESS = 0
-    SCRIPT_ADDRESS = 5
-    PUBKEY_ADDRESS_TEST = 111
-    SCRIPT_ADDRESS_TEST = 196
+    def to_bytes(self):
+        return b'' + self
+
+    def __str__(self):
+        vs = bchr(self.nVersion) + self
+        check = Hash(vs)[0:4]
+        return encode(vs + check)
+
+    def __repr__(self):
+        return '%s(%r)' % (self.__class__.__name__, str(self))
