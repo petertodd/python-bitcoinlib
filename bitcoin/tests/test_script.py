@@ -39,6 +39,40 @@ class Test_CScriptOp(unittest.TestCase):
         for i in range(0x0, 0x100):
             self.assertTrue(CScriptOp(i) is CScriptOp(i))
 
+    def test_encode_decode_op_n(self):
+        def t(n, op):
+            actual = CScriptOp.encode_op_n(n)
+            self.assertEqual(actual, op)
+            self.assertTrue(isinstance(actual, CScriptOp))
+
+            actual = op.decode_op_n()
+            self.assertEqual(actual, n)
+            self.assertTrue(isinstance(actual, int))
+
+        t(0, OP_0)
+        t(1, OP_1)
+        t(2, OP_2)
+        t(3, OP_3)
+        t(4, OP_4)
+        t(5, OP_5)
+        t(6, OP_6)
+        t(7, OP_7)
+        t(8, OP_8)
+        t(9, OP_9)
+        t(9, OP_9)
+        t(10, OP_10)
+        t(11, OP_11)
+        t(12, OP_12)
+        t(13, OP_13)
+        t(14, OP_14)
+        t(15, OP_15)
+        t(16, OP_16)
+
+        with self.assertRaises(ValueError):
+            OP_CHECKSIG.decode_op_n()
+
+        with self.assertRaises(ValueError):
+            CScriptOp(1).decode_op_n()
 
 class Test_CScript(unittest.TestCase):
     def test_tokenize_roundtrip(self):

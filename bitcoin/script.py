@@ -52,13 +52,13 @@ class CScriptOp(int):
         if n == 0:
             return OP_0
         else:
-            return OP_1 + n-1
+            return CScriptOp(OP_1 + n-1)
 
     def decode_op_n(self):
         if self == OP_0:
             return 0
 
-        if not (OP_0 <= self <= OP_16):
+        if not (self == OP_0 or OP_1 <= self <= OP_16):
             raise ValueError('op %r is not an OP_N' % self)
 
         return int(self - OP_1+1)
