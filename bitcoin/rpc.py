@@ -51,7 +51,7 @@ try:
 except ImportError:
     import urlparse
 
-from bitcoin.core import x, b2x, CBitcoinAddress, CBlock, CTransaction, COutPoint, CTxOut
+from bitcoin.core import lx, b2lx, CBitcoinAddress, CBlock, CTransaction, COutPoint, CTxOut
 from bitcoin.script import CScript
 from bitcoin.coredefs import COIN
 
@@ -237,7 +237,7 @@ class Proxy(RawProxy):
         Raises IndexError if block_hash is not valid.
         """
         try:
-            block_hash = b2x(block_hash)
+            block_hash = b2lx(block_hash)
         except TypeError:
             raise TypeError('%s.getblock(): block_hash must be bytes; got %r instance' %
                     (self.__class__.__name__, block_hash.__class__))
@@ -254,7 +254,7 @@ class Proxy(RawProxy):
         Raises IndexError if height is not valid.
         """
         try:
-            return x(self._call('getblockhash', height))
+            return lx(self._call('getblockhash', height))
         except JSONRPCException as ex:
             raise IndexError('%s.getblockhash(): %s (%d)' %
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
@@ -292,7 +292,7 @@ class Proxy(RawProxy):
         enabled the transaction may not be available.
         """
         try:
-            r = self._call('getrawtransaction', b2x(txid), 1 if verbose else 0)
+            r = self._call('getrawtransaction', b2lx(txid), 1 if verbose else 0)
         except JSONRPCException as ex:
             raise IndexError('%s.getrawtransaction(): %s (%d)' %
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
@@ -304,7 +304,7 @@ class Proxy(RawProxy):
             del r['locktime']
             del r['vin']
             del r['vout']
-            r['blockhash'] = x(r['blockhash']) if 'blockhash' in r else None
+            r['blockhash'] = lx(r['blockhash']) if 'blockhash' in r else None
         else:
             r = CTransaction.deserialize(unhexlify(r))
 
@@ -317,7 +317,7 @@ class Proxy(RawProxy):
 
         includemempool - Include mempool txouts
         """
-        r = self._call('gettxout', b2x(outpoint.hash), outpoint.n, includemempool)
+        r = self._call('gettxout', b2lx(outpoint.hash), outpoint.n, includemempool)
 
         if r is None:
             raise IndexError('%s.gettxout(): unspent txout %r not found' % (self.__class__.__name__, outpoint))
@@ -326,7 +326,7 @@ class Proxy(RawProxy):
                             CScript(unhexlify(r['scriptPubKey']['hex'])))
         del r['value']
         del r['scriptPubKey']
-        r['bestblock'] = x(r['bestblock'])
+        r['bestblock'] = lx(r['bestblock'])
         return r
 
     def listunspent(self, minconf=0, maxconf=9999999, addrs=None):
@@ -345,7 +345,7 @@ class Proxy(RawProxy):
 
         r2 = []
         for unspent in r:
-            unspent['outpoint'] = COutPoint(x(unspent['txid']), unspent['vout'])
+            unspent['outpoint'] = COutPoint(lx(unspent['txid']), unspent['vout'])
             del unspent['txid']
             del unspent['vout']
 
@@ -359,7 +359,7 @@ class Proxy(RawProxy):
         """Submit transaction to local node and network."""
         hextx = hexlify(tx.serialize())
         r = self._call('sendrawtransaction', hextx)
-        return r
+        return lx(r)
 
     def signrawtransaction(self, tx):
         """Sign inputs for transaction
