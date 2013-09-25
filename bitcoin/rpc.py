@@ -90,9 +90,9 @@ class RawProxy(object):
             # Figure out the path to the bitcoin.conf file
             if btc_conf_file is None:
                 if platform.system() == 'Darwin':
-                    btc_conf_file = os.path.join(os.environ['APPDATA'], 'Bitcoin')
-                elif platform.system() == 'Windows':
                     btc_conf_file = os.path.expanduser('~/Library/Application Support/Bitcoin/')
+                elif platform.system() == 'Windows':
+                    btc_conf_file = os.path.join(os.environ['APPDATA'], 'Bitcoin')
                 else:
                     btc_conf_file = os.path.expanduser('~/.bitcoin')
                 btc_conf_file = os.path.join(btc_conf_file, 'bitcoin.conf')
