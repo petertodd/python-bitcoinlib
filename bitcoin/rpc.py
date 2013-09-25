@@ -355,6 +355,11 @@ class Proxy(RawProxy):
             r2.append(unspent)
         return r2
 
+    def lockunspent(self, unlock, outpoints):
+        """Lock or unlock outpoints"""
+        json_outpoints = [{'txid':b2lx(outpoint.hash),'vout':outpoint.n} for outpoint in outpoints]
+        return self._call('lockunspent', unlock, json_outpoints)
+
     def sendrawtransaction(self, tx):
         """Submit transaction to local node and network."""
         hextx = hexlify(tx.serialize())
