@@ -366,13 +366,13 @@ class Proxy(RawProxy):
         r = self._call('sendrawtransaction', hextx)
         return lx(r)
 
-    def signrawtransaction(self, tx):
+    def signrawtransaction(self, tx, *args):
         """Sign inputs for transaction
 
         FIXME: implement options
         """
         hextx = hexlify(tx.serialize())
-        r = self._call('signrawtransaction', hextx)
+        r = self._call('signrawtransaction', hextx, *args)
         r['tx'] = CTransaction.deserialize(unhexlify(r['hex']))
         del r['hex']
         return r
