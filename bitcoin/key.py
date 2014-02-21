@@ -7,6 +7,7 @@
 
 import ctypes
 import ctypes.util
+import hashlib
 
 ssl = ctypes.cdll.LoadLibrary (ctypes.util.find_library ('ssl') or 'libeay32')
 
@@ -72,6 +73,20 @@ class CKey:
         mb = ctypes.create_string_buffer(size)
         ssl.i2o_ECPublicKey(self.k, ctypes.byref(ctypes.pointer(mb)))
         return mb.raw
+
+    def get_raw_ecdh_key(self, other_pubkey):
+        ecdh_keybuffer = ctypes.create_string_buffer(32)
+        r = ssl.ECDH_compute_key(ctypes.pointer(ecdh_keybuffer), 32,
+                                 ssl.EC_KEY_get0_public_key(other_pubkey.k),
+                                 self.k, 0)
+        if r != 32:
+            raise Exception('CKey.get_ecdh_key(): ECDH_compute_key() failed')
+        return ecdh_keybuffer.raw
+
+    def get_ecdh_key(self, other_pubkey, kdf=lambda k: hashlib.sha256(k).digest()):
+        # FIXME: be warned it's not clear what the kdf should be as a default
+        r = self.get_raw_ecdh_key(other_pubkey)
+        return kdf(r)
 
     def sign(self, hash):
         sig_size0 = ctypes.c_uint32()
