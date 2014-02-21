@@ -9,7 +9,7 @@ import ctypes
 import ctypes.util
 import hashlib
 
-ssl = ctypes.cdll.LoadLibrary (ctypes.util.find_library ('ssl') or 'libeay32')
+ssl = ctypes.cdll.LoadLibrary(ctypes.util.find_library ('ssl') or 'libeay32')
 
 # this specifies the curve used with ECDSA.
 NID_secp256k1 = 714 # from openssl/obj_mac.h
@@ -25,10 +25,10 @@ ssl.EC_KEY_new_by_curve_name.restype = ctypes.c_void_p
 ssl.EC_KEY_new_by_curve_name.errcheck = check_result
 
 class CKey:
+    POINT_CONVERSION_COMPRESSED = 2
+    POINT_CONVERSION_UNCOMPRESSED = 4
 
     def __init__(self):
-        self.POINT_CONVERSION_COMPRESSED = 2
-        self.POINT_CONVERSION_UNCOMPRESSED = 4
         self.k = ssl.EC_KEY_new_by_curve_name(NID_secp256k1)
 
     def __del__(self):
