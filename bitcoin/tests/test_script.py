@@ -135,7 +135,7 @@ class Test_CScript(unittest.TestCase):
 
     def test_invalid_scripts(self):
         def T(serialized):
-            with self.assertRaises(CScriptInvalidException):
+            with self.assertRaises(CScriptInvalidError):
                 list(CScript(unhexlify(serialized)))
 
         T(b'01')

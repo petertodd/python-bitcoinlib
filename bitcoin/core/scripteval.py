@@ -599,7 +599,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=()):
 def EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=()):
     try:
         return _EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=flags)
-    except CScriptInvalidException:
+    except CScriptInvalidError:
         return False
     except EvalScriptError:
         return False

@@ -594,13 +594,13 @@ OPCODES_BY_NAME = {
     'OP_PUBKEY' : OP_PUBKEY,
 }
 
-class CScriptInvalidException(Exception):
+class CScriptInvalidError(Exception):
     pass
 
-class CScriptTruncatedPushDataException(CScriptInvalidException):
+class CScriptTruncatedPushDataError(CScriptInvalidError):
     def __init__(self, msg, data):
         self.data = data
-        super(CScriptTruncatedPushDataException, self).__init__(msg)
+        super(CScriptTruncatedPushDataError, self).__init__(msg)
 
 class CScript(bytes):
     @classmethod
@@ -662,21 +662,21 @@ class CScript(bytes):
                 elif opcode == OP_PUSHDATA1:
                     pushdata_type = 'PUSHDATA1'
                     if i >= len(self):
-                        raise CScriptInvalidException('PUSHDATA1: missing data length')
+                        raise CScriptInvalidError('PUSHDATA1: missing data length')
                     datasize = bord(self[i])
                     i += 1
 
                 elif opcode == OP_PUSHDATA2:
                     pushdata_type = 'PUSHDATA2'
                     if i + 1 >= len(self):
-                        raise CScriptInvalidException('PUSHDATA2: missing data length')
+                        raise CScriptInvalidError('PUSHDATA2: missing data length')
                     datasize = bord(self[i]) + (bord(self[i+1]) << 8)
                     i += 2
 
                 elif opcode == OP_PUSHDATA4:
                     pushdata_type = 'PUSHDATA4'
                     if i + 3 >= len(self):
-                        raise CScriptInvalidException('PUSHDATA4: missing data length')
+                        raise CScriptInvalidError('PUSHDATA4: missing data length')
                     datasize = bord(self[i]) + (bord(self[i+1]) << 8) + (bord(self[i+2]) << 16) + (bord(self[i+3]) << 24)
                     i += 4
 
@@ -688,7 +688,7 @@ class CScript(bytes):
 
                 # Check for truncation
                 if len(data) < datasize:
-                    raise CScriptTruncatedPushDataException('%s: truncated data' % pushdata_type, data)
+                    raise CScriptTruncatedPushDataError('%s: truncated data' % pushdata_type, data)
 
                 i += datasize
 
@@ -721,10 +721,10 @@ class CScript(bytes):
             op = None
             try:
                 op = _repr(next(i))
-            except CScriptTruncatedPushDataException as err:
+            except CScriptTruncatedPushDataError as err:
                 op = '%s...<ERROR: %s>' % (_repr(err.data), err)
                 break
-            except CScriptInvalidException as err:
+            except CScriptInvalidError as err:
                 op = '<ERROR: %s>' % err
                 break
             except StopIteration:
@@ -760,7 +760,7 @@ class CScript(bytes):
         """
         try:
             list(self)
-        except CScriptInvalidException:
+        except CScriptInvalidError:
             return False
         return True
 
