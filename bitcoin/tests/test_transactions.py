@@ -3,12 +3,36 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import json
 import unittest
 import os
 
-from binascii import unhexlify
+from bitcoin.core import COutPoint, CTxIn, CTxOut, CTransaction, CheckTransaction, CheckTransactionError, lx, x, b2x
+from bitcoin.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
 
-from bitcoin.core import COutPoint, CTxIn, CTxOut, CTransaction, lx
+from bitcoin.tests.test_scripteval import parse_script
+
+def load_test_vectors(name):
+    with open(os.path.dirname(__file__) + '/data/' + name, 'r') as fd:
+        for test_case in json.load(fd):
+            # Comments designated by single length strings
+            if len(test_case) == 1:
+                continue
+            assert len(test_case) == 3
+
+            prevouts = {}
+            for json_prevout in test_case[0]:
+                assert len(json_prevout) == 3
+                n = json_prevout[1]
+                if n == -1:
+                    n = 0xffffffff
+                prevout = COutPoint(lx(json_prevout[0]), n)
+                prevouts[prevout] = parse_script(json_prevout[2])
+
+            tx = CTransaction.deserialize(x(test_case[1]))
+            enforceP2SH = test_case[2]
+
+            yield (prevouts, tx, enforceP2SH)
 
 class Test_COutPoint(unittest.TestCase):
     def test_is_null(self):
@@ -55,3 +79,50 @@ class Test_CTransaction(unittest.TestCase):
         tx.vin[0] = CTxIn()
         tx.vin.append(CTxIn())
         self.assertFalse(tx.is_coinbase())
+
+    def test_tx_valid(self):
+        for prevouts, tx, enforceP2SH in load_test_vectors('tx_valid.json'):
+            try:
+                CheckTransaction(tx)
+            except CheckTransactionError:
+                self.fail('tx failed CheckTransaction(): ' \
+                        + str((prevouts, b2x(tx.serialize()), enforceP2SH)))
+                continue
+
+            valid = False
+            for i in range(len(tx.vin)):
+                flags = set()
+                if enforceP2SH:
+                    flags.add(SCRIPT_VERIFY_P2SH)
+
+                valid = VerifyScript(tx.vin[i].scriptSig, prevouts[tx.vin[i].prevout], tx, i, 0, flags)
+                if not valid:
+                    import pdb; pdb.set_trace()
+                    break
+
+            if not valid:
+                self.fail('tx failed at vin #%d: ' % i \
+                        + str((prevouts, b2x(tx.serialize()), enforceP2SH)))
+
+
+    def test_tx_invalid(self):
+        for prevouts, tx, enforceP2SH in load_test_vectors('tx_invalid.json'):
+            try:
+                CheckTransaction(tx)
+            except CheckTransactionError:
+                continue
+
+            valid = True
+            for i in range(len(tx.vin)):
+                flags = set()
+                if enforceP2SH:
+                    flags.add(SCRIPT_VERIFY_P2SH)
+
+                valid = VerifyScript(tx.vin[i].scriptSig, prevouts[tx.vin[i].prevout], tx, i, 0, flags)
+                if not valid:
+                    break
+
+            if valid:
+                import pdb; pdb.set_trace()
+                self.fail('tx should have failed: ' \
+                        + str((prevouts, b2x(tx.serialize()), enforceP2SH)))
