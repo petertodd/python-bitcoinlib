@@ -24,8 +24,9 @@ if sys.version > '3':
 import copy
 import hashlib
 
-import bitcoin.core.serialize
+import bitcoin.core
 import bitcoin.core.key
+import bitcoin.core.serialize
 
 from bitcoin.core.script import *
 
@@ -47,7 +48,7 @@ disabled_opcodes = set((OP_VERIF, OP_VERNOTIF,
                         OP_OR, OP_XOR, OP_2MUL, OP_2DIV, OP_MUL, OP_DIV, OP_MOD,
                         OP_LSHIFT, OP_RSHIFT))
 
-class EvalScriptError(Exception):
+class EvalScriptError(bitcoin.core.ValidationError):
     def __init__(self, msg):
         super(EvalScriptError, self).__init__('EvalScript: %s' % msg)
 

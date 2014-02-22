@@ -65,6 +65,14 @@ def str_money_value(value):
     return r
 
 
+class ValidationError(Exception):
+    """Base class for all blockchain validation errors
+
+    Everything that is related to validating the blockchain, blocks,
+    transactions, scripts, etc. is derived from this class.
+    """
+
+
 class COutPoint(Serializable):
     """The combination of a transaction hash and an index n into its vout"""
     __slots__ = ['hash', 'n']
@@ -237,12 +245,6 @@ class CBlockHeader(Serializable):
         f.write(struct.pack(b"<I", self.nBits))
         f.write(struct.pack(b"<I", self.nNonce))
 
-    def is_pow_valid(self):
-        """Return True if the proof-of-work is valid"""
-        hash = Hash(self.serialize())
-        target = uint256_from_compact(self.nBits)
-        return hash < target
-
     @staticmethod
     def calc_difficulty(nBits):
         """Calculate difficulty from nBits target"""
@@ -292,6 +294,18 @@ class CBlock(CBlockHeader):
             hashes = newhashes
         return hashes[0]
 
+    def get_header(self):
+        """Return the block header
+
+        Returned header is a new object.
+        """
+        return CBlockHeader(nVersion=self.nVersion,
+                            hashPrevBlock=self.hashPrevBlock,
+                            hashMerkleRoot=self.hashMerkleRoot,
+                            nTime=self.nTime,
+                            nBits=self.nBits,
+                            nNonce=self.nNonce)
+
     def calc_merkle_root(self):
         hashes = []
         for tx in self.vtx:
@@ -299,11 +313,14 @@ class CBlock(CBlockHeader):
         return CBlock.calc_merkle_root_from_hashes(hashes)
 
 
-class CheckTransactionError(ValueError):
+class CheckTransactionError(ValidationError):
     pass
 
 def CheckTransaction(tx):
-    """Basic transaction checks that don't depend on any context"""
+    """Basic transaction checks that don't depend on any context.
+
+    Raises CheckTransactionError
+    """
 
     if not tx.vin:
         raise CheckTransactionError("CheckTransaction() : vin empty")
@@ -340,3 +357,113 @@ def CheckTransaction(tx):
         for txin in tx.vin:
             if txin.prevout.is_null():
                 raise CheckTransactionError("CheckTransaction() : prevout is null")
+
+
+
+
+
+class CheckBlockHeaderError(ValidationError):
+    pass
+
+class CheckProofOfWorkError(CheckBlockHeaderError):
+    pass
+
+def CheckProofOfWork(hash, nBits):
+    """Check a proof-of-work
+
+    Raises CheckProofOfWorkError
+    """
+    target = uint256_from_compact(nBits)
+
+    # Check range
+    if not (0 < target <= PROOF_OF_WORK_LIMIT):
+        raise CheckProofOfWorkError("CheckProofOfWork() : nBits below minimum work")
+
+    # Check proof of work matches claimed amount
+    hash = uint256_from_str(hash)
+    if hash > target:
+        raise CheckProofOfWorkError("CheckProofOfWork() : hash doesn't match nBits")
+
+
+def CheckBlockHeader(block_header, fCheckPoW = True, cur_time=None):
+    """Context independent CBlockHeader checks.
+
+    fCheckPoW - Check proof-of-work.
+    cur_time  - Current time. Defaults to time.time()
+
+    Raises CBlockHeaderError if block header is invalid.
+    """
+    if cur_time is None:
+        cur_time = time.time()
+
+    # Check proof-of-work matches claimed amount
+    if fCheckPoW:
+        CheckProofOfWork(Hash(block_header.serialize()), block_header.nBits)
+
+    # Check timestamp
+    if block_header.nTime > cur_time + 2 * 60 * 60:
+        raise CheckBlockHeaderError("CheckBlockHeader() : block timestamp too far in the future")
+
+
+class CheckBlockError(CheckBlockHeaderError):
+    pass
+
+def GetLegacySigOpCount(tx):
+    nSigOps = 0
+    for txin in tx.vin:
+        nSigOps += txin.scriptSig.GetSigOpCount(False)
+    for txout in tx.vout:
+        nSigOps += txout.scriptPubKey.GetSigOpCount(False)
+    return nSigOps
+
+
+def CheckBlock(block, fCheckPoW = True, fCheckMerkleRoot = True, cur_time=None):
+    """Context independent CBlock checks.
+
+    CheckBlockHeader() is called first, which may raise a CheckBlockHeader
+    exception, followed the block tests. CheckTransaction() is called for every
+    transaction.
+
+    fCheckPoW        - Check proof-of-work.
+    fCheckMerkleRoot - Check merkle root matches transactions.
+    cur_time         - Current time. Defaults to time.time()
+    """
+
+    # Block header checks
+    CheckBlockHeader(block.get_header(), fCheckPoW=fCheckPoW, cur_time=cur_time)
+
+    # Size limits
+    if not block.vtx:
+        raise CheckBlockError("CheckBlock() : vtx empty")
+    if len(block.serialize()) > MAX_BLOCK_SIZE:
+        raise CheckBlockError("CheckBlock() : block larger than MAX_BLOCK_SIZE")
+
+    # First transaction must be coinbase
+    if not block.vtx[0].is_coinbase():
+        raise CheckBlockError("CheckBlock() : first tx is not coinbase")
+
+    # Check rest of transactions. Note how we do things "all at once", which
+    # could potentially be a consensus failure if there was some obscure bug.
+
+    # For unique txid uniqueness testing. If coinbase tx is included twice
+    # it'll be caught by the "more than one coinbase" test.
+    unique_txids = set()
+    nSigOps = 0
+    for tx in block.vtx[1:]:
+        if tx.is_coinbase():
+            raise CheckBlockError("CheckBlock() : more than one coinbase")
+
+        CheckTransaction(tx)
+
+        txid = Hash(tx.serialize())
+        if txid in unique_txids:
+            raise CheckBlockError("CheckBlock() : duplicate transaction")
+        unique_txids.add(txid)
+
+        nSigOps += GetLegacySigOpCount(tx)
+        if nSigOps > MAX_BLOCK_SIGOPS:
+            raise CheckBlockError("CheckBlock() : out-of-bounds SigOpCount")
+
+    # Check merkle root
+    if fCheckMerkleRoot and block.hashMerkleRoot != block.calc_merkle_root():
+        raise CheckBlockError("CheckBlock() : hashMerkleRoot mismatch")

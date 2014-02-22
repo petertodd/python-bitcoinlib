@@ -764,6 +764,21 @@ class CScript(bytes):
             return False
         return True
 
+    def GetSigOpCount(self, fAccurate):
+        n = 0
+        lastOpcode = OP_INVALIDOPCODE
+        for (opcode, data, sop_idx) in self.raw_iter():
+            if opcode in (OP_CHECKSIG, OP_CHECKSIGVERIFY):
+                n += 1
+            elif opcode in (OP_CHECKMULTISIG, OP_CHECKMULTISIGVERIFY):
+                if fAccurate and (OP_1 <= lastOpcode <= OP_16):
+                    n += opcode.decode_op_n()
+                else:
+                    n += 20
+            lastOpcode = opcode
+        return n
+
+
 SCRIPT_VERIFY_P2SH = object()
 SCRIPT_VERIFY_STRICTENC = object()
 SCRIPT_VERIFY_EVEN_S = object()
