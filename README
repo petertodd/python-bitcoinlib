@@ -35,6 +35,12 @@ corresponding Satoshi C++ code uses the same naming conventions: CTransaction,
 CBlockHeader, nValue etc. Otherwise Python naming conventions are followed.
 
 
+Example Code
+------------
+
+See examples/ directory.
+
+
 Unit tests
 ----------
 
