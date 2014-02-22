@@ -15,6 +15,7 @@ if sys.version > '3':
     bord = lambda x: x
 
 import hashlib
+import copy
 from bitcoin.serialize import Hash, Hash160
 from bitcoin.script import *
 from bitcoin.core import CTxOut, CTransaction
@@ -64,15 +65,16 @@ def CastToBool(s):
     return False
 
 
-def SignatureHash(script, txTo, inIdx, hashtype):
+def RawSignatureHash(script, txTo, inIdx, hashtype):
+    HASH_ONE = b'\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+
     if inIdx >= len(txTo.vin):
-        return (1, "inIdx %d out of range (%d)" % (inIdx, len(txTo.vin)))
-    txtmp = CTransaction()
-    txtmp.copy(txTo)
+        return (HASH_ONE, "inIdx %d out of range (%d)" % (inIdx, len(txTo.vin)))
+    txtmp = copy.deepcopy(txTo)
 
     for txin in txtmp.vin:
         txin.scriptSig = b''
-    txtmp.vin[inIdx].scriptSig = script.vch
+    txtmp.vin[inIdx].scriptSig = script
 
     if (hashtype & 0x1f) == SIGHASH_NONE:
         txtmp.vout = []
@@ -84,7 +86,7 @@ def SignatureHash(script, txTo, inIdx, hashtype):
     elif (hashtype & 0x1f) == SIGHASH_SINGLE:
         outIdx = inIdx
         if outIdx >= len(txtmp.vout):
-            return (1, "outIdx %d out of range (%d)" % (outIdx, len(txtmp.vout)))
+            return (HASH_ONE, "outIdx %d out of range (%d)" % (outIdx, len(txtmp.vout)))
 
         tmp = txtmp.vout[outIdx]
         txtmp.vout = []
@@ -106,7 +108,25 @@ def SignatureHash(script, txTo, inIdx, hashtype):
 
     hash = Hash(s)
 
-    return (hash,)
+    return (hash, None)
+
+
+def SignatureHash(script, txTo, inIdx, hashtype):
+    (h, err) = RawSignatureHash(script, txTo, inIdx, hashtype)
+    if err is not None:
+        raise ValueError(err)
+    return h
+
+
+def _FindAndDelete(script, sig):
+    # Since the Satoshi CScript.FindAndDelete() works on a binary level we have
+    # to do that too. Notably FindAndDelete() will not delete if the PUSHDATA
+    # used in the script is non-standard.
+    sig_bytes = bytes(CScript([sig]))
+    script_bytes = bytes(script)
+    script_bytes = script_bytes.replace(sig_bytes, b'')
+    return CScript(script_bytes)
+
 
 def CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
     key = CKey()
@@ -120,8 +140,10 @@ def CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
         return False
     sig = sig[:-1]
 
-    tup = SignatureHash(script, txTo, inIdx, hashtype)
-    return key.verify(tup[0], sig)
+    # Raw signature hash due to the SIGHASH_SINGLE bug
+    (h, err) = RawSignatureHash(script, txTo, inIdx, hashtype)
+    return key.verify(h, sig)
+
 
 def CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
     i = 1
@@ -146,9 +168,13 @@ def CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
     if len(stack) < i:
         raise MissingOpArgumentsError(opcode, stack, i)
 
+    # Drop the signature, since there's no way for a signature to sign itself
+    #
+    # Of course, this can only come up in very contrived cases now that
+    # scriptSig and scriptPubKey are processed separately.
     for k in range(sigs_count):
         sig = stack[-isig-k]
-        # FIXME: find-and-delete sig in script
+        script = _FindAndDelete(script, sig)
 
     success = True
 
@@ -420,7 +446,11 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=()):
             vchSig = stack.pop()
             tmpScript = CScript(scriptIn[pbegincodehash:])
 
-            # FIXME: find-and-delete vchSig
+            # Drop the signature, since there's no way for a signature to sign itself
+            #
+            # Of course, this can only come up in very contrived cases now that
+            # scriptSig and scriptPubKey are processed separately.
+            tmpScript = _FindAndDelete(tmpScript, vchSig)
 
             ok = CheckSig(vchSig, vchPubKey, tmpScript,
                       txTo, inIdx, hashtype)
@@ -652,7 +682,7 @@ def VerifyScript(scriptSig, scriptPubKey, txTo, inIdx, hashtype, flags=()):
         if not len(stackCopy):
             return False
 
-        return CastToBool(stack[-1])
+        return CastToBool(stackCopy[-1])
 
     return True
 
