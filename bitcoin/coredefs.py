@@ -24,6 +24,8 @@ MEMPOOL_GD_VERSION = 60002
 COIN = 100000000
 MAX_MONEY = 21000000 * COIN
 
+MAX_BLOCK_SIZE = 1000000
+
 def MoneyRange(nValue):
     return 0<= nValue <= MAX_MONEY
 

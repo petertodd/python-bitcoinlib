@@ -440,3 +440,45 @@ class CAlert(object):
     def __repr__(self):
         return "CAlert(vchMsg.sz %d, vchSig.sz %d)" % (len(self.vchMsg), len(self.vchSig))
 
+
+class CheckTransactionError(ValueError):
+    pass
+
+def CheckTransaction(tx):
+    """Basic transaction checks that don't depend on any context"""
+
+    if not tx.vin:
+        raise CheckTransactionError("CheckTransaction() : vin empty")
+    if not tx.vout:
+        raise CheckTransactionError("CheckTransaction() : vout empty")
+
+    # Size limits
+    if len(tx.serialize()) > MAX_BLOCK_SIZE:
+        raise CheckTransactionError("CheckTransaction() : size limits failed")
+
+    # Check for negative or overflow output values
+    nValueOut = 0
+    for txout in tx.vout:
+        if txout.nValue < 0:
+            raise CheckTransactionError("CheckTransaction() : txout.nValue negative")
+        if txout.nValue > MAX_MONEY:
+            raise CheckTransactionError("CheckTransaction() : txout.nValue too high")
+        nValueOut += txout.nValue
+        if not MoneyRange(nValueOut):
+            raise CheckTransactionError("CheckTransaction() : txout total out of range")
+
+    # Check for duplicate inputs
+    vin_outpoints = set()
+    for txin in tx.vin:
+        if txin.prevout in vin_outpoints:
+            raise CheckTransactionError("CheckTransaction() : duplicate inputs")
+        vin_outpoints.add(txin.prevout)
+
+    if tx.is_coinbase():
+        if not (2 <= len(tx.vin[0].scriptSig) <= 100):
+            raise CheckTransactionError("CheckTransaction() : coinbase script size")
+
+    else:
+        for txin in tx.vin:
+            if txin.prevout.is_null():
+                raise CheckTransactionError("CheckTransaction() : prevout is null")
