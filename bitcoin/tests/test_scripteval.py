@@ -9,8 +9,8 @@ import unittest
 
 from binascii import unhexlify
 
-from bitcoin.script import *
-from bitcoin.scripteval import *
+from bitcoin.core.script import *
+from bitcoin.core.scripteval import *
 
 def parse_script(s):
     def ishex(s):

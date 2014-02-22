@@ -18,11 +18,11 @@ if sys.version > '3':
         bchr = lambda x: bytes([x])
         bord = lambda x: x
 
-from bitcoin.serialize import Hash
+import binascii
+
+import bitcoin.core
 
 b58_digits = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
-
-from binascii import hexlify, unhexlify
 
 class Base58Error(Exception):
     pass
@@ -34,7 +34,7 @@ def encode(b):
     """Encode bytes to a base58-encoded string"""
 
     # Convert big-endian bytes to integer
-    n = int('0x0' + hexlify(b).decode('utf8'), 16)
+    n = int('0x0' + binascii.hexlify(b).decode('utf8'), 16)
 
     # Divide that integer into bas58
     res = []
@@ -73,7 +73,7 @@ def decode(s):
     h = '%x' % n
     if len(h) % 2:
         h = '0' + h
-    res = unhexlify(h.encode('utf8'))
+    res = binascii.unhexlify(h.encode('utf8'))
 
     # Add padding back.
     pad = 0
@@ -90,7 +90,7 @@ class CBase58Data(bytes):
     def __new__(cls, s):
         k = decode(s)
         addrbyte, data, check0 = k[0:1], k[1:-4], k[-4:]
-        check1 = Hash(addrbyte + data)[:4]
+        check1 = bitcoin.core.Hash(addrbyte + data)[:4]
         if check0 != check1:
             raise Base58ChecksumError('Checksum mismatch: expected %r, calculated %r' % (check0, check1))
         return cls.from_bytes(data, ord(addrbyte))
@@ -106,7 +106,7 @@ class CBase58Data(bytes):
 
     def __str__(self):
         vs = bchr(self.nVersion) + self
-        check = Hash(vs)[0:4]
+        check = bitcoin.core.Hash(vs)[0:4]
         return encode(vs + check)
 
     def __repr__(self):

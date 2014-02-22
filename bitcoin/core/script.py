@@ -6,6 +6,12 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
 
+"""Scripts
+
+Functionality to build scripts, as well as SignatureHash(). Script evaluation
+is in bitcoin.core.scripteval
+"""
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
@@ -16,14 +22,11 @@ if sys.version > '3':
         bchr = lambda x: bytes([x])
         bord = lambda x: x
 
-import bitcoin.bignum
+import copy
 import struct
-import bitcoin.core
 
-SIGHASH_ALL = 1
-SIGHASH_NONE = 2
-SIGHASH_SINGLE = 3
-SIGHASH_ANYONECANPAY = 0x80
+import bitcoin.core
+import bitcoin.core.bignum
 
 OPCODE_NAMES = {}
 
@@ -609,7 +612,7 @@ class CScript(bytes):
             if 0 <= other <= 16:
                 other = bytes(bchr(CScriptOp.encode_op_n(other)))
             else:
-                other = CScriptOp.encode_op_pushdata(bitcoin.bignum.bn2vch(other))
+                other = CScriptOp.encode_op_pushdata(bitcoin.core.bignum.bn2vch(other))
         elif isinstance(other, (bytes, bytearray)):
             other = CScriptOp.encode_op_pushdata(other)
         return other
@@ -760,3 +763,65 @@ class CScript(bytes):
         except CScriptInvalidException:
             return False
         return True
+
+SCRIPT_VERIFY_P2SH = object()
+SCRIPT_VERIFY_STRICTENC = object()
+SCRIPT_VERIFY_EVEN_S = object()
+SCRIPT_VERIFY_NOCACHE = object()
+
+SIGHASH_ALL = 1
+SIGHASH_NONE = 2
+SIGHASH_SINGLE = 3
+SIGHASH_ANYONECANPAY = 0x80
+
+def RawSignatureHash(script, txTo, inIdx, hashtype):
+    HASH_ONE = b'\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+
+    if inIdx >= len(txTo.vin):
+        return (HASH_ONE, "inIdx %d out of range (%d)" % (inIdx, len(txTo.vin)))
+    txtmp = copy.deepcopy(txTo)
+
+    for txin in txtmp.vin:
+        txin.scriptSig = b''
+    txtmp.vin[inIdx].scriptSig = script
+
+    if (hashtype & 0x1f) == SIGHASH_NONE:
+        txtmp.vout = []
+
+        for i in range(len(txtmp.vin)):
+            if i != inIdx:
+                txtmp.vin[i].nSequence = 0
+
+    elif (hashtype & 0x1f) == SIGHASH_SINGLE:
+        outIdx = inIdx
+        if outIdx >= len(txtmp.vout):
+            return (HASH_ONE, "outIdx %d out of range (%d)" % (outIdx, len(txtmp.vout)))
+
+        tmp = txtmp.vout[outIdx]
+        txtmp.vout = []
+        for i in range(outIdx):
+            txtmp.vout.append(bitcoin.core.CTxOut())
+        txtmp.vout.append(tmp)
+
+        for i in range(len(txtmp.vin)):
+            if i != inIdx:
+                txtmp.vin[i].nSequence = 0
+
+    if hashtype & SIGHASH_ANYONECANPAY:
+        tmp = txtmp.vin[inIdx]
+        txtmp.vin = []
+        txtmp.vin.append(tmp)
+
+    s = txtmp.serialize()
+    s += struct.pack(b"<I", hashtype)
+
+    hash = bitcoin.core.Hash(s)
+
+    return (hash, None)
+
+
+def SignatureHash(script, txTo, inIdx, hashtype):
+    (h, err) = RawSignatureHash(script, txTo, inIdx, hashtype)
+    if err is not None:
+        raise ValueError(err)
+    return h

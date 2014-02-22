@@ -12,11 +12,11 @@ import struct
 import socket
 import binascii
 import hashlib
-import bitcoin.base58 as base58
-import bitcoin.script as script
 
-from bitcoin.serialize import *
-from bitcoin.coredefs import *
+from .script import CScript
+
+from .serialize import *
+from .coredefs import *
 
 def x(h):
     """Convert a hex string to bytes"""
@@ -64,85 +64,6 @@ def str_money_value(value):
         r += '0'
     return r
 
-class CBitcoinAddress(base58.CBase58Data):
-    """A Bitcoin address"""
-    PUBKEY_ADDRESS = 0
-    SCRIPT_ADDRESS = 5
-    PUBKEY_ADDRESS_TEST = 111
-    SCRIPT_ADDRESS_TEST = 196
-
-    def to_scriptPubKey(self):
-        """Convert an address to a scriptPubKey"""
-        if self.nVersion in (self.PUBKEY_ADDRESS, self.PUBKEY_ADDRESS_TEST):
-            return script.CScript([script.OP_DUP, script.OP_HASH160, self, script.OP_EQUALVERIFY, script.OP_CHECKSIG])
-
-        elif self.nVersion in (self.SCRIPT_ADDRESS, self.SCRIPT_ADDRESS_TEST):
-            return script.CScript([script.OP_HASH160, self, script.OP_EQUAL])
-
-        else:
-            raise ValueError("CBitcoinAddress: Don't know how to convert version %d to a scriptPubKey" % self.nVersion)
-
-
-class CAddress(object):
-    def __init__(self, protover=PROTO_VERSION):
-        self.protover = protover
-        self.nTime = 0
-        self.nServices = 1
-        self.pchReserved = b"\x00" * 10 + b"\xff" * 2
-        self.ip = "0.0.0.0"
-        self.port = 0
-    def deserialize(self, f):
-        if self.protover >= CADDR_TIME_VERSION:
-            self.nTime = struct.unpack(b"<I", ser_read(f,4))[0]
-        self.nServices = struct.unpack(b"<Q", ser_read(f,8))[0]
-        self.pchReserved = ser_read(f,12)
-        self.ip = socket.inet_ntoa(ser_read(f,4))
-        self.port = struct.unpack(b">H", ser_read(f,2))[0]
-    def serialize(self):
-        r = b""
-        if self.protover >= CADDR_TIME_VERSION:
-            r += struct.pack(b"<I", self.nTime)
-        r += struct.pack(b"<Q", self.nServices)
-        r += self.pchReserved
-        r += socket.inet_aton(self.ip)
-        r += struct.pack(b">H", self.port)
-        return r
-    def __repr__(self):
-        return "CAddress(nTime=%d nServices=%i ip=%s port=%i)" % (self.nTime, self.nServices, self.ip, self.port)
-
-class CInv(object):
-    typemap = {
-        0: "Error",
-        1: "TX",
-        2: "Block"}
-    def __init__(self):
-        self.type = 0
-        self.hash = 0
-    def deserialize(self, f):
-        self.type = struct.unpack(b"<i", ser_read(f,4))[0]
-        self.hash = ser_read(f,32)
-    def serialize(self):
-        r = b""
-        r += struct.pack(b"<i", self.type)
-        r += self.hash
-        return r
-    def __repr__(self):
-        return "CInv(type=%s hash=%064x)" % (self.typemap[self.type], self.hash)
-
-class CBlockLocator(object):
-    def __init__(self):
-        self.nVersion = PROTO_VERSION
-        self.vHave = []
-    def deserialize(self, f):
-        self.nVersion = struct.unpack(b"<i", ser_read(f,4))[0]
-        self.vHave = deser_uint256_vector(f)
-    def serialize(self):
-        r = b""
-        r += struct.pack(b"<i", self.nVersion)
-        r += ser_uint256_vector(self.vHave)
-        return r
-    def __repr__(self):
-        return "CBlockLocator(nVersion=%i vHave=%s)" % (self.nVersion, repr(self.vHave))
 
 class COutPoint(Serializable):
     """The combination of a transaction hash and an index n into its vout"""
@@ -184,7 +105,7 @@ class CTxIn(Serializable):
     """
     __slots__ = ['prevout', 'scriptSig', 'nSequence']
 
-    def __init__(self, prevout=None, scriptSig=script.CScript(), nSequence = 0xffffffff):
+    def __init__(self, prevout=None, scriptSig=CScript(), nSequence = 0xffffffff):
         if prevout is None:
             prevout = COutPoint()
         self.prevout = prevout
@@ -376,69 +297,6 @@ class CBlock(CBlockHeader):
         for tx in self.vtx:
             hashes.append(Hash(tx.serialize()))
         return CBlock.calc_merkle_root_from_hashes(hashes)
-
-class CUnsignedAlert(object):
-    def __init__(self):
-        self.nVersion = 1
-        self.nRelayUntil = 0
-        self.nExpiration = 0
-        self.nID = 0
-        self.nCancel = 0
-        self.setCancel = []
-        self.nMinVer = 0
-        self.nMaxVer = 0
-        self.setSubVer = []
-        self.nPriority = 0
-        self.strComment = b""
-        self.strStatusBar = b""
-        self.strReserved = b""
-    def deserialize(self, f):
-        self.nVersion = struct.unpack(b"<i", ser_read(f,4))[0]
-        self.nRelayUntil = struct.unpack(b"<q", ser_read(f,8))[0]
-        self.nExpiration = struct.unpack(b"<q", ser_read(f,8))[0]
-        self.nID = struct.unpack(b"<i", ser_read(f,4))[0]
-        self.nCancel = struct.unpack(b"<i", ser_read(f,4))[0]
-        self.setCancel = deser_int_vector(f)
-        self.nMinVer = struct.unpack(b"<i", ser_read(f,4))[0]
-        self.nMaxVer = struct.unpack(b"<i", ser_read(f,4))[0]
-        self.setSubVer = deser_string_vector(f)
-        self.nPriority = struct.unpack(b"<i", ser_read(f,4))[0]
-        self.strComment = deser_string(f)
-        self.strStatusBar = deser_string(f)
-        self.strReserved = deser_string(f)
-    def serialize(self):
-        r = b""
-        r += struct.pack(b"<i", self.nVersion)
-        r += struct.pack(b"<q", self.nRelayUntil)
-        r += struct.pack(b"<q", self.nExpiration)
-        r += struct.pack(b"<i", self.nID)
-        r += struct.pack(b"<i", self.nCancel)
-        r += ser_int_vector(self.setCancel)
-        r += struct.pack(b"<i", self.nMinVer)
-        r += struct.pack(b"<i", self.nMaxVer)
-        r += ser_string_vector(self.setSubVer)
-        r += struct.pack(b"<i", self.nPriority)
-        r += ser_string(self.strComment)
-        r += ser_string(self.strStatusBar)
-        r += ser_string(self.strReserved)
-        return r
-    def __repr__(self):
-        return "CUnsignedAlert(nVersion %d, nRelayUntil %d, nExpiration %d, nID %d, nCancel %d, nMinVer %d, nMaxVer %d, nPriority %d, strComment %s, strStatusBar %s, strReserved %s)" % (self.nVersion, self.nRelayUntil, self.nExpiration, self.nID, self.nCancel, self.nMinVer, self.nMaxVer, self.nPriority, self.strComment, self.strStatusBar, self.strReserved)
-
-class CAlert(object):
-    def __init__(self):
-        self.vchMsg = b""
-        self.vchSig = b""
-    def deserialize(self, f):
-        self.vchMsg = deser_string(f)
-        self.vchSig = deser_string(f)
-    def serialize(self):
-        r = b""
-        r += ser_string(self.vchMsg)
-        r += ser_string(self.vchSig)
-        return r
-    def __repr__(self):
-        return "CAlert(vchMsg.sz %d, vchSig.sz %d)" % (len(self.vchMsg), len(self.vchSig))
 
 
 class CheckTransactionError(ValueError):

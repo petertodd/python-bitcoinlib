@@ -9,6 +9,7 @@ import unittest
 
 from binascii import unhexlify
 
+import bitcoin.core
 from bitcoin.bloom import *
 
 class Test_CBloomFilter(unittest.TestCase):
@@ -59,7 +60,7 @@ class Test_CBloomFilter(unittest.TestCase):
         filter = CBloomFilter(2, 0.001, 0, CBloomFilter.UPDATE_ALL)
 
         pubkey = unhexlify(b'045B81F0017E2091E2EDCD5EECF10D5BDD120A5514CB3EE65B8447EC18BFC4575C6D5BF415E54E03B1067934A0F0BA76B01C6B9AB227142EE1D543764B69D901E0')
-        pubkeyhash = Hash160(pubkey)
+        pubkeyhash = bitcoin.core.Hash160(pubkey)
 
         filter.insert(pubkey)
         filter.insert(pubkeyhash)

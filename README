@@ -1,10 +1,44 @@
+python-bitcoinlib
+-----------------
 
-This python library provides an easy interface to the bitcoin
-data structures and protocol.
+This Python2/3 library provides an easy interface to the bitcoin data
+structures and protocol.
+
+
+Structure
+---------
+
+Everything consensus critical is found in the modules under bitcoin.core:
+
+bitcoin.core            - Basic datastructures, CTransaction, CBlock etc.
+bitcoin.core.bignum     - Bignum handling
+bitcoin.core.coredef    - Core definitions, MAX_MONEY, etc.
+bitcoin.core.key        - ECC pubkeys
+bitcoin.core.script     - Scripts and opcodes
+bitcoin.core.scripteval - Script evaluation/verification
+bitcoin.core.serialize  - Serialization
+
+In the future the bitcoin.core may use the Satoshi sourcecode directly as a
+libary. Non-consensus critical modules include the following:
+
+bitcoin.base58     - Base58 encoding
+bitcoin.bloom      - Bloom filters (incomplete)
+bitcoin.hash       - Non-cryptographic hashing
+bitcoin.net        - Network communication (broken currently)
+bitcoin.messages   - Network messages (broken currently)
+bitcoin.rpc        - Bitcoin Core RPC interface support
+bitcoin.wallet     - Wallet code, currently just CBitcoinAddress
+
+Effort has been made to follow the Satoshi source relatively closely, for
+instance Python code and classes that duplicate the functionality of
+corresponding Satoshi C++ code uses the same naming conventions: CTransaction,
+CBlockHeader, nValue etc. Otherwise Python naming conventions are followed.
 
 
 Unit tests
 ----------
+
+Under bitcoin/tests using test data from Bitcoin Core. To run them:
 
 python -m unittest discover
 python3 -m unittest discover

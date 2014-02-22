@@ -25,24 +25,6 @@ class Test_str_value(unittest.TestCase):
         T(1001000000, '10.01')
         T(1012345678, '10.12345678')
 
-class Test_CBitcoinAddress(unittest.TestCase):
-    def test(self):
-        a = CBitcoinAddress('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa')
-        self.assertEqual(a.to_bytes(), b"b\xe9\x07\xb1\\\xbf'\xd5BS\x99\xeb\xf6\xf0\xfbP\xeb\xb8\x8f\x18")
-        self.assertEqual(a.nVersion, 0)
-
-        a = CBitcoinAddress('mpXwg4jMtRhuSpVq4xS3HFHmCmWp9NyGKt')
-        self.assertEqual(a.to_bytes(), b"b\xe9\x07\xb1\\\xbf'\xd5BS\x99\xeb\xf6\xf0\xfbP\xeb\xb8\x8f\x18")
-        self.assertEqual(a.nVersion, 111)
-
-        a = CBitcoinAddress('37k7toV1Nv4DfmQbmZ8KuZDQCYK9x5KpzP')
-        self.assertEqual(a.to_bytes(), b'Bf\xfco,(a\xd7\xfe"\x9b\'\x9ay\x80:\xfc\xa7\xba4')
-        self.assertEqual(a.nVersion, 5)
-
-        a = CBitcoinAddress('2MyJKxYR2zNZZsZ39SgkCXWCfQtXKhnWSWq')
-        self.assertEqual(a.to_bytes(), b'Bf\xfco,(a\xd7\xfe"\x9b\'\x9ay\x80:\xfc\xa7\xba4')
-        self.assertEqual(a.nVersion, 196)
-
 class Test_CBlockHeader(unittest.TestCase):
     def test_serialization(self):
         genesis = CBlockHeader(nVersion=1,

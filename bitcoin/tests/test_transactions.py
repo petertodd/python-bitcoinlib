@@ -8,7 +8,7 @@ import unittest
 import os
 
 from bitcoin.core import COutPoint, CTxIn, CTxOut, CTransaction, CheckTransaction, CheckTransactionError, lx, x, b2x
-from bitcoin.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
+from bitcoin.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
 
 from bitcoin.tests.test_scripteval import parse_script
 

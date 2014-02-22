@@ -9,7 +9,7 @@ import os
 from binascii import unhexlify
 
 from bitcoin.core import x
-from bitcoin.script import *
+from bitcoin.core.script import *
 
 class Test_CScriptOp(unittest.TestCase):
     def test_pushdata(self):

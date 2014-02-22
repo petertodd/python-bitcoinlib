@@ -6,10 +6,15 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
 
+"""Serialization routines
+
+You probabably don't need to use these directly.
+"""
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import struct
 import hashlib
+import struct
 
 # Py3 compatibility
 import sys
@@ -221,4 +226,3 @@ def Hash160(s):
     h = hashlib.new('ripemd160')
     h.update(hashlib.sha256(s).digest())
     return h.digest()
-

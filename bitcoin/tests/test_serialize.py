@@ -8,7 +8,7 @@ import os
 
 from binascii import unhexlify
 
-from bitcoin.serialize import *
+from bitcoin.core.serialize import *
 
 class Test_VarIntSerializer(unittest.TestCase):
     def test(self):

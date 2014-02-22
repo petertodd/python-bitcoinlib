@@ -51,9 +51,10 @@ try:
 except ImportError:
     import urlparse
 
-from bitcoin.core import lx, b2lx, CBitcoinAddress, CBlock, CTransaction, COutPoint, CTxOut
-from bitcoin.script import CScript
-from bitcoin.coredefs import COIN
+from bitcoin.core import lx, b2lx, CBlock, CTransaction, COutPoint, CTxOut
+from bitcoin.core.script import CScript
+from bitcoin.core.coredefs import COIN
+from bitcoin.wallet import CBitcoinAddress
 
 USER_AGENT = "AuthServiceProxy/0.1"
 
