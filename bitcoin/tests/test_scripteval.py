@@ -9,6 +9,7 @@ import unittest
 
 from binascii import unhexlify
 
+from bitcoin.core import ValidationError
 from bitcoin.core.script import *
 from bitcoin.core.scripteval import *
 
@@ -58,10 +59,12 @@ class Test_EvalScript(unittest.TestCase):
     flags = (SCRIPT_VERIFY_P2SH, SCRIPT_VERIFY_STRICTENC)
     def test_script_valid(self):
         for scriptSig, scriptPubKey, comment, test_case in load_test_vectors('script_valid.json'):
-            if not VerifyScript(scriptSig, scriptPubKey, None, 0, flags=self.flags):
-                self.fail('Script FAILED: %r %r %r' % (scriptSig, scriptPubKey, comment))
+            try:
+                VerifyScript(scriptSig, scriptPubKey, None, 0, flags=self.flags)
+            except ValidationError as err:
+                self.fail('Script FAILED: %r %r %r with exception %r' % (scriptSig, scriptPubKey, comment, err))
 
     def test_script_invalid(self):
         for scriptSig, scriptPubKey, comment, test_case in load_test_vectors('script_invalid.json'):
-            if VerifyScript(scriptSig, scriptPubKey, None, 0, flags=self.flags):
-                self.fail('Script FAILED: (by succeeding) %r %r %r' % (scriptSig, scriptPubKey, comment))
+            with self.assertRaises(ValidationError):
+                VerifyScript(scriptSig, scriptPubKey, None, 0, flags=self.flags)

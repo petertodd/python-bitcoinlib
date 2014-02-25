@@ -7,7 +7,7 @@ import json
 import unittest
 import os
 
-from bitcoin.core import COutPoint, CTxIn, CTxOut, CTransaction, CheckTransaction, CheckTransactionError, lx, x, b2x
+from bitcoin.core import COutPoint, CTxIn, CTxOut, CTransaction, CheckTransaction, CheckTransactionError, lx, x, b2x, ValidationError
 from bitcoin.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
 
 from bitcoin.tests.test_scripteval import parse_script
@@ -89,20 +89,12 @@ class Test_CTransaction(unittest.TestCase):
                         + str((prevouts, b2x(tx.serialize()), enforceP2SH)))
                 continue
 
-            valid = False
             for i in range(len(tx.vin)):
                 flags = set()
                 if enforceP2SH:
                     flags.add(SCRIPT_VERIFY_P2SH)
 
-                valid = VerifyScript(tx.vin[i].scriptSig, prevouts[tx.vin[i].prevout], tx, i, flags=flags)
-                if not valid:
-                    import pdb; pdb.set_trace()
-                    break
-
-            if not valid:
-                self.fail('tx failed at vin #%d: ' % i \
-                        + str((prevouts, b2x(tx.serialize()), enforceP2SH)))
+                VerifyScript(tx.vin[i].scriptSig, prevouts[tx.vin[i].prevout], tx, i, flags=flags)
 
 
     def test_tx_invalid(self):
@@ -112,17 +104,10 @@ class Test_CTransaction(unittest.TestCase):
             except CheckTransactionError:
                 continue
 
-            valid = True
-            for i in range(len(tx.vin)):
-                flags = set()
-                if enforceP2SH:
-                    flags.add(SCRIPT_VERIFY_P2SH)
+            with self.assertRaises(ValidationError):
+                for i in range(len(tx.vin)):
+                    flags = set()
+                    if enforceP2SH:
+                        flags.add(SCRIPT_VERIFY_P2SH)
 
-                valid = VerifyScript(tx.vin[i].scriptSig, prevouts[tx.vin[i].prevout], tx, i, flags=flags)
-                if not valid:
-                    break
-
-            if valid:
-                import pdb; pdb.set_trace()
-                self.fail('tx should have failed: ' \
-                        + str((prevouts, b2x(tx.serialize()), enforceP2SH)))
+                    VerifyScript(tx.vin[i].scriptSig, prevouts[tx.vin[i].prevout], tx, i, flags=flags)
