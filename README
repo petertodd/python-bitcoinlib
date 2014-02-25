@@ -23,7 +23,6 @@ libary. Non-consensus critical modules include the following:
 
 bitcoin.base58     - Base58 encoding
 bitcoin.bloom      - Bloom filters (incomplete)
-bitcoin.hash       - Non-cryptographic hashing
 bitcoin.net        - Network communication (broken currently)
 bitcoin.messages   - Network messages (broken currently)
 bitcoin.rpc        - Bitcoin Core RPC interface support
