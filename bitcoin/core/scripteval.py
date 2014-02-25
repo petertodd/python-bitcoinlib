@@ -52,17 +52,17 @@ class EvalScriptError(bitcoin.core.ValidationError):
     def __init__(self, msg):
         super(EvalScriptError, self).__init__('EvalScript: %s' % msg)
 
-def MissingOpArgumentsError(opcode, stack, n):
+def _MissingOpArgumentsError(opcode, stack, n):
     return EvalScriptError('missing arguments for %s; need %d items, but only %d on stack' %
                                    (OPCODE_NAMES[opcode], n, len(stack)))
 
-def CastToBigNum(s):
+def _CastToBigNum(s):
     v = bitcoin.core.bignum.vch2bn(s)
     if len(s) > nMaxNumSize:
-        raise EvalScriptError('CastToBigNum(): overflow')
+        raise EvalScriptError('_CastToBigNum(): overflow')
     return v
 
-def CastToBool(s):
+def _CastToBool(s):
     for i in range(len(s)):
         sv = bord(s[i])
         if sv != 0:
@@ -83,7 +83,7 @@ def _FindAndDelete(script, sig):
     return CScript(script_bytes)
 
 
-def CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
+def _CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
     key = bitcoin.core.key.CKey()
     key.set_pubkey(pubkey)
 
@@ -100,12 +100,12 @@ def CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
     return key.verify(h, sig)
 
 
-def CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
+def _CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
     i = 1
     if len(stack) < i:
-        raise MissingOpArgumentsError(opcode, stack, i)
+        raise _MissingOpArgumentsError(opcode, stack, i)
 
-    keys_count = CastToBigNum(stack[-i])
+    keys_count = _CastToBigNum(stack[-i])
     if keys_count < 0 or keys_count > 20:
         return False
     i += 1
@@ -114,14 +114,14 @@ def CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
     if len(stack) < i:
         return False
 
-    sigs_count = CastToBigNum(stack[-i])
+    sigs_count = _CastToBigNum(stack[-i])
     if sigs_count < 0 or sigs_count > keys_count:
         return False
     i += 1
     isig = i
     i += sigs_count
     if len(stack) < i:
-        raise MissingOpArgumentsError(opcode, stack, i)
+        raise _MissingOpArgumentsError(opcode, stack, i)
 
     # Drop the signature, since there's no way for a signature to sign itself
     #
@@ -137,7 +137,7 @@ def CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
         sig = stack[-isig]
         pubkey = stack[-ikey]
 
-        if CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
+        if _CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
             isig += 1
             sigs_count -= 1
 
@@ -176,10 +176,10 @@ ISA_UNOP = {
     OP_0NOTEQUAL,
 }
 
-def UnaryOp(opcode, stack):
+def _UnaryOp(opcode, stack):
     if len(stack) < 1:
-        raise MissingOpArgumentsError(opcode, stack, 1)
-    bn = CastToBigNum(stack.pop())
+        raise _MissingOpArgumentsError(opcode, stack, 1)
+    bn = _CastToBigNum(stack.pop())
 
     if opcode == OP_1ADD:
         bn += 1
@@ -225,12 +225,12 @@ ISA_BINOP = {
     OP_MAX,
 }
 
-def BinOp(opcode, stack):
+def _BinOp(opcode, stack):
     if len(stack) < 2:
-        raise MissingOpArgumentsError(opcode, stack, 2)
+        raise _MissingOpArgumentsError(opcode, stack, 2)
 
-    bn2 = CastToBigNum(stack.pop())
-    bn1 = CastToBigNum(stack.pop())
+    bn2 = _CastToBigNum(stack.pop())
+    bn1 = _CastToBigNum(stack.pop())
 
     if opcode == OP_ADD:
         bn = bn1 + bn2
@@ -281,7 +281,7 @@ def BinOp(opcode, stack):
     stack.append(bitcoin.core.bignum.bn2vch(bn))
 
     if opcode == OP_NUMEQUALVERIFY:
-        if CastToBool(stack[-1]):
+        if _CastToBool(stack[-1]):
             stack.pop()
         else:
             return False
@@ -317,7 +317,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=()):
 
         def check_args(n):
             if len(stack) < n:
-                raise MissingOpArgumentsError(sop, stack, n)
+                raise _MissingOpArgumentsError(sop, stack, n)
 
 
         if sop <= OP_PUSHDATA4:
@@ -334,11 +334,11 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=()):
             stack.append(bitcoin.core.bignum.bn2vch(v))
 
         elif fExec and sop in ISA_BINOP:
-            if not BinOp(sop, stack):
+            if not _BinOp(sop, stack):
                 return False
 
         elif fExec and sop in ISA_UNOP:
-            if not UnaryOp(sop, stack):
+            if not _UnaryOp(sop, stack):
                 return False
 
         elif fExec and sop == OP_2DROP:
@@ -390,8 +390,8 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=()):
 
         elif fExec and sop == OP_CHECKMULTISIG or sop == OP_CHECKMULTISIGVERIFY:
             tmpScript = CScript(scriptIn[pbegincodehash:])
-            ok = CheckMultiSig(sop, tmpScript, stack, txTo,
-                       inIdx, hashtype)
+            ok = _CheckMultiSig(sop, tmpScript, stack, txTo,
+                                inIdx, hashtype)
             if not ok:
                 return False
 
@@ -407,7 +407,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=()):
             # scriptSig and scriptPubKey are processed separately.
             tmpScript = _FindAndDelete(tmpScript, vchSig)
 
-            ok = CheckSig(vchSig, vchPubKey, tmpScript,
+            ok = _CheckSig(vchSig, vchPubKey, tmpScript,
                       txTo, inIdx, hashtype)
             if ok:
                 if sop != OP_CHECKSIGVERIFY:
@@ -462,7 +462,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=()):
 
         elif fExec and sop == OP_FROMALTSTACK:
             if len(altstack) < 1:
-                raise MissingOpArgumentsError(sop, altstack, 1)
+                raise _MissingOpArgumentsError(sop, altstack, 1)
             v = altstack.pop()
             stack.append(v)
 
@@ -480,7 +480,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=()):
             if fExec:
                 check_args(1)
                 vch = stack.pop()
-                val = CastToBool(vch)
+                val = _CastToBool(vch)
                 if sop == OP_NOTIF:
                     val = not val
 
@@ -490,7 +490,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=()):
         elif fExec and sop == OP_IFDUP:
             check_args(1)
             vch = stack[-1]
-            if CastToBool(vch):
+            if _CastToBool(vch):
                 stack.append(vch)
 
         elif fExec and sop == OP_NIP:
@@ -507,7 +507,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=()):
 
         elif fExec and sop == OP_PICK or sop == OP_ROLL:
             check_args(2)
-            n = CastToBigNum(stack.pop())
+            n = _CastToBigNum(stack.pop())
             if n < 0 or n >= len(stack):
                 return False
             vch = stack[-n-1]
@@ -567,7 +567,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=()):
         elif fExec and sop == OP_VERIFY:
             if len(stack) < 1:
                 return False
-            v = CastToBool(stack[-1])
+            v = _CastToBool(stack[-1])
             if v:
                 stack.pop()
             else:
@@ -575,9 +575,9 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=()):
 
         elif fExec and sop == OP_WITHIN:
             check_args(3)
-            bn3 = CastToBigNum(stack.pop())
-            bn2 = CastToBigNum(stack.pop())
-            bn1 = CastToBigNum(stack.pop())
+            bn3 = _CastToBigNum(stack.pop())
+            bn2 = _CastToBigNum(stack.pop())
+            bn1 = _CastToBigNum(stack.pop())
             v = (bn2 <= bn1) and (bn1 < bn3)
             if v:
                 stack.append(b"\x01")
@@ -616,7 +616,7 @@ def VerifyScript(scriptSig, scriptPubKey, txTo, inIdx, hashtype, flags=()):
         return False
     if len(stack) == 0:
         return False
-    if not CastToBool(stack[-1]):
+    if not _CastToBool(stack[-1]):
         return False
 
     # Additional validation for spend-to-script-hash transactions
@@ -637,7 +637,7 @@ def VerifyScript(scriptSig, scriptPubKey, txTo, inIdx, hashtype, flags=()):
         if not len(stackCopy):
             return False
 
-        return CastToBool(stackCopy[-1])
+        return _CastToBool(stackCopy[-1])
 
     return True
 
