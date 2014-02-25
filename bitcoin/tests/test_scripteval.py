@@ -58,10 +58,10 @@ class Test_EvalScript(unittest.TestCase):
     flags = (SCRIPT_VERIFY_P2SH, SCRIPT_VERIFY_STRICTENC)
     def test_script_valid(self):
         for scriptSig, scriptPubKey, comment, test_case in load_test_vectors('script_valid.json'):
-            if not VerifyScript(scriptSig, scriptPubKey, None, 0, SIGHASH_NONE, flags=self.flags):
+            if not VerifyScript(scriptSig, scriptPubKey, None, 0, flags=self.flags):
                 self.fail('Script FAILED: %r %r %r' % (scriptSig, scriptPubKey, comment))
 
     def test_script_invalid(self):
         for scriptSig, scriptPubKey, comment, test_case in load_test_vectors('script_invalid.json'):
-            if VerifyScript(scriptSig, scriptPubKey, None, 0, SIGHASH_NONE, flags=self.flags):
+            if VerifyScript(scriptSig, scriptPubKey, None, 0, flags=self.flags):
                 self.fail('Script FAILED: (by succeeding) %r %r %r' % (scriptSig, scriptPubKey, comment))

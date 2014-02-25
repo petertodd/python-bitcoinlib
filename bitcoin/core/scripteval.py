@@ -84,16 +84,13 @@ def _FindAndDelete(script, sig):
     return CScript(script_bytes)
 
 
-def _CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
+def _CheckSig(sig, pubkey, script, txTo, inIdx):
     key = bitcoin.core.key.CKey()
     key.set_pubkey(pubkey)
 
     if len(sig) == 0:
         return False
-    if hashtype == 0:
-        hashtype = bord(sig[-1])
-    elif hashtype != bord(sig[-1]):
-        return False
+    hashtype = bord(sig[-1])
     sig = sig[:-1]
 
     # Raw signature hash due to the SIGHASH_SINGLE bug
@@ -101,7 +98,7 @@ def _CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
     return key.verify(h, sig)
 
 
-def _CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
+def _CheckMultiSig(opcode, script, stack, txTo, inIdx):
     i = 1
     if len(stack) < i:
         raise _MissingOpArgumentsError(opcode, stack, i)
@@ -138,7 +135,7 @@ def _CheckMultiSig(opcode, script, stack, txTo, inIdx, hashtype):
         sig = stack[-isig]
         pubkey = stack[-ikey]
 
-        if _CheckSig(sig, pubkey, script, txTo, inIdx, hashtype):
+        if _CheckSig(sig, pubkey, script, txTo, inIdx):
             isig += 1
             sigs_count -= 1
 
@@ -296,7 +293,15 @@ def _CheckExec(vfExec):
     return True
 
 
-def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=()):
+def _EvalScript(stack, scriptIn, txTo, inIdx, flags=()):
+    """Evaluate a script
+
+    stack    - Initial stack
+    scriptIn - Script
+    txTo     - Transaction the script is a part of
+    inIdx    - txin index of the scriptSig
+    flags    - SCRIPT_VERIFY_* flags to apply
+    """
     if len(scriptIn) > MAX_SCRIPT_SIZE:
         raise EvalScriptError('script too large; got %d bytes; maximum %d bytes' %
                 (len(scriptIn), MAX_SCRIPT_SIZE))
@@ -391,8 +396,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=()):
 
         elif fExec and sop == OP_CHECKMULTISIG or sop == OP_CHECKMULTISIGVERIFY:
             tmpScript = CScript(scriptIn[pbegincodehash:])
-            ok = _CheckMultiSig(sop, tmpScript, stack, txTo,
-                                inIdx, hashtype)
+            ok = _CheckMultiSig(sop, tmpScript, stack, txTo, inIdx)
             if not ok:
                 return False
 
@@ -409,7 +413,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=()):
             tmpScript = _FindAndDelete(tmpScript, vchSig)
 
             ok = _CheckSig(vchSig, vchPubKey, tmpScript,
-                      txTo, inIdx, hashtype)
+                      txTo, inIdx)
             if ok:
                 if sop != OP_CHECKSIGVERIFY:
                     stack.append(b"\x01")
@@ -598,22 +602,29 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=()):
 
     return True
 
-def EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=()):
+def EvalScript(stack, scriptIn, txTo, inIdx, flags=()):
     try:
-        return _EvalScript(stack, scriptIn, txTo, inIdx, hashtype, flags=flags)
+        return _EvalScript(stack, scriptIn, txTo, inIdx, flags=flags)
     except CScriptInvalidError:
         return False
     except EvalScriptError:
         return False
 
 
-def VerifyScript(scriptSig, scriptPubKey, txTo, inIdx, hashtype, flags=()):
+def VerifyScript(scriptSig, scriptPubKey, txTo, inIdx, flags=()):
+    """Verify a scriptSig satisfies a scriptPubKey
+
+    scriptSig    - Signature
+    scriptPubKey - PubKey
+    txTo         - Spending transaction
+    inIdx        - Index of the transaction input containing scriptSig
+    """
     stack = []
-    if not EvalScript(stack, scriptSig, txTo, inIdx, hashtype, flags=flags):
+    if not EvalScript(stack, scriptSig, txTo, inIdx, flags=flags):
         return False
     if SCRIPT_VERIFY_P2SH in flags:
         stackCopy = list(stack)
-    if not EvalScript(stack, scriptPubKey, txTo, inIdx, hashtype, flags=flags):
+    if not EvalScript(stack, scriptPubKey, txTo, inIdx, flags=flags):
         return False
     if len(stack) == 0:
         return False
@@ -632,7 +643,7 @@ def VerifyScript(scriptSig, scriptPubKey, txTo, inIdx, hashtype, flags=()):
 
         pubKey2 = CScript(stackCopy.pop())
 
-        if not EvalScript(stackCopy, pubKey2, txTo, inIdx, hashtype, flags=flags):
+        if not EvalScript(stackCopy, pubKey2, txTo, inIdx, flags=flags):
             return False
 
         if not len(stackCopy):
@@ -642,7 +653,12 @@ def VerifyScript(scriptSig, scriptPubKey, txTo, inIdx, hashtype, flags=()):
 
     return True
 
-def VerifySignature(txFrom, txTo, inIdx, hashtype):
+def VerifySignature(txFrom, txTo, inIdx):
+    """Verify a scriptSig signature
+
+    Verifies that the scriptSig in txTo.vin[inIdx] is a valid scriptSig for the
+    corresponding COutPoint in transaction txFrom.
+    """
     if inIdx >= len(txTo.vin):
         return False
     txin = txTo.vin[inIdx]
@@ -656,8 +672,7 @@ def VerifySignature(txFrom, txTo, inIdx, hashtype):
     if txin.prevout.hash != txFrom.sha256:
         return False
 
-    if not VerifyScript(txin.scriptSig, txout.scriptPubKey, txTo, inIdx,
-                hashtype):
+    if not VerifyScript(txin.scriptSig, txout.scriptPubKey, txTo, inIdx):
         return False
 
     return True
