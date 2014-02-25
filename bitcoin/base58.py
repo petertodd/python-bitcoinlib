@@ -8,6 +8,8 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
 
+"""Base58 encoding and decoding"""
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
@@ -28,6 +30,10 @@ class Base58Error(Exception):
     pass
 
 class InvalidBase58Error(Base58Error):
+    """Raised on generic invalid base58 data, such as bad characters.
+
+    Checksum failures raise Base58ChecksumError specifically.
+    """
     pass
 
 def encode(b):
@@ -84,9 +90,11 @@ def decode(s):
 
 
 class Base58ChecksumError(Base58Error):
+    """Raised on Base58 checksum errors"""
     pass
 
 class CBase58Data(bytes):
+    """Base58-encoded data"""
     def __new__(cls, s):
         k = decode(s)
         addrbyte, data, check0 = k[0:1], k[1:-4], k[-4:]
@@ -97,14 +105,17 @@ class CBase58Data(bytes):
 
     @classmethod
     def from_bytes(cls, data, nVersion):
+        """Instantiate from data and nVersion"""
         self = super(CBase58Data, cls).__new__(cls, data)
         self.nVersion = nVersion
         return self
 
     def to_bytes(self):
+        """Convert to bytes"""
         return b'' + self
 
     def __str__(self):
+        """Convert to string"""
         vs = bchr(self.nVersion) + self
         check = bitcoin.core.Hash(vs)[0:4]
         return encode(vs + check)

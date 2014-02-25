@@ -49,6 +49,7 @@ disabled_opcodes = set((OP_VERIF, OP_VERNOTIF,
                         OP_LSHIFT, OP_RSHIFT))
 
 class EvalScriptError(bitcoin.core.ValidationError):
+    """Raised on EvalScript errors"""
     def __init__(self, msg):
         super(EvalScriptError, self).__init__('EvalScript: %s' % msg)
 

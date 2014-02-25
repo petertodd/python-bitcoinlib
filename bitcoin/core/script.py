@@ -32,10 +32,12 @@ OPCODE_NAMES = {}
 
 _opcode_instances = []
 class CScriptOp(int):
+    """A single script opcode"""
     __slots__ = []
 
     @staticmethod
     def encode_op_pushdata(d):
+        """Encode a PUSHDATA op, returning bytes"""
         if len(d) < 0x4c:
             return b'' + bchr(len(d)) + d # OP_PUSHDATA
         elif len(d) <= 0xff:
@@ -49,6 +51,7 @@ class CScriptOp(int):
 
     @staticmethod
     def encode_op_n(n):
+        """Encode a small integer op, returning an opcode"""
         if not (0 <= n <= 16):
             raise ValueError('Integer must be in range 0 <= n <= 16, got %d' % n)
 
@@ -58,6 +61,7 @@ class CScriptOp(int):
             return CScriptOp(OP_1 + n-1)
 
     def decode_op_n(self):
+        """Decode a small integer opcode, returning an integer"""
         if self == OP_0:
             return 0
 
@@ -595,14 +599,25 @@ OPCODES_BY_NAME = {
 }
 
 class CScriptInvalidError(Exception):
+    """Base class for CScript exceptions"""
     pass
 
 class CScriptTruncatedPushDataError(CScriptInvalidError):
+    """Invalid pushdata due to truncation"""
     def __init__(self, msg, data):
         self.data = data
         super(CScriptTruncatedPushDataError, self).__init__(msg)
 
 class CScript(bytes):
+    """Serialized script
+
+    A bytes subclass, so you can use this directly whenever bytes are accepted.
+    Note that this means that indexing does *not* work - you'll get an index by
+    byte rather than opcode. This format was chosen for efficiency so that the
+    general case would not require creating a lot of little CScriptOP objects.
+
+    iter(script) however does iterate by opcode.
+    """
     @classmethod
     def __coerce_instance(cls, other):
         # Coerce other into bytes
@@ -644,6 +659,12 @@ class CScript(bytes):
             return super(CScript, cls).__new__(cls, b''.join(coerce_iterable(value)))
 
     def raw_iter(self):
+        """Raw iteration
+
+        Yields tuples of (opcode, data, sop_idx) so that the different possible
+        PUSHDATA encodings can be accurately distinguished, as well as
+        determining the exact opcode byte indexes. (sop_idx)
+        """
         i = 0
         while i < len(self):
             sop_idx = i
@@ -695,6 +716,14 @@ class CScript(bytes):
                 yield (opcode, data, sop_idx)
 
     def __iter__(self):
+        """'Cooked' iteration
+
+        Returns either a CScriptOP instance, an integer, or bytes, as
+        appropriate.
+
+        See raw_iter() if you need to distinguish the different possible
+        PUSHDATA encodings.
+        """
         for (opcode, data, sop_idx) in self.raw_iter():
             if data is not None:
                 yield data
@@ -736,12 +765,20 @@ class CScript(bytes):
         return "CScript([%s])" % ', '.join(ops)
 
     def is_p2sh(self):
+        """Test if the script is a p2sh scriptPubKey
+
+        Note that this test is consensus-critical.
+        """
         return (len(self) == 23 and
                 bord(self[0]) == OP_HASH160 and
                 bord(self[1]) == 0x14 and
                 bord(self[22]) == OP_EQUAL)
 
     def is_push_only(self):
+        """Test if the script only contains pushdata ops
+
+        Note that this test is consensus-critical.
+        """
         for (op, op_data, idx) in self.raw_iter():
             # Note how OP_RESERVED is considered a pushdata op.
             if op > OP_16:
@@ -749,6 +786,7 @@ class CScript(bytes):
         return True
 
     def is_unspendable(self):
+        """Test if the script is provably unspendable"""
         return (len(self) > 0 and
                 bord(self[0]) == OP_RETURN)
 
@@ -765,6 +803,12 @@ class CScript(bytes):
         return True
 
     def GetSigOpCount(self, fAccurate):
+        """Get the SigOp count.
+
+        fAccurate - Accurately count CHECKMULTISIG, see BIP16 for details.
+
+        Note that this is consensus-critical.
+        """
         n = 0
         lastOpcode = OP_INVALIDOPCODE
         for (opcode, data, sop_idx) in self.raw_iter():
@@ -790,6 +834,14 @@ SIGHASH_SINGLE = 3
 SIGHASH_ANYONECANPAY = 0x80
 
 def RawSignatureHash(script, txTo, inIdx, hashtype):
+    """Consensus-correct SignatureHash
+
+    Returns (hash, err) to precisely match the consensus-critical behavior of
+    the SIGHASH_SINGLE bug. (inIdx is *not* checked for validity)
+
+    If you're just writing wallet software you probably want SignatureHash()
+    instead.
+    """
     HASH_ONE = b'\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 
     if inIdx >= len(txTo.vin):
@@ -836,6 +888,12 @@ def RawSignatureHash(script, txTo, inIdx, hashtype):
 
 
 def SignatureHash(script, txTo, inIdx, hashtype):
+    """Calculate a signature hash
+
+    'Cooked' version that checks if inIdx is out of bounds - this is *not*
+    consensus-correct behavior, but is what you probably want for general
+    wallet use.
+    """
     (h, err) = RawSignatureHash(script, txTo, inIdx, hashtype)
     if err is not None:
         raise ValueError(err)

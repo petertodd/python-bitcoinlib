@@ -1,5 +1,3 @@
-
-
 # Copyright 2011 Jeff Garzik
 #
 # RawProxy has the following improvements over python-jsonrpc's ServiceProxy
@@ -32,6 +30,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+"""Bitcoin Core RPC support"""
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 

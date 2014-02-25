@@ -30,14 +30,13 @@ else:
 MAX_SIZE = 0x02000000
 
 class SerializationError(Exception):
-    pass
+    """Base class for serialization errors"""
 
 class SerializationTruncationError(Exception):
     """Serialized data was truncated
 
     Thrown by deserialize() and stream_deserialize()
     """
-    pass
 
 def ser_read(f, n):
     """Read from a stream safely
@@ -54,20 +53,25 @@ def ser_read(f, n):
     return r
 
 class Serializable(object):
+    """Base class for serializable objects"""
     def stream_serialize(self, f):
+        """Serialize to a stream"""
         raise NotImplementedError
 
     @classmethod
     def stream_deserialize(cls, f):
+        """Deserialize from a stream"""
         raise NotImplementedError
 
     def serialize(self):
+        """Serialize, returning bytes"""
         f = BytesIO()
         self.stream_serialize(f)
         return f.getvalue()
 
     @classmethod
     def deserialize(cls, buf):
+        """Deserialize bytes, returning an instance"""
         return cls.stream_deserialize(BytesIO(buf))
 
     def __eq__(self, other):
@@ -83,6 +87,7 @@ class Serializable(object):
         return hash(self.serialize())
 
 class Serializer(object):
+    """Base class for object serializers"""
     def __new__(cls):
         raise NotImplementedError
 
@@ -134,6 +139,7 @@ class VarIntSerializer(Serializer):
             return struct.unpack(b'<Q', ser_read(f, 8))[0]
 
 class BytesSerializer(Serializer):
+    """Serialization of bytes instances"""
     @classmethod
     def stream_serialize(cls, b, f):
         VarIntSerializer.stream_serialize(len(b), f)
@@ -145,6 +151,7 @@ class BytesSerializer(Serializer):
         return ser_read(f, l)
 
 class VectorSerializer(Serializer):
+    """Base class for serializers of object vectors"""
     @classmethod
     def stream_serialize(cls, inner_cls, objs, f):
         VarIntSerializer.stream_serialize(len(objs), f)
@@ -160,6 +167,7 @@ class VectorSerializer(Serializer):
         return r
 
 class uint256VectorSerializer(Serializer):
+    """Serialize vectors of uint256"""
     @classmethod
     def stream_serialize(cls, inner_cls, objs, f):
         VarIntSerializer.stream_serialize(len(objs), f)
@@ -176,6 +184,7 @@ class uint256VectorSerializer(Serializer):
         return r
 
 def uint256_from_str(s):
+    """Convert bytes to uint256"""
     r = 0
     t = struct.unpack(b"<IIIIIIII", s[:32])
     for i in range(8):
@@ -183,6 +192,10 @@ def uint256_from_str(s):
     return r
 
 def uint256_from_compact(c):
+    """Convert compact encoding to uint256
+
+    Used for the nBits compact encoding of the target in the block header.
+    """
     nbytes = (c >> 24) & 0xFF
     v = (c & 0xFFFFFF) << (8 * (nbytes - 3))
     return v
@@ -192,6 +205,7 @@ def uint256_to_shortstr(u):
     return s[:16]
 
 def deser_int_vector(f):
+    """Deserialize a vector of ints"""
     nit = struct.unpack(b"<B", f.read(1))[0]
     if nit == 253:
         nit = struct.unpack(b"<H", f.read(2))[0]
@@ -206,6 +220,7 @@ def deser_int_vector(f):
     return r
 
 def ser_int_vector(l):
+    """Serialize a vector of ints"""
     r = b""
     if len(l) < 253:
         r = bchr(len(l))
@@ -219,10 +234,12 @@ def ser_int_vector(l):
         r += struct.pack(b"<i", i)
     return r
 
-def Hash(s):
-    return hashlib.sha256(hashlib.sha256(s).digest()).digest()
+def Hash(msg):
+    """SHA256^2)(msg) -> bytes"""
+    return hashlib.sha256(hashlib.sha256(msg).digest()).digest()
 
-def Hash160(s):
+def Hash160(msg):
+    """RIPEME160(SHA256(msg)) -> bytes"""
     h = hashlib.new('ripemd160')
-    h.update(hashlib.sha256(s).digest())
+    h.update(hashlib.sha256(msg).digest())
     return h.digest()
