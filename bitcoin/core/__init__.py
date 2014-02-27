@@ -16,7 +16,15 @@ import hashlib
 from .script import CScript
 
 from .serialize import *
-from .coredefs import *
+
+# Core definitions
+COIN = 100000000
+MAX_MONEY = 21000000 * COIN
+MAX_BLOCK_SIZE = 1000000
+MAX_BLOCK_SIGOPS = MAX_BLOCK_SIZE/50
+
+def MoneyRange(nValue):
+        return 0<= nValue <= MAX_MONEY
 
 def x(h):
     """Convert a hex string to bytes"""
@@ -313,6 +321,49 @@ class CBlock(CBlockHeader):
         return CBlock.calc_merkle_root_from_hashes(hashes)
 
 
+class CoreChainParams(object):
+    """Define consensus-critical parameters of a given instance of the Bitcoin system"""
+    GENESIS_BLOCK = None
+    PROOF_OF_WORK_LIMIT = None
+    SUBSIDY_HALVING_INTERVAL = None
+    NAME = None
+
+class CoreMainParams(CoreChainParams):
+    NAME = 'mainnet'
+    GENESIS_BLOCK = CBlock.deserialize(x('0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c0101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4d04ffff001d0104455468652054696d65732030332f4a616e2f32303039204368616e63656c6c6f72206f6e206272696e6b206f66207365636f6e64206261696c6f757420666f722062616e6b73ffffffff0100f2052a01000000434104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5fac00000000'))
+    SUBSIDY_HALVING_INTERVAL = 210000
+    PROOF_OF_WORK_LIMIT = 2**256-1 >> 32
+
+class CoreTestNetParams(CoreMainParams):
+    NAME = 'testnet'
+    GENESIS_BLOCK = CBlock.deserialize(x('0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4adae5494dffff001d1aa4ae180101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4d04ffff001d0104455468652054696d65732030332f4a616e2f32303039204368616e63656c6c6f72206f6e206272696e6b206f66207365636f6e64206261696c6f757420666f722062616e6b73ffffffff0100f2052a01000000434104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5fac00000000'))
+
+class CoreRegTestParams(CoreTestNetParams):
+    NAME = 'regtest'
+    GENESIS_BLOCK = CBlock.deserialize(x('0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4adae5494dffff7f20020000000101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4d04ffff001d0104455468652054696d65732030332f4a616e2f32303039204368616e63656c6c6f72206f6e206272696e6b206f66207365636f6e64206261696c6f757420666f722062616e6b73ffffffff0100f2052a01000000434104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5fac00000000'))
+    SUBSIDY_HALVING_INTERVAL = 150
+    PROOF_OF_WORK_LIMIT = 2**256-1 >> 1
+
+"""Master global setting for what core chain params we're using"""
+coreparams = CoreMainParams()
+
+def _SelectCoreParams(name):
+    """Select the core chain parameters to use
+
+    Don't use this directly, use bitcoin.SelectParams() instead so both
+    consensus-critical and general parameters are set properly.
+    """
+    global coreparams
+    if name == 'mainnet':
+        coreparams = CoreMainParams()
+    elif name == 'testnet':
+        coreparams = CoreTestNetParams()
+    elif name == 'regtest':
+        coreparams = CoreRegTestParams()
+    else:
+        raise ValueError('Unknown chain %r' % name)
+
+
 class CheckTransactionError(ValidationError):
     pass
 
@@ -376,7 +427,7 @@ def CheckProofOfWork(hash, nBits):
     target = uint256_from_compact(nBits)
 
     # Check range
-    if not (0 < target <= PROOF_OF_WORK_LIMIT):
+    if not (0 < target <= coreparams.PROOF_OF_WORK_LIMIT):
         raise CheckProofOfWorkError("CheckProofOfWork() : nBits below minimum work")
 
     # Check proof of work matches claimed amount

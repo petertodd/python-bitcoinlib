@@ -14,22 +14,19 @@ scriptPubKeys; currently there is no actual wallet support implemented.
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import bitcoin
 import bitcoin.base58
 import bitcoin.core.script as script
 
 class CBitcoinAddress(bitcoin.base58.CBase58Data):
     """A Bitcoin address"""
-    PUBKEY_ADDRESS = 0
-    SCRIPT_ADDRESS = 5
-    PUBKEY_ADDRESS_TEST = 111
-    SCRIPT_ADDRESS_TEST = 196
 
     def to_scriptPubKey(self):
         """Convert an address to a scriptPubKey"""
-        if self.nVersion in (self.PUBKEY_ADDRESS, self.PUBKEY_ADDRESS_TEST):
+        if self.nVersion == bitcoin.params.BASE58_PREFIXES['PUBKEY_ADDR']:
             return script.CScript([script.OP_DUP, script.OP_HASH160, self, script.OP_EQUALVERIFY, script.OP_CHECKSIG])
 
-        elif self.nVersion in (self.SCRIPT_ADDRESS, self.SCRIPT_ADDRESS_TEST):
+        elif self.nVersion == bitcoin.params.BASE58_PREFIXES['SCRIPT_ADDR']:
             return script.CScript([script.OP_HASH160, self, script.OP_EQUAL])
 
         else:

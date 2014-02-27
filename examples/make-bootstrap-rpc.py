@@ -8,27 +8,24 @@
 
 """Make a boostrap.dat file by getting the blocks from the RPC interface."""
 
+import bitcoin
 from bitcoin.core import CBlock
-import bitcoin.core.coredefs
 import bitcoin.rpc
 
 import struct
 import sys
 import time
 
-msg_start = bitcoin.core.coredefs.NETWORKS['mainnet'].msg_start
 try:
     if len(sys.argv) not in (2, 3):
         raise Exception
 
     n = int(sys.argv[1])
 
-    if len(sys.argv) == 2:
-        msg_start = bitcoin.core.coredefs.NETWORKS[sys.argv[2]].msg_start
+    if len(sys.argv) == 3:
+        bitcoin.SelectParams(sys.argv[2])
 except Exception as ex:
-    print('Usage: %s <block-height> [network=mainnet] > bootstrap.dat' % sys.argv[0], file=sys.stderr)
-    print('', file=sys.stderr)
-    print('Where network is one of %s' % (tuple(bitcoin.core.coredefs.NETWORKS.keys()),), file=sys.stderr)
+    print('Usage: %s <block-height> [network=(mainnet|testnet|regtest)] > bootstrap.dat' % sys.argv[0], file=sys.stderr)
     sys.exit(1)
 
 
@@ -49,6 +46,6 @@ for i in range(n+1):
              i, len(block_bytes)),
           file=sys.stderr)
 
-    fd.write(msg_start)
+    fd.write(bitcoin.params.MESSAGE_START)
     fd.write(struct.pack('<i', len(block_bytes)))
     fd.write(block_bytes)

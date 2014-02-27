@@ -51,9 +51,9 @@ try:
 except ImportError:
     import urlparse
 
-from bitcoin.core import lx, b2lx, CBlock, CTransaction, COutPoint, CTxOut
+import bitcoin
+from bitcoin.core import COIN, lx, b2lx, CBlock, CTransaction, COutPoint, CTxOut
 from bitcoin.core.script import CScript
-from bitcoin.core.coredefs import COIN
 from bitcoin.wallet import CBitcoinAddress
 
 USER_AGENT = "AuthServiceProxy/0.1"
@@ -78,7 +78,7 @@ class JSONRPCException(Exception):
 class RawProxy(object):
     # FIXME: need a CChainParams rather than hard-coded service_port
     def __init__(self, service_url=None,
-                       service_port=8332,
+                       service_port=None,
                        btc_conf_file=None,
                        timeout=HTTP_TIMEOUT,
                        _connection=None):
@@ -109,6 +109,8 @@ class RawProxy(object):
                     k, v = line.split('=', 1)
                     conf[k.strip()] = v.strip()
 
+                if service_port is None:
+                    service_port = bitcoin.params.RPC_PORT
                 conf['rpcport'] = int(conf.get('rpcport', service_port))
                 conf['rpcssl'] = conf.get('rpcssl', '0')
 
@@ -206,7 +208,7 @@ class RawProxy(object):
 
 class Proxy(RawProxy):
     def __init__(self, service_url=None,
-                       service_port=8332,
+                       service_port=None,
                        btc_conf_file=None,
                        timeout=HTTP_TIMEOUT,
                        **kwargs):

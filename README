@@ -2,13 +2,16 @@ python-bitcoinlib
 -----------------
 
 This Python2/3 library provides an easy interface to the bitcoin data
-structures and protocol.
+structures and protocol. The approach is low-level and "ground up", with a
+focus on providing tools to manipulate the internals of how Bitcoin works.
 
 
 Structure
 ---------
 
-Everything consensus critical is found in the modules under bitcoin.core:
+Everything consensus critical is found in the modules under bitcoin.core. This
+rule is followed pretty strictly, for instance chain parameters are split into
+consensus critical and non-consensus-critical.
 
 bitcoin.core            - Basic datastructures, CTransaction, CBlock etc.
 bitcoin.core.bignum     - Bignum handling
@@ -21,6 +24,7 @@ bitcoin.core.serialize  - Serialization
 In the future the bitcoin.core may use the Satoshi sourcecode directly as a
 libary. Non-consensus critical modules include the following:
 
+bitcoin            - Chain selection
 bitcoin.base58     - Base58 encoding
 bitcoin.bloom      - Bloom filters (incomplete)
 bitcoin.net        - Network communication (broken currently)
@@ -38,6 +42,19 @@ Example Code
 ------------
 
 See examples/ directory.
+
+
+Selecting the chain to use
+--------------------------
+
+Do the following:
+
+    import bitcoin
+    bitcoin.SelectChain(NAME)
+
+Where NAME is one of 'testnet', 'mainnet', or 'regtest'. The chain currently
+selected is a global variable that changes behavior everywhere, just like in
+the Satoshi codebase.
 
 
 Unit tests
