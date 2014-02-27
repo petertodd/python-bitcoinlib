@@ -13,9 +13,9 @@ Everything consensus critical is found in the modules under bitcoin.core. This
 rule is followed pretty strictly, for instance chain parameters are split into
 consensus critical and non-consensus-critical.
 
-bitcoin.core            - Basic datastructures, CTransaction, CBlock etc.
+bitcoin.core            - Basic core definitions, datastructures, and
+                          (context-independent) validation
 bitcoin.core.bignum     - Bignum handling
-bitcoin.core.coredef    - Core definitions, MAX_MONEY, etc.
 bitcoin.core.key        - ECC pubkeys
 bitcoin.core.script     - Scripts and opcodes
 bitcoin.core.scripteval - Script evaluation/verification
