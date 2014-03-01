@@ -31,9 +31,6 @@ import bitcoin.core.serialize
 from bitcoin.core.script import *
 
 nMaxNumSize = 4
-MAX_SCRIPT_SIZE = 10000
-MAX_SCRIPT_ELEMENT_SIZE = 520
-MAX_SCRIPT_OPCODES = 201
 MAX_STACK_ITEMS = 1000
 
 SCRIPT_VERIFY_P2SH = object()
