@@ -28,6 +28,10 @@ import struct
 import bitcoin.core
 import bitcoin.core.bignum
 
+MAX_SCRIPT_SIZE = 10000
+MAX_SCRIPT_ELEMENT_SIZE = 520
+MAX_SCRIPT_OPCODES = 201
+
 OPCODE_NAMES = {}
 
 _opcode_instances = []
@@ -802,12 +806,20 @@ class CScript(bytes):
             return False
         return True
 
-    def to_p2sh_scriptPubKey(self):
+    def to_p2sh_scriptPubKey(self, checksize=True):
         """Create P2SH scriptPubKey from this redeemScript
 
         That is, create the P2SH scriptPubKey that requires this script as a
         redeemScript to spend.
+
+        checksize - Check if the redeemScript is larger than the 520-byte max
+                    pushdata limit; raise ValueError if limit exceeded.
+
+        Since a >520-byte PUSHDATA makes EvalScript() fail, it's not actually
+        possible to redeem P2SH outputs with redeem scripts >520 bytes.
         """
+        if checksize and len(self) > MAX_SCRIPT_ELEMENT_SIZE:
+            raise ValueError("redeemScript exceeds max allowed size; P2SH output would be unspendable")
         return CScript([OP_HASH160, bitcoin.core.Hash160(self), OP_EQUAL])
 
     def GetSigOpCount(self, fAccurate):

@@ -331,3 +331,9 @@ class Test_CScript(unittest.TestCase):
 
         T([1,x('029b6d2c97b8b7c718c325d7be3ac30f7c9d67651bce0c929f55ee77ce58efcf84'),1,OP_CHECKMULTISIG],
           'a91419a7d869032368fd1f1e26e5e73a4ad0e474960e87')
+
+        T([b'\xff'*517],
+          'a9140da7fa40ebf248dfbca363c79921bdd665fed5ba87')
+
+        with self.assertRaises(ValueError):
+            CScript([b'a' * 518]).to_p2sh_scriptPubKey()
