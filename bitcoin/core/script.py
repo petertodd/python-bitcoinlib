@@ -802,6 +802,14 @@ class CScript(bytes):
             return False
         return True
 
+    def to_p2sh_scriptPubKey(self):
+        """Create P2SH scriptPubKey from this redeemScript
+
+        That is, create the P2SH scriptPubKey that requires this script as a
+        redeemScript to spend.
+        """
+        return CScript([OP_HASH160, bitcoin.core.Hash160(self), OP_EQUAL])
+
     def GetSigOpCount(self, fAccurate):
         """Get the SigOp count.
 

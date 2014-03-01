@@ -8,7 +8,7 @@ import os
 
 from binascii import unhexlify
 
-from bitcoin.core import x
+from bitcoin.core import b2x,x
 from bitcoin.core.script import *
 
 class Test_CScriptOp(unittest.TestCase):
@@ -319,3 +319,15 @@ class Test_CScript(unittest.TestCase):
 
         # invalid opcodes do not by themselves make a script invalid
         T(b'ff', True)
+
+    def test_to_p2sh_scriptPubKey(self):
+        def T(redeemScript, expected_hex_bytes):
+            redeemScript = CScript(redeemScript)
+            actual_script = redeemScript.to_p2sh_scriptPubKey()
+            self.assertEqual(b2x(actual_script), expected_hex_bytes)
+
+        T([],
+          'a914b472a266d0bd89c13706a4132ccfb16f7c3b9fcb87')
+
+        T([1,x('029b6d2c97b8b7c718c325d7be3ac30f7c9d67651bce0c929f55ee77ce58efcf84'),1,OP_CHECKMULTISIG],
+          'a91419a7d869032368fd1f1e26e5e73a4ad0e474960e87')
