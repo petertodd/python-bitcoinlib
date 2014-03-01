@@ -28,6 +28,23 @@ class Test_base58(unittest.TestCase):
             self.assertEqual(act_base58, exp_base58)
             self.assertEqual(act_bin, exp_bin)
 
+class Test_CBase58Data(unittest.TestCase):
+    def test_from_data(self):
+        b = CBase58Data.from_bytes(b"b\xe9\x07\xb1\\\xbf'\xd5BS\x99\xeb\xf6\xf0\xfbP\xeb\xb8\x8f\x18", 0)
+        self.assertEqual(b.nVersion, 0)
+        self.assertEqual(str(b), '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa')
+
+        b = CBase58Data.from_bytes(b'Bf\xfco,(a\xd7\xfe"\x9b\'\x9ay\x80:\xfc\xa7\xba4', 196)
+        self.assertEqual(b.nVersion, 196)
+        self.assertEqual(str(b), '2MyJKxYR2zNZZsZ39SgkCXWCfQtXKhnWSWq')
+
     def test_invalid_base58_exception(self):
-        with self.assertRaises(InvalidBase58Error):
-            decode('#')
+        invalids = ('', # missing everything
+                    '#', # invalid character
+                    '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNb', # invalid checksum
+                    )
+
+        for invalid in invalids:
+            msg = '%r should have raised InvalidBase58Error but did not' % invalid
+            with self.assertRaises(Base58Error, msg=msg):
+                CBase58Data(invalid)
