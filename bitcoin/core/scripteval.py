@@ -111,7 +111,7 @@ def _CastToBool(s):
     return False
 
 
-def _FindAndDelete(script, sig):
+def FindAndDelete(script, sig):
     # Since the Satoshi CScript.FindAndDelete() works on a binary level we have
     # to do that too. Notably FindAndDelete() will not delete if the PUSHDATA
     # used in the script is non-standard.
@@ -172,7 +172,7 @@ def _CheckMultiSig(opcode, script, stack, txTo, inIdx, err_raiser):
     # scriptSig and scriptPubKey are processed separately.
     for k in range(sigs_count):
         sig = stack[-isig-k]
-        script = _FindAndDelete(script, sig)
+        script = FindAndDelete(script, sig)
 
     success = True
 
@@ -471,7 +471,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, flags=()):
             #
             # Of course, this can only come up in very contrived cases now that
             # scriptSig and scriptPubKey are processed separately.
-            tmpScript = _FindAndDelete(tmpScript, vchSig)
+            tmpScript = FindAndDelete(tmpScript, vchSig)
 
             ok = _CheckSig(vchSig, vchPubKey, tmpScript, txTo, inIdx,
                            err_raiser)
