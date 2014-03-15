@@ -35,6 +35,22 @@ class Test_CBitcoinAddress(unittest.TestCase):
                              expected_str_address)
 
         T('a914000000000000000000000000000000000000000087', '31h1vYVSYuKP6AhS86fbRdMw9XHieotbST')
+        T('76a914000000000000000000000000000000000000000088ac', '1111111111111111111114oLvT2')
+
+        # Missing a byte
+        scriptPubKey = CScript(x('76a914000000000000000000000000000000000000000088'))
+        with self.assertRaises(ValueError):
+            CBitcoinAddress.from_scriptPubKey(scriptPubKey)
+
+        # One extra byte
+        scriptPubKey = CScript(x('76a914000000000000000000000000000000000000000088acac'))
+        with self.assertRaises(ValueError):
+            CBitcoinAddress.from_scriptPubKey(scriptPubKey)
+
+        # One byte changed
+        scriptPubKey = CScript(x('76a914000000000000000000000000000000000000000088ad'))
+        with self.assertRaises(ValueError):
+            CBitcoinAddress.from_scriptPubKey(scriptPubKey)
 
 
 class Test_CBitcoinSecret(unittest.TestCase):

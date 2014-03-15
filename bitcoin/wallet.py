@@ -36,9 +36,18 @@ class CBitcoinAddress(bitcoin.base58.CBase58Data):
     def from_scriptPubKey(cls, scriptPubKey):
         if scriptPubKey.is_p2sh():
             return cls.from_bytes(scriptPubKey[2:22], bitcoin.params.BASE58_PREFIXES['SCRIPT_ADDR'])
+
+        elif (len(scriptPubKey) == 25 and
+              bord(scriptPubKey[0])  == script.OP_DUP and
+              bord(scriptPubKey[1])  == script.OP_HASH160 and
+              bord(scriptPubKey[2])  == 0x14 and
+              bord(scriptPubKey[23]) == script.OP_EQUALVERIFY and
+              bord(scriptPubKey[24]) == script.OP_CHECKSIG):
+            return cls.from_bytes(scriptPubKey[3:23], bitcoin.params.BASE58_PREFIXES['PUBKEY_ADDR'])
+
         else:
-            # FIXME: add pay-to-pubkey-hash
-            raise CBitcoinAddressError('scriptPubKey not recognized')
+            # FIXME: add bare CHECKSIG and support for non-standard PUSHDATA's
+            raise ValueError('scriptPubKey not recognized')
 
     def to_scriptPubKey(self):
         """Convert an address to a scriptPubKey"""
