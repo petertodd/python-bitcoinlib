@@ -114,18 +114,6 @@ def _CastToBool(s):
     return False
 
 
-def FindAndDelete(script, sig):
-    # FIXME: incorrect
-
-    # Since the Satoshi CScript.FindAndDelete() works on a binary level we have
-    # to do that too. Notably FindAndDelete() will not delete if the PUSHDATA
-    # used in the script is non-standard.
-    sig_bytes = bytes(CScript([sig]))
-    script_bytes = bytes(script)
-    script_bytes = script_bytes.replace(sig_bytes, b'')
-    return CScript(script_bytes)
-
-
 def _CheckSig(sig, pubkey, script, txTo, inIdx, err_raiser):
     key = bitcoin.core.key.CECKey()
     key.set_pubkey(pubkey)
@@ -182,7 +170,7 @@ def _CheckMultiSig(opcode, script, stack, txTo, inIdx, err_raiser, nOpCount):
     # scriptSig and scriptPubKey are processed separately.
     for k in range(sigs_count):
         sig = stack[-isig-k]
-        script = FindAndDelete(script, sig)
+        script = FindAndDelete(script, CScript([sig]))
 
     success = True
 
@@ -480,7 +468,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, flags=()):
             #
             # Of course, this can only come up in very contrived cases now that
             # scriptSig and scriptPubKey are processed separately.
-            tmpScript = FindAndDelete(tmpScript, vchSig)
+            tmpScript = FindAndDelete(tmpScript, CScript([vchSig]))
 
             ok = _CheckSig(vchSig, vchPubKey, tmpScript, txTo, inIdx,
                            err_raiser)
