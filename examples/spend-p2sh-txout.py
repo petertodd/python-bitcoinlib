@@ -73,7 +73,6 @@ txin.scriptSig = CScript([sig, txin_redeemScript])
 # Verify the signature worked. This calls EvalScript() and actually executes
 # the opcodes in the scripts to see if everything worked out. If it doesn't an
 # exception will be raised.
-print(b2x(txin_scriptPubKey))
 VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
 
 # Done! Print the transaction to standard output with the bytes-to-hex
