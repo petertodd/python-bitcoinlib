@@ -115,6 +115,8 @@ def _CastToBool(s):
 
 
 def FindAndDelete(script, sig):
+    # FIXME: incorrect
+
     # Since the Satoshi CScript.FindAndDelete() works on a binary level we have
     # to do that too. Notably FindAndDelete() will not delete if the PUSHDATA
     # used in the script is non-standard.

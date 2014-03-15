@@ -864,6 +864,8 @@ def RawSignatureHash(script, txTo, inIdx, hashtype):
     """
     HASH_ONE = b'\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 
+    # FIXME: delete OP_CODESEPARATOR here with FindAndDelete()
+
     if inIdx >= len(txTo.vin):
         return (HASH_ONE, "inIdx %d out of range (%d)" % (inIdx, len(txTo.vin)))
     txtmp = copy.deepcopy(txTo)
