@@ -123,9 +123,6 @@ class CBase58Data(bytes):
         self = bytes.__new__(cls, data)
         self.nVersion = nVersion
 
-        # __new__() doesn't automatically call __init__(), so we have to do
-        # this ourselves to let any subclass-specific initialization happen.
-        self.__init__(None)
         return self
 
     def to_bytes(self):

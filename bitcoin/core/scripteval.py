@@ -127,7 +127,7 @@ def FindAndDelete(script, sig):
 
 
 def _CheckSig(sig, pubkey, script, txTo, inIdx, err_raiser):
-    key = bitcoin.core.key.CKey()
+    key = bitcoin.core.key.CECKey()
     key.set_pubkey(pubkey)
 
     if len(sig) == 0:

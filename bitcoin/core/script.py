@@ -81,6 +81,9 @@ class CScriptOp(int):
         else:
             return False
 
+    def __str__(self):
+        return repr(self)
+
     def __repr__(self):
         if self in OPCODE_NAMES:
             return OPCODE_NAMES[self]

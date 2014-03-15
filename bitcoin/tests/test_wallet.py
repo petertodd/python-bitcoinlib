@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import unittest
 
+from bitcoin.core import b2x
 from bitcoin.wallet import *
 
 class Test_CBitcoinAddress(unittest.TestCase):
@@ -24,3 +25,28 @@ class Test_CBitcoinAddress(unittest.TestCase):
         a = CBitcoinAddress('2MyJKxYR2zNZZsZ39SgkCXWCfQtXKhnWSWq')
         self.assertEqual(a.to_bytes(), b'Bf\xfco,(a\xd7\xfe"\x9b\'\x9ay\x80:\xfc\xa7\xba4')
         self.assertEqual(a.nVersion, 196)
+
+
+class Test_CBitcoinSecret(unittest.TestCase):
+    def test(self):
+        def T(base58_privkey, expected_hex_pubkey, expected_is_compressed_value):
+            key = CBitcoinSecret(base58_privkey)
+            self.assertEqual(b2x(key.pub), expected_hex_pubkey)
+            self.assertEqual(key.is_compressed, expected_is_compressed_value)
+
+        T('5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS',
+          '0478d430274f8c5ec1321338151e9f27f4c676a008bdf8638d07c0b6be9ab35c71a1518063243acd4dfe96b66e3f2ec8013c8e072cd09b3834a19f81f659cc3455',
+          False)
+        T('L3p8oAcQTtuokSCRHQ7i4MhjWc9zornvpJLfmg62sYpLRJF9woSu',
+          '0378d430274f8c5ec1321338151e9f27f4c676a008bdf8638d07c0b6be9ab35c71',
+          True)
+
+    def test_sign(self):
+        key = CBitcoinSecret('5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS')
+        hash = b'\x00' * 32
+        sig = key.sign(hash)
+
+        # FIXME: need better tests than this
+        self.assertTrue(key.pub.verify(hash, sig))
+        self.assertFalse(key.pub.verify(b'\xFF'*32, sig))
+        self.assertFalse(key.pub.verify(hash, sig[0:-1] + b'\x00'))

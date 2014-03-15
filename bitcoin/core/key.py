@@ -5,9 +5,16 @@
 # which was forked from git://github.com/samrushing/caesure.git
 #
 
+"""ECC secp256k1 crypto routines
+
+WARNING: This module does not mlock() secrets; your private keys may end up on
+disk in swap! Use with caution!
+"""
+
 import ctypes
 import ctypes.util
 import hashlib
+import sys
 
 ssl = ctypes.cdll.LoadLibrary(ctypes.util.find_library ('ssl') or 'libeay32')
 
@@ -24,18 +31,9 @@ def _check_result (val, func, args):
 ssl.EC_KEY_new_by_curve_name.restype = ctypes.c_void_p
 ssl.EC_KEY_new_by_curve_name.errcheck = _check_result
 
-class CPubKey(bytes):
+class CECKey:
+    """Wrapper around OpenSSL's EC_KEY"""
 
-    def IsValid(self):
-        return True
-
-    def IsFullyValid(self):
-        return True
-
-    def IsCompressed(self):
-        return len(self) == 33
-
-class CKey:
     POINT_CONVERSION_COMPRESSED = 2
     POINT_CONVERSION_UNCOMPRESSED = 4
 
@@ -47,31 +45,27 @@ class CKey:
             ssl.EC_KEY_free(self.k)
         self.k = None
 
-    def generate(self, secret=None):
-        if secret:
-            self.prikey = secret
-            priv_key = ssl.BN_bin2bn(secret, 32, ssl.BN_new())
-            group = ssl.EC_KEY_get0_group(self.k)
-            pub_key = ssl.EC_POINT_new(group)
-            ctx = ssl.BN_CTX_new()
-            if not ssl.EC_POINT_mul(group, pub_key, priv_key, None, None, ctx):
-                raise ValueError("Could not derive public key from the supplied secret.")
-            ssl.EC_POINT_mul(group, pub_key, priv_key, None, None, ctx)
-            ssl.EC_KEY_set_private_key(self.k, priv_key)
-            ssl.EC_KEY_set_public_key(self.k, pub_key)
-            ssl.EC_POINT_free(pub_key)
-            ssl.BN_CTX_free(ctx)
-            return self.k
-        else:
-            return ssl.EC_KEY_generate_key(self.k)
+    def set_secretbytes(self, secret):
+        priv_key = ssl.BN_bin2bn(secret, 32, ssl.BN_new())
+        group = ssl.EC_KEY_get0_group(self.k)
+        pub_key = ssl.EC_POINT_new(group)
+        ctx = ssl.BN_CTX_new()
+        if not ssl.EC_POINT_mul(group, pub_key, priv_key, None, None, ctx):
+            raise ValueError("Could not derive public key from the supplied secret.")
+        ssl.EC_POINT_mul(group, pub_key, priv_key, None, None, ctx)
+        ssl.EC_KEY_set_private_key(self.k, priv_key)
+        ssl.EC_KEY_set_public_key(self.k, pub_key)
+        ssl.EC_POINT_free(pub_key)
+        ssl.BN_CTX_free(ctx)
+        return self.k
 
     def set_privkey(self, key):
         self.mb = ctypes.create_string_buffer(key)
-        ssl.d2i_ECPrivateKey(ctypes.byref(self.k), ctypes.byref(ctypes.pointer(self.mb)), len(key))
+        return ssl.d2i_ECPrivateKey(ctypes.byref(self.k), ctypes.byref(ctypes.pointer(self.mb)), len(key))
 
     def set_pubkey(self, key):
         self.mb = ctypes.create_string_buffer(key)
-        ssl.o2i_ECPublicKey(ctypes.byref(self.k), ctypes.byref(ctypes.pointer(self.mb)), len(key))
+        return ssl.o2i_ECPublicKey(ctypes.byref(self.k), ctypes.byref(ctypes.pointer(self.mb)), len(key))
 
     def get_privkey(self):
         size = ssl.i2d_ECPrivateKey(self.k, 0)
@@ -108,6 +102,7 @@ class CKey:
         return mb_sig.raw[:sig_size0.value]
 
     def verify(self, hash, sig):
+        """Verify a DER signature"""
         return ssl.ECDSA_verify(0, hash, len(hash), sig, len(sig), self.k) == 1
 
     def set_compressed(self, compressed):
@@ -117,29 +112,44 @@ class CKey:
             form = self.POINT_CONVERSION_UNCOMPRESSED
         ssl.EC_KEY_set_conv_form(self.k, form)
 
-if __name__ == '__main__':
-    # ethalone keys
-    ec_secret = '' + \
-        'a0dc65ffca799873cbea0ac274015b9526505daaaed385155425f7337704883e'
-    ec_private = '308201130201010420' + \
-        'a0dc65ffca799873cbea0ac274015b9526505daaaed385155425f7337704883e' + \
-        'a081a53081a2020101302c06072a8648ce3d0101022100' + \
-        'fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f' + \
-        '300604010004010704410479be667ef9dcbbac55a06295ce870b07029bfcdb2d' + \
-        'ce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a6' + \
-        '8554199c47d08ffb10d4b8022100' + \
-        'fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141' + \
-        '020101a14403420004' + \
-        '0791dc70b75aa995213244ad3f4886d74d61ccd3ef658243fcad14c9ccee2b0a' + \
-        'a762fbc6ac0921b8f17025bb8458b92794ae87a133894d70d7995fc0b6b5ab90'
 
-    k = CKey()
-    k.generate (ec_secret.decode('hex'))
-    k.set_compressed(True)
-    print(k.get_privkey ().encode('hex'))
-    print(k.get_pubkey().encode('hex'))
-    # not sure this is needed any more: print k.get_secret().encode('hex')
+class CPubKey(bytes):
+    """An encapsulated public key
 
-    hash = 'Hello, world!'
-    print(k.verify(hash, k.sign(hash)))
+    Attributes:
+
+    is_valid      - Corresponds to CPubKey.IsValid()
+    is_fullyvalid - Corresponds to CPubKey.IsFullyValid()
+    is_compressed - Corresponds to CPubKey.IsCompressed()
+    """
+
+    def __new__(cls, buf, _cec_key=None):
+        self = super(CPubKey, cls).__new__(cls, buf)
+        if _cec_key is None:
+            _cec_key = CECKey()
+        self._cec_key = _cec_key
+        self.is_fullyvalid = _cec_key.set_pubkey(self) != 0
+        return self
+
+    @property
+    def is_valid(self):
+        return len(self) > 0
+
+    @property
+    def is_compressed(self):
+        return len(self) == 33
+
+    def verify(self, hash, sig):
+        return self._cec_key.verify(hash, sig)
+
+    def __str__(self):
+        return repr(self)
+
+    def __repr__(self):
+        # Always have represent as b'<secret>' so test cases don't have to
+        # change for py2/3
+        if sys.version > '3':
+            return '%s(%s)' % (self.__class__.__name__, super(CPubKey, self).__repr__())
+        else:
+            return '%s(b%s)' % (self.__class__.__name__, super(CPubKey, self).__repr__())
 
