@@ -6,6 +6,15 @@ structures and protocol. The approach is low-level and "ground up", with a
 focus on providing tools to manipulate the internals of how Bitcoin works.
 
 
+Requirements
+------------
+
+    sudo apt-get install libssl-dev
+
+The RPC interface, bitcoin.rpc, is designed to work with Bitcoin Core v0.9.
+Older versions mostly work but there do exist some incompatibilities.
+
+
 Structure
 ---------
 

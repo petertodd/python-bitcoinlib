@@ -215,11 +215,14 @@ class Proxy(RawProxy):
         """Create a proxy to a bitcoin RPC service
 
         Unlike RawProxy data is passed as objects, rather than JSON. (not yet
-        fully implemented)
+        fully implemented) Assumes Bitcoin Core version >= 0.9; older versions
+        mostly work, but there are a few incompatibilities.
 
         If service_url is not specified the username and password are read out
         of the file btc_conf_file. If btc_conf_file is not specified
-        ~/.bitcoin/bitcoin.conf or equivalent is used by default.
+        ~/.bitcoin/bitcoin.conf or equivalent is used by default. The default
+        port is set according to the chain parameters in use: mainnet, testnet,
+        or regtest.
 
         Usually no arguments to Proxy() are needed; the local bitcoind will be
         used.
