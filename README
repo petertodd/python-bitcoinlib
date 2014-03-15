@@ -50,7 +50,11 @@ CBlockHeader, nValue etc. Otherwise Python naming conventions are followed.
 Example Code
 ------------
 
-See examples/ directory.
+See examples/ directory. For instance this example creates a transaction
+spending a pay-to-script-hash transaction output:
+
+    $ PYTHONPATH=. examples/spend-pay-to-script-hash-txout.py
+    01000000012db211b32295f7ca3e9cdd9f3f0ea12bd938f8fc62c372f1147882dea35a197e000000006b483045022100a4dc2dcebc908e7ea791f69cf99b55b28e709f37d6da1a9da79cff511e47192f02206bdb1f1a67ff0715510717852e452a12bea0076388ca72ae523e9998f053185a01210378d430274f8c5ec1321338151e9f27f4c676a008bdf8638d07c0b6be9ab35c71ffffffff01a0860100000000001976a91479fbfc3f34e7745860d76137da68f362380c606c88ac00000000
 
 
 Selecting the chain to use

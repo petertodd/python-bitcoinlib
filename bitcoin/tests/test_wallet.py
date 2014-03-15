@@ -5,7 +5,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import unittest
 
-from bitcoin.core import b2x
+from bitcoin.core import b2x, x
+from bitcoin.core.script import CScript
 from bitcoin.wallet import *
 
 class Test_CBitcoinAddress(unittest.TestCase):
@@ -25,6 +26,15 @@ class Test_CBitcoinAddress(unittest.TestCase):
         a = CBitcoinAddress('2MyJKxYR2zNZZsZ39SgkCXWCfQtXKhnWSWq')
         self.assertEqual(a.to_bytes(), b'Bf\xfco,(a\xd7\xfe"\x9b\'\x9ay\x80:\xfc\xa7\xba4')
         self.assertEqual(a.nVersion, 196)
+
+
+    def test_from_scriptPubKey(self):
+        def T(hex_scriptpubkey, expected_str_address):
+            scriptPubKey = CScript(x(hex_scriptpubkey))
+            self.assertEqual(str(CBitcoinAddress.from_scriptPubKey(scriptPubKey)),
+                             expected_str_address)
+
+        T('a914000000000000000000000000000000000000000087', '31h1vYVSYuKP6AhS86fbRdMw9XHieotbST')
 
 
 class Test_CBitcoinSecret(unittest.TestCase):

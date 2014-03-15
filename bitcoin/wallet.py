@@ -15,9 +15,10 @@ scriptPubKeys; currently there is no actual wallet support implemented.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
+bchr = chr
 bord = ord
 if sys.version > '3':
-        long = int
+        bchr = lambda x: bytes([x])
         bord = lambda x: x
 
 import bitcoin
@@ -30,6 +31,14 @@ class CBitcoinAddressError(bitcoin.base58.Base58Error):
 
 class CBitcoinAddress(bitcoin.base58.CBase58Data):
     """A Bitcoin address"""
+
+    @classmethod
+    def from_scriptPubKey(cls, scriptPubKey):
+        if scriptPubKey.is_p2sh():
+            return cls.from_bytes(scriptPubKey[2:22], bitcoin.params.BASE58_PREFIXES['SCRIPT_ADDR'])
+        else:
+            # FIXME: add pay-to-pubkey-hash
+            raise CBitcoinAddressError('scriptPubKey not recognized')
 
     def to_scriptPubKey(self):
         """Convert an address to a scriptPubKey"""
@@ -85,6 +94,14 @@ class CBitcoinSecretError(bitcoin.base58.Base58Error):
 
 class CBitcoinSecret(bitcoin.base58.CBase58Data, CKey):
     """A base58-encoded secret key"""
+
+    @classmethod
+    def from_secret_bytes(cls, secret, compressed=True):
+        """Create a secret key from a 32-byte secret"""
+        self = cls.from_bytes(secret + b'\x01' if compressed else b'',
+                              bitcoin.params.BASE58_PREFIXES['SECRET_KEY'])
+        self.__init__(None)
+        return self
 
     def __init__(self, s):
         if self.nVersion != bitcoin.params.BASE58_PREFIXES['SECRET_KEY']:
