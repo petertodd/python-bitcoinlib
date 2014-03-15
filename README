@@ -57,6 +57,9 @@ spending a pay-to-script-hash transaction output:
     $ PYTHONPATH=. examples/spend-pay-to-script-hash-txout.py
     <hex-encoded transaction>
 
+Also see dust-b-gone for a simple example of Bitcoin Core wallet interaction
+through the RPC interface: https://github.com/petertodd/dust-b-gone
+
 
 Selecting the chain to use
 --------------------------
