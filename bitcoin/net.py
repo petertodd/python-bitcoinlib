@@ -50,7 +50,8 @@ class CInv(object):
     typemap = {
         0: "Error",
         1: "TX",
-        2: "Block"}
+        2: "Block",
+        3: "FilteredBlock"}
     def __init__(self):
         self.type = 0
         self.hash = 0
