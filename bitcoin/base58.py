@@ -105,17 +105,27 @@ class CBase58Data(bytes):
         if check0 != check1:
             raise Base58ChecksumError('Checksum mismatch: expected %r, calculated %r' % (check0, check1))
 
-        self = super(CBase58Data, cls).__new__(cls, data)
-        self.nVersion = bord(verbyte[0])
-        return self
+        return cls.from_bytes(data, bord(verbyte[0]))
+
+    def __init__(self, s):
+        """Initialize from base58-encoded string
+
+        Note: subclasses put your initialization routines here, but ignore the
+        argument - that's handled by __new__(), and .from_bytes() will call
+        __init__() with None in place of the string.
+        """
 
     @classmethod
     def from_bytes(cls, data, nVersion):
         """Instantiate from data and nVersion"""
         if not (0 <= nVersion <= 255):
             raise ValueError('nVersion must be in range 0 to 255 inclusive; got %d' % nVersion)
-        self = super(CBase58Data, cls).__new__(cls, data)
+        self = bytes.__new__(cls, data)
         self.nVersion = nVersion
+
+        # __new__() doesn't automatically call __init__(), so we have to do
+        # this ourselves to let any subclass-specific initialization happen.
+        self.__init__(None)
         return self
 
     def to_bytes(self):

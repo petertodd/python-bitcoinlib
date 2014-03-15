@@ -24,6 +24,17 @@ def _check_result (val, func, args):
 ssl.EC_KEY_new_by_curve_name.restype = ctypes.c_void_p
 ssl.EC_KEY_new_by_curve_name.errcheck = _check_result
 
+class CPubKey(bytes):
+
+    def IsValid(self):
+        return True
+
+    def IsFullyValid(self):
+        return True
+
+    def IsCompressed(self):
+        return len(self) == 33
+
 class CKey:
     POINT_CONVERSION_COMPRESSED = 2
     POINT_CONVERSION_UNCOMPRESSED = 4
