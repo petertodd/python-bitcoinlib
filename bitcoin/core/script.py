@@ -633,6 +633,8 @@ class CScript(bytes):
         elif isinstance(other, (int, long)):
             if 0 <= other <= 16:
                 other = bytes(bchr(CScriptOp.encode_op_n(other)))
+            elif other == -1:
+                other = bytes(bchr(OP_1NEGATE))
             else:
                 other = CScriptOp.encode_op_pushdata(bitcoin.core.bignum.bn2vch(other))
         elif isinstance(other, (bytes, bytearray)):
