@@ -16,7 +16,6 @@ if sys.version > '3':
     import io
 else:
     import cStringIO as io
-from bitcoin.coredefs import *
 from bitcoin.core import *
 
 MSG_TX = 1
