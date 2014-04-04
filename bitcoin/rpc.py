@@ -237,6 +237,15 @@ class Proxy(RawProxy):
         r = self._call('getaccountaddress', account)
         return CBitcoinAddress(r)
 
+    def getbalance(self, account='*', minconf=1):
+        """Get the balance
+
+        account - The selected account. Defaults to "*" for entire wallet. It may be the default account using "".
+        minconf - Only include transactions confirmed at least this many times. (default=1)
+        """
+        r = self._call('getbalance', account, minconf)
+        return int(r*COIN)
+
     def getblock(self, block_hash):
         """Get block <block_hash>
 
