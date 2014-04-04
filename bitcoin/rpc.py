@@ -141,12 +141,12 @@ class RawProxy(object):
             # Callables re-use the connection of the original proxy
             self.__conn = _connection
         elif self.__url.scheme == 'https':
-            self.__conn = httplib.HTTPSConnection(self.__url.hostname, port,
-                                                  None, None, False,
-                                                  timeout)
+            self.__conn = httplib.HTTPSConnection(self.__url.hostname, port=port,
+                                                  key_file=None, cert_file=None,
+                                                  timeout=timeout)
         else:
-            self.__conn = httplib.HTTPConnection(self.__url.hostname, port,
-                                                 False, timeout)
+            self.__conn = httplib.HTTPConnection(self.__url.hostname, port=port,
+                                                 timeout=timeout)
 
 
     def _call(self, service_name, *args):
