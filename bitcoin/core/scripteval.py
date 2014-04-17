@@ -397,269 +397,271 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, flags=()):
                 stack.append(sop_data)
                 continue
 
-        elif fExec and (sop == OP_1NEGATE or ((sop >= OP_1) and (sop <= OP_16))):
-            v = sop - (OP_1 - 1)
-            stack.append(bitcoin.core.bignum.bn2vch(v))
+        elif fExec or (OP_IF <= sop <= OP_ENDIF):
 
-        elif fExec and sop in ISA_BINOP:
-            _BinOp(sop, stack, err_raiser)
+            if sop == OP_1NEGATE or ((sop >= OP_1) and (sop <= OP_16)):
+                v = sop - (OP_1 - 1)
+                stack.append(bitcoin.core.bignum.bn2vch(v))
 
-        elif fExec and sop in ISA_UNOP:
-            _UnaryOp(sop, stack, err_raiser)
+            elif sop in ISA_BINOP:
+                _BinOp(sop, stack, err_raiser)
 
-        elif fExec and sop == OP_2DROP:
-            check_args(2)
-            stack.pop()
-            stack.pop()
+            elif sop in ISA_UNOP:
+                _UnaryOp(sop, stack, err_raiser)
 
-        elif fExec and sop == OP_2DUP:
-            check_args(2)
-            v1 = stack[-2]
-            v2 = stack[-1]
-            stack.append(v1)
-            stack.append(v2)
-
-        elif fExec and sop == OP_2OVER:
-            check_args(4)
-            v1 = stack[-4]
-            v2 = stack[-3]
-            stack.append(v1)
-            stack.append(v2)
-
-        elif fExec and sop == OP_2ROT:
-            check_args(6)
-            v1 = stack[-6]
-            v2 = stack[-5]
-            del stack[-6]
-            del stack[-5]
-            stack.append(v1)
-            stack.append(v2)
-
-        elif fExec and sop == OP_2SWAP:
-            check_args(4)
-            tmp = stack[-4]
-            stack[-4] = stack[-2]
-            stack[-2] = tmp
-
-            tmp = stack[-3]
-            stack[-3] = stack[-1]
-            stack[-1] = tmp
-
-        elif fExec and sop == OP_3DUP:
-            check_args(3)
-            v1 = stack[-3]
-            v2 = stack[-2]
-            v3 = stack[-1]
-            stack.append(v1)
-            stack.append(v2)
-            stack.append(v3)
-
-        elif fExec and sop == OP_CHECKMULTISIG or sop == OP_CHECKMULTISIGVERIFY:
-            tmpScript = CScript(scriptIn[pbegincodehash:])
-            _CheckMultiSig(sop, tmpScript, stack, txTo, inIdx, err_raiser, nOpCount)
-
-        elif fExec and sop == OP_CHECKSIG or sop == OP_CHECKSIGVERIFY:
-            check_args(2)
-            vchPubKey = stack[-1]
-            vchSig = stack[-2]
-            tmpScript = CScript(scriptIn[pbegincodehash:])
-
-            # Drop the signature, since there's no way for a signature to sign itself
-            #
-            # Of course, this can only come up in very contrived cases now that
-            # scriptSig and scriptPubKey are processed separately.
-            tmpScript = FindAndDelete(tmpScript, CScript([vchSig]))
-
-            ok = _CheckSig(vchSig, vchPubKey, tmpScript, txTo, inIdx,
-                           err_raiser)
-            if not ok and sop == OP_CHECKSIGVERIFY:
-                err_raiser(VerifyOpFailedError, sop)
-
-            else:
+            elif sop == OP_2DROP:
+                check_args(2)
                 stack.pop()
                 stack.pop()
 
-                if ok:
-                    if sop != OP_CHECKSIGVERIFY:
-                        stack.append(b"\x01")
+            elif sop == OP_2DUP:
+                check_args(2)
+                v1 = stack[-2]
+                v2 = stack[-1]
+                stack.append(v1)
+                stack.append(v2)
+
+            elif sop == OP_2OVER:
+                check_args(4)
+                v1 = stack[-4]
+                v2 = stack[-3]
+                stack.append(v1)
+                stack.append(v2)
+
+            elif sop == OP_2ROT:
+                check_args(6)
+                v1 = stack[-6]
+                v2 = stack[-5]
+                del stack[-6]
+                del stack[-5]
+                stack.append(v1)
+                stack.append(v2)
+
+            elif sop == OP_2SWAP:
+                check_args(4)
+                tmp = stack[-4]
+                stack[-4] = stack[-2]
+                stack[-2] = tmp
+
+                tmp = stack[-3]
+                stack[-3] = stack[-1]
+                stack[-1] = tmp
+
+            elif sop == OP_3DUP:
+                check_args(3)
+                v1 = stack[-3]
+                v2 = stack[-2]
+                v3 = stack[-1]
+                stack.append(v1)
+                stack.append(v2)
+                stack.append(v3)
+
+            elif sop == OP_CHECKMULTISIG or sop == OP_CHECKMULTISIGVERIFY:
+                tmpScript = CScript(scriptIn[pbegincodehash:])
+                _CheckMultiSig(sop, tmpScript, stack, txTo, inIdx, err_raiser, nOpCount)
+
+            elif sop == OP_CHECKSIG or sop == OP_CHECKSIGVERIFY:
+                check_args(2)
+                vchPubKey = stack[-1]
+                vchSig = stack[-2]
+                tmpScript = CScript(scriptIn[pbegincodehash:])
+
+                # Drop the signature, since there's no way for a signature to sign itself
+                #
+                # Of course, this can only come up in very contrived cases now that
+                # scriptSig and scriptPubKey are processed separately.
+                tmpScript = FindAndDelete(tmpScript, CScript([vchSig]))
+
+                ok = _CheckSig(vchSig, vchPubKey, tmpScript, txTo, inIdx,
+                               err_raiser)
+                if not ok and sop == OP_CHECKSIGVERIFY:
+                    err_raiser(VerifyOpFailedError, sop)
+
+                else:
+                    stack.pop()
+                    stack.pop()
+
+                    if ok:
+                        if sop != OP_CHECKSIGVERIFY:
+                            stack.append(b"\x01")
+                    else:
+                        stack.append(b"\x00")
+
+            elif sop == OP_CODESEPARATOR:
+                pbegincodehash = sop_pc
+
+            elif sop == OP_DEPTH:
+                bn = len(stack)
+                stack.append(bitcoin.core.bignum.bn2vch(bn))
+
+            elif sop == OP_DROP:
+                check_args(1)
+                stack.pop()
+
+            elif sop == OP_DUP:
+                check_args(1)
+                v = stack[-1]
+                stack.append(v)
+
+            elif sop == OP_ELSE:
+                if len(vfExec) == 0:
+                    err_raiser(EvalScriptError, 'ELSE found without prior IF')
+                vfExec[-1] = not vfExec[-1]
+
+            elif sop == OP_ENDIF:
+                if len(vfExec) == 0:
+                    err_raiser(EvalScriptError, 'ENDIF found without prior IF')
+                vfExec.pop()
+
+            elif sop == OP_EQUAL:
+                check_args(2)
+                v1 = stack.pop()
+                v2 = stack.pop()
+
+                if v1 == v2:
+                    stack.append(b"\x01")
                 else:
                     stack.append(b"\x00")
 
-        elif fExec and sop == OP_CODESEPARATOR:
-            pbegincodehash = sop_pc
+            elif sop == OP_EQUALVERIFY:
+                check_args(2)
+                v1 = stack[-1]
+                v2 = stack[-2]
 
-        elif fExec and sop == OP_DEPTH:
-            bn = len(stack)
-            stack.append(bitcoin.core.bignum.bn2vch(bn))
+                if v1 == v2:
+                    stack.pop()
+                    stack.pop()
+                else:
+                    err_raiser(VerifyOpFailedError, sop)
 
-        elif fExec and sop == OP_DROP:
-            check_args(1)
-            stack.pop()
+            elif sop == OP_FROMALTSTACK:
+                if len(altstack) < 1:
+                    err_raiser(MissingOpArgumentsError, sop, altstack, 1)
+                v = altstack.pop()
+                stack.append(v)
 
-        elif fExec and sop == OP_DUP:
-            check_args(1)
-            v = stack[-1]
-            stack.append(v)
-
-        elif sop == OP_ELSE:
-            if len(vfExec) == 0:
-                err_raiser(EvalScriptError, 'ELSE found without prior IF')
-            vfExec[-1] = not vfExec[-1]
-
-        elif sop == OP_ENDIF:
-            if len(vfExec) == 0:
-                err_raiser(EvalScriptError, 'ENDIF found without prior IF')
-            vfExec.pop()
-
-        elif fExec and sop == OP_EQUAL:
-            check_args(2)
-            v1 = stack.pop()
-            v2 = stack.pop()
-
-            if v1 == v2:
-                stack.append(b"\x01")
-            else:
-                stack.append(b"\x00")
-
-        elif fExec and sop == OP_EQUALVERIFY:
-            check_args(2)
-            v1 = stack[-1]
-            v2 = stack[-2]
-
-            if v1 == v2:
-                stack.pop()
-                stack.pop()
-            else:
-                err_raiser(VerifyOpFailedError, sop)
-
-        elif fExec and sop == OP_FROMALTSTACK:
-            if len(altstack) < 1:
-                err_raiser(MissingOpArgumentsError, sop, altstack, 1)
-            v = altstack.pop()
-            stack.append(v)
-
-        elif fExec and sop == OP_HASH160:
-            check_args(1)
-            stack.append(bitcoin.core.serialize.Hash160(stack.pop()))
-
-        elif fExec and sop == OP_HASH256:
-            check_args(1)
-            stack.append(bitcoin.core.serialize.Hash(stack.pop()))
-
-        elif sop == OP_IF or sop == OP_NOTIF:
-            val = False
-
-            if fExec:
+            elif sop == OP_HASH160:
                 check_args(1)
-                vch = stack.pop()
-                val = _CastToBool(vch)
-                if sop == OP_NOTIF:
-                    val = not val
+                stack.append(bitcoin.core.serialize.Hash160(stack.pop()))
 
-            vfExec.append(val)
+            elif sop == OP_HASH256:
+                check_args(1)
+                stack.append(bitcoin.core.serialize.Hash(stack.pop()))
+
+            elif sop == OP_IF or sop == OP_NOTIF:
+                val = False
+
+                if fExec:
+                    check_args(1)
+                    vch = stack.pop()
+                    val = _CastToBool(vch)
+                    if sop == OP_NOTIF:
+                        val = not val
+
+                vfExec.append(val)
 
 
-        elif fExec and sop == OP_IFDUP:
-            check_args(1)
-            vch = stack[-1]
-            if _CastToBool(vch):
+            elif sop == OP_IFDUP:
+                check_args(1)
+                vch = stack[-1]
+                if _CastToBool(vch):
+                    stack.append(vch)
+
+            elif sop == OP_NIP:
+                check_args(2)
+                del stack[-2]
+
+            elif sop == OP_NOP or (sop >= OP_NOP1 and sop <= OP_NOP10):
+                pass
+
+            elif sop == OP_OVER:
+                check_args(2)
+                vch = stack[-2]
                 stack.append(vch)
 
-        elif fExec and sop == OP_NIP:
-            check_args(2)
-            del stack[-2]
+            elif sop == OP_PICK or sop == OP_ROLL:
+                check_args(2)
+                n = _CastToBigNum(stack.pop(), err_raiser)
+                if n < 0 or n >= len(stack):
+                    err_raiser(EvalScriptError, "Argument for %s out of bounds" % OPCODE_NAMES[sop])
+                vch = stack[-n-1]
+                if sop == OP_ROLL:
+                    del stack[-n-1]
+                stack.append(vch)
 
-        elif fExec and sop == OP_NOP or (sop >= OP_NOP1 and sop <= OP_NOP10):
-            pass
+            elif sop == OP_RETURN:
+                err_raiser(EvalScriptError, "OP_RETURN called")
 
-        elif fExec and sop == OP_OVER:
-            check_args(2)
-            vch = stack[-2]
-            stack.append(vch)
+            elif sop == OP_RIPEMD160:
+                check_args(1)
 
-        elif fExec and sop == OP_PICK or sop == OP_ROLL:
-            check_args(2)
-            n = _CastToBigNum(stack.pop(), err_raiser)
-            if n < 0 or n >= len(stack):
-                err_raiser(EvalScriptError, "Argument for %s out of bounds" % OPCODE_NAMES[sop])
-            vch = stack[-n-1]
-            if sop == OP_ROLL:
-                del stack[-n-1]
-            stack.append(vch)
+                h = hashlib.new('ripemd160')
+                h.update(stack.pop())
+                stack.append(h.digest())
 
-        elif fExec and sop == OP_RETURN:
-            err_raiser(EvalScriptError, "OP_RETURN called")
+            elif sop == OP_ROT:
+                check_args(3)
+                tmp = stack[-3]
+                stack[-3] = stack[-2]
+                stack[-2] = tmp
 
-        elif fExec and sop == OP_RIPEMD160:
-            check_args(1)
+                tmp = stack[-2]
+                stack[-2] = stack[-1]
+                stack[-1] = tmp
 
-            h = hashlib.new('ripemd160')
-            h.update(stack.pop())
-            stack.append(h.digest())
+            elif sop == OP_SIZE:
+                check_args(1)
+                bn = len(stack[-1])
+                stack.append(bitcoin.core.bignum.bn2vch(bn))
 
-        elif fExec and sop == OP_ROT:
-            check_args(3)
-            tmp = stack[-3]
-            stack[-3] = stack[-2]
-            stack[-2] = tmp
+            elif sop == OP_SHA1:
+                check_args(1)
+                stack.append(hashlib.sha1(stack.pop()).digest())
 
-            tmp = stack[-2]
-            stack[-2] = stack[-1]
-            stack[-1] = tmp
+            elif sop == OP_SHA256:
+                check_args(1)
+                stack.append(hashlib.sha256(stack.pop()).digest())
 
-        elif fExec and sop == OP_SIZE:
-            check_args(1)
-            bn = len(stack[-1])
-            stack.append(bitcoin.core.bignum.bn2vch(bn))
+            elif sop == OP_SWAP:
+                check_args(2)
+                tmp = stack[-2]
+                stack[-2] = stack[-1]
+                stack[-1] = tmp
 
-        elif fExec and sop == OP_SHA1:
-            check_args(1)
-            stack.append(hashlib.sha1(stack.pop()).digest())
+            elif sop == OP_TOALTSTACK:
+                check_args(1)
+                v = stack.pop()
+                altstack.append(v)
 
-        elif fExec and sop == OP_SHA256:
-            check_args(1)
-            stack.append(hashlib.sha256(stack.pop()).digest())
+            elif sop == OP_TUCK:
+                check_args(2)
+                vch = stack[-1]
+                stack.insert(len(stack) - 2, vch)
 
-        elif fExec and sop == OP_SWAP:
-            check_args(2)
-            tmp = stack[-2]
-            stack[-2] = stack[-1]
-            stack[-1] = tmp
+            elif sop == OP_VERIFY:
+                check_args(1)
+                v = _CastToBool(stack[-1])
+                if v:
+                    stack.pop()
+                else:
+                    raise err_raiser(VerifyOpFailedError, sop)
 
-        elif fExec and sop == OP_TOALTSTACK:
-            check_args(1)
-            v = stack.pop()
-            altstack.append(v)
-
-        elif fExec and sop == OP_TUCK:
-            check_args(2)
-            vch = stack[-1]
-            stack.insert(len(stack) - 2, vch)
-
-        elif fExec and sop == OP_VERIFY:
-            check_args(1)
-            v = _CastToBool(stack[-1])
-            if v:
+            elif sop == OP_WITHIN:
+                check_args(3)
+                bn3 = _CastToBigNum(stack[-1], err_raiser)
+                bn2 = _CastToBigNum(stack[-2], err_raiser)
+                bn1 = _CastToBigNum(stack[-3], err_raiser)
                 stack.pop()
-            else:
-                raise err_raiser(VerifyOpFailedError, sop)
+                stack.pop()
+                stack.pop()
+                v = (bn2 <= bn1) and (bn1 < bn3)
+                if v:
+                    stack.append(b"\x01")
+                else:
+                    stack.append(b"\x00")
 
-        elif fExec and sop == OP_WITHIN:
-            check_args(3)
-            bn3 = _CastToBigNum(stack[-1], err_raiser)
-            bn2 = _CastToBigNum(stack[-2], err_raiser)
-            bn1 = _CastToBigNum(stack[-3], err_raiser)
-            stack.pop()
-            stack.pop()
-            stack.pop()
-            v = (bn2 <= bn1) and (bn1 < bn3)
-            if v:
-                stack.append(b"\x01")
             else:
-                stack.append(b"\x00")
-
-        elif fExec:
-            err_raiser(EvalScriptError, 'unsupported opcode 0x%x' % sop)
+                err_raiser(EvalScriptError, 'unsupported opcode 0x%x' % sop)
 
         # size limits
         if len(stack) + len(altstack) > MAX_STACK_ITEMS:
