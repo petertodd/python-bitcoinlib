@@ -295,6 +295,14 @@ class Proxy(RawProxy):
 
         return CBitcoinAddress(r)
 
+    def getrawchangeaddress(self):
+        """Returns a new Bitcoin address, for receiving change.
+
+        This is for use with raw transactions, NOT normal use.
+        """
+        r = self._call('getrawchangeaddress', account)
+        return CBitcoinAddress(r)
+
     def getrawtransaction(self, txid, verbose=False):
         """Return transaction with hash txid
 
@@ -323,6 +331,20 @@ class Proxy(RawProxy):
         else:
             r = CTransaction.deserialize(unhexlify(r))
 
+        return r
+
+    def gettransaction(self, txid):
+        """Get detailed information about in-wallet transaction txid
+
+        Raises IndexError if transaction not found in the wallet.
+
+        FIXME: Returned data types are not yet converted.
+        """
+        try:
+            r = self._call('gettransaction', b2lx(txid))
+        except JSONRPCException as ex:
+            raise IndexError('%s.getrawtransaction(): %s (%d)' %
+                    (self.__class__.__name__, ex.error['message'], ex.error['code']))
         return r
 
     def gettxout(self, outpoint, includemempool=True):
