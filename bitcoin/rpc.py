@@ -403,6 +403,13 @@ class Proxy(RawProxy):
         r = self._call('sendrawtransaction', hextx)
         return lx(r)
 
+    def sendtoaddress(self, addr, amount):
+        """Sent amount to a given address"""
+        addr = str(addr)
+        amount = float(amount)/COIN
+        r = self._call('sendtoaddress', addr, amount)
+        return lx(r)
+
     def signrawtransaction(self, tx, *args):
         """Sign inputs for transaction
 
