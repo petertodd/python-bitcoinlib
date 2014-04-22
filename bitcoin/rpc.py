@@ -300,7 +300,7 @@ class Proxy(RawProxy):
 
         This is for use with raw transactions, NOT normal use.
         """
-        r = self._call('getrawchangeaddress', account)
+        r = self._call('getrawchangeaddress')
         return CBitcoinAddress(r)
 
     def getrawtransaction(self, txid, verbose=False):
