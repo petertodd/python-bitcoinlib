@@ -303,6 +303,16 @@ class Proxy(RawProxy):
         r = self._call('getrawchangeaddress')
         return CBitcoinAddress(r)
 
+    def getrawmempool(self, verbose=False):
+        """Return the mempool"""
+        if verbose:
+            return self._call('getrawmempool', verbose)
+
+        else:
+            r = self._call('getrawmempool')
+            r = [lx(txid) for txid in r]
+            return r
+
     def getrawtransaction(self, txid, verbose=False):
         """Return transaction with hash txid
 
