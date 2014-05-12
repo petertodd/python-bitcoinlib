@@ -107,7 +107,7 @@ class CBitcoinSecret(bitcoin.base58.CBase58Data, CKey):
     @classmethod
     def from_secret_bytes(cls, secret, compressed=True):
         """Create a secret key from a 32-byte secret"""
-        self = cls.from_bytes(secret + b'\x01' if compressed else b'',
+        self = cls.from_bytes(secret + (b'\x01' if compressed else b''),
                               bitcoin.params.BASE58_PREFIXES['SECRET_KEY'])
         self.__init__(None)
         return self
