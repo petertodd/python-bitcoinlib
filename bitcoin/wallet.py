@@ -72,12 +72,10 @@ class CKey(object):
     """
     def __init__(self, secret, compressed=True):
         self._cec_key = bitcoin.core.key.CECKey()
-        self._cec_key.set_secretbytes(self)
+        self._cec_key.set_secretbytes(secret)
         self._cec_key.set_compressed(compressed)
 
         self.pub = bitcoin.core.key.CPubKey(self._cec_key.get_pubkey(), self._cec_key)
-
-        return self
 
     @property
     def is_compressed(self):
@@ -85,17 +83,6 @@ class CKey(object):
 
     def sign(self, hash):
         return self._cec_key.sign(hash)
-
-    def __str__(self):
-        return repr(self)
-
-    def __repr__(self):
-        # Always have represent as b'<secret>' so test cases don't have to
-        # change for py2/3
-        if sys.version > '3':
-            return '%s(%s, %r)' % (self.__class__.__name__, super(CKey, self).__repr__(), self.is_compressed)
-        else:
-            return '%s(b%s, %r)' % (self.__class__.__name__, super(CKey, self).__repr__(), self.is_compressed)
 
 
 class CBitcoinSecretError(bitcoin.base58.Base58Error):
