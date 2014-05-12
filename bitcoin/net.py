@@ -10,16 +10,13 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import struct
 import socket
-import binascii
-import hashlib
-import bitcoin.base58 as base58
-import bitcoin.script as script
+from binascii import hexlify
 
-from bitcoin.serialize import *
-from bitcoin.coredefs import *
+from .core import PROTO_VERSION, CADDR_TIME_VERSION
+from .core.serialize import *
 
 
-class CAddress(object):
+class CAddress(Serializable):
     def __init__(self, protover=PROTO_VERSION):
         self.protover = protover
         self.nTime = 0
@@ -27,62 +24,77 @@ class CAddress(object):
         self.pchReserved = b"\x00" * 10 + b"\xff" * 2
         self.ip = "0.0.0.0"
         self.port = 0
-    def deserialize(self, f):
-        if self.protover >= CADDR_TIME_VERSION:
-            self.nTime = struct.unpack(b"<I", ser_read(f,4))[0]
-        self.nServices = struct.unpack(b"<Q", ser_read(f,8))[0]
-        self.pchReserved = ser_read(f,12)
-        self.ip = socket.inet_ntoa(ser_read(f,4))
-        self.port = struct.unpack(b">H", ser_read(f,2))[0]
-    def serialize(self):
-        r = b""
-        if self.protover >= CADDR_TIME_VERSION:
-            r += struct.pack(b"<I", self.nTime)
-        r += struct.pack(b"<Q", self.nServices)
-        r += self.pchReserved
-        r += socket.inet_aton(self.ip)
-        r += struct.pack(b">H", self.port)
-        return r
+
+    @classmethod
+    def stream_deserialize(cls, f, without_time=False):
+        c = cls()
+        if c.protover >= CADDR_TIME_VERSION and not without_time:
+            c.nTime = struct.unpack(b"<I", ser_read(f, 4))[0]
+        c.nServices = struct.unpack(b"<Q", ser_read(f, 8))[0]
+        c.pchReserved = ser_read(f, 12)
+        c.ip = socket.inet_ntoa(ser_read(f, 4))
+        c.port = struct.unpack(b">H", ser_read(f, 2))[0]
+        return c
+
+    def stream_serialize(self, f, without_time=False):
+        if self.protover >= CADDR_TIME_VERSION and not without_time:
+            f.write(struct.pack(b"<I", self.nTime))
+        f.write(struct.pack(b"<Q", self.nServices))
+        f.write(self.pchReserved)
+        f.write(socket.inet_aton(self.ip))
+        f.write(struct.pack(b">H", self.port))
+
     def __repr__(self):
         return "CAddress(nTime=%d nServices=%i ip=%s port=%i)" % (self.nTime, self.nServices, self.ip, self.port)
 
-class CInv(object):
+
+class CInv(Serializable):
     typemap = {
         0: "Error",
         1: "TX",
         2: "Block",
         3: "FilteredBlock"}
+
     def __init__(self):
         self.type = 0
         self.hash = 0
-    def deserialize(self, f):
-        self.type = struct.unpack(b"<i", ser_read(f,4))[0]
-        self.hash = ser_read(f,32)
-    def serialize(self):
-        r = b""
-        r += struct.pack(b"<i", self.type)
-        r += self.hash
-        return r
-    def __repr__(self):
-        return "CInv(type=%s hash=%064x)" % (self.typemap[self.type], self.hash)
 
-class CBlockLocator(object):
-    def __init__(self):
-        self.nVersion = PROTO_VERSION
+    @classmethod
+    def stream_deserialize(cls, f):
+        c = cls()
+        c.type = struct.unpack(b"<i", ser_read(f, 4))[0]
+        c.hash = ser_read(f, 32)
+        return c
+
+    def stream_serialize(self, f):
+        f.write(struct.pack(b"<i", self.type))
+        f.write(self.hash)
+
+    def __repr__(self):
+        return "CInv(type=%s hash=%s)" % (self.typemap[self.type], hexlify(self.hash))
+
+
+class CBlockLocator(Serializable):
+    def __init__(self, protover=PROTO_VERSION):
+        self.nVersion = protover
         self.vHave = []
-    def deserialize(self, f):
-        self.nVersion = struct.unpack(b"<i", ser_read(f,4))[0]
-        self.vHave = deser_uint256_vector(f)
-    def serialize(self):
-        r = b""
-        r += struct.pack(b"<i", self.nVersion)
-        r += ser_uint256_vector(self.vHave)
-        return r
+
+    @classmethod
+    def stream_deserialize(cls, f):
+        c = cls()
+        c.nVersion = struct.unpack(b"<i", ser_read(f, 4))[0]
+        c.vHave = uint256VectorSerializer.stream_deserialize(f)
+        return c
+
+    def stream_serialize(self, f):
+        f.write(struct.pack(b"<i", self.nVersion))
+        uint256VectorSerializer.stream_serialize(self.vHave, f)
+
     def __repr__(self):
         return "CBlockLocator(nVersion=%i vHave=%s)" % (self.nVersion, repr(self.vHave))
 
 
-class CUnsignedAlert(object):
+class CUnsignedAlert(Serializable):
     def __init__(self):
         self.nVersion = 1
         self.nRelayUntil = 0
@@ -97,50 +109,59 @@ class CUnsignedAlert(object):
         self.strComment = b""
         self.strStatusBar = b""
         self.strReserved = b""
-    def deserialize(self, f):
-        self.nVersion = struct.unpack(b"<i", ser_read(f,4))[0]
-        self.nRelayUntil = struct.unpack(b"<q", ser_read(f,8))[0]
-        self.nExpiration = struct.unpack(b"<q", ser_read(f,8))[0]
-        self.nID = struct.unpack(b"<i", ser_read(f,4))[0]
-        self.nCancel = struct.unpack(b"<i", ser_read(f,4))[0]
-        self.setCancel = deser_int_vector(f)
-        self.nMinVer = struct.unpack(b"<i", ser_read(f,4))[0]
-        self.nMaxVer = struct.unpack(b"<i", ser_read(f,4))[0]
-        self.setSubVer = deser_string_vector(f)
-        self.nPriority = struct.unpack(b"<i", ser_read(f,4))[0]
-        self.strComment = deser_string(f)
-        self.strStatusBar = deser_string(f)
-        self.strReserved = deser_string(f)
-    def serialize(self):
-        r = b""
-        r += struct.pack(b"<i", self.nVersion)
-        r += struct.pack(b"<q", self.nRelayUntil)
-        r += struct.pack(b"<q", self.nExpiration)
-        r += struct.pack(b"<i", self.nID)
-        r += struct.pack(b"<i", self.nCancel)
-        r += ser_int_vector(self.setCancel)
-        r += struct.pack(b"<i", self.nMinVer)
-        r += struct.pack(b"<i", self.nMaxVer)
-        r += ser_string_vector(self.setSubVer)
-        r += struct.pack(b"<i", self.nPriority)
-        r += ser_string(self.strComment)
-        r += ser_string(self.strStatusBar)
-        r += ser_string(self.strReserved)
-        return r
+
+    @classmethod
+    def stream_deserialize(cls, f):
+        c = cls()
+        c.nVersion = struct.unpack(b"<i", ser_read(f,4))[0]
+        c.nRelayUntil = struct.unpack(b"<q", ser_read(f,8))[0]
+        c.nExpiration = struct.unpack(b"<q", ser_read(f,8))[0]
+        c.nID = struct.unpack(b"<i", ser_read(f,4))[0]
+        c.nCancel = struct.unpack(b"<i", ser_read(f,4))[0]
+        c.setCancel = intVectorSerialzer.deserialize(f)
+        c.nMinVer = struct.unpack(b"<i", ser_read(f,4))[0]
+        c.nMaxVer = struct.unpack(b"<i", ser_read(f,4))[0]
+        c.setSubVer = VarStringSerializer.deserialize(f)
+        c.nPriority = struct.unpack(b"<i", ser_read(f,4))[0]
+        c.strComment = VarStringSerializer.deserialize(f)
+        c.strStatusBar = VarStringSerializer.deserialize(f)
+        c.strReserved = VarStringSerializer.deserialize(f)
+        return c
+
+    def stream_serialize(self, f):
+        f.write(struct.pack(b"<i", self.nVersion))
+        f.write(struct.pack(b"<q", self.nRelayUntil))
+        f.write(struct.pack(b"<q", self.nExpiration))
+        f.write(struct.pack(b"<i", self.nID))
+        f.write(struct.pack(b"<i", self.nCancel))
+        f.write(ser_int_vector(self.setCancel))
+        f.write(struct.pack(b"<i", self.nMinVer))
+        f.write(struct.pack(b"<i", self.nMaxVer))
+        f.write(ser_string_vector(self.setSubVer))
+        f.write(struct.pack(b"<i", self.nPriority))
+        f.write(ser_string(self.strComment))
+        f.write(ser_string(self.strStatusBar))
+        f.write(ser_string(self.strReserved))
+
     def __repr__(self):
         return "CUnsignedAlert(nVersion %d, nRelayUntil %d, nExpiration %d, nID %d, nCancel %d, nMinVer %d, nMaxVer %d, nPriority %d, strComment %s, strStatusBar %s, strReserved %s)" % (self.nVersion, self.nRelayUntil, self.nExpiration, self.nID, self.nCancel, self.nMinVer, self.nMaxVer, self.nPriority, self.strComment, self.strStatusBar, self.strReserved)
 
-class CAlert(object):
+
+class CAlert(Serializable):
     def __init__(self):
         self.vchMsg = b""
         self.vchSig = b""
-    def deserialize(self, f):
-        self.vchMsg = deser_string(f)
-        self.vchSig = deser_string(f)
-    def serialize(self):
-        r = b""
-        r += ser_string(self.vchMsg)
-        r += ser_string(self.vchSig)
-        return r
+
+    @classmethod
+    def stream_deserialize(cls, f):
+        c = cls()
+        c.vchMsg = VarStringSerializer.stream_deserialize(f)
+        c.vchSig = VarStringSerializer.stream_deserialize(f)
+        return c
+
+    def stream_serialize(self, f):
+        VarStringSerializer.stream_serialize(self.vchMsg, f)
+        VarStringSerializer.stream_serialize(self.vchSig, f)
+
     def __repr__(self):
         return "CAlert(vchMsg.sz %d, vchSig.sz %d)" % (len(self.vchMsg), len(self.vchSig))
