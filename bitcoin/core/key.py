@@ -94,6 +94,12 @@ class CECKey:
         return kdf(r)
 
     def sign(self, hash):
+        # FIXME: need unit tests for below cases
+        if not isinstance(hash, bytes):
+            raise TypeError('Hash must be bytes instance; got %r' % hash.__class__)
+        if len(hash) != 32:
+            raise ValueError('Hash must be exactly 32 bytes long')
+
         sig_size0 = ctypes.c_uint32()
         sig_size0.value = ssl.ECDSA_size(self.k)
         mb_sig = ctypes.create_string_buffer(sig_size0.value)
