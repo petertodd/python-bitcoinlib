@@ -46,7 +46,12 @@ bitcoin.core.params correctly too.
 params = MainParams()
 
 def SelectParams(name):
-    """Select the chain parameters to use"""
+    """Select the chain parameters to use
+
+    name is one of 'mainnet', 'testnet', or 'regtest'
+
+    Default chain is 'mainnet'
+    """
     global params
     bitcoin.core._SelectCoreParams(name)
     if name == 'mainnet':
