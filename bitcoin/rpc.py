@@ -446,7 +446,8 @@ class Proxy(RawProxy):
     def validateaddress(self, address):
         """Return information about an address"""
         r = self._call('validateaddress', str(address))
-        r['address'] = CBitcoinAddress(r['address'])
+        if r['isvalid']:
+            r['address'] = CBitcoinAddress(r['address'])
         if 'pubkey' in r:
             r['pubkey'] = unhexlify(r['pubkey'])
         return r
