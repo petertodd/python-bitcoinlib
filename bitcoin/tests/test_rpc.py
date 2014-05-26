@@ -8,6 +8,12 @@ import unittest
 from bitcoin.rpc import Proxy
 
 class Test_RPC(unittest.TestCase):
+    '''
+    Tests disabled, see discussion below.
+    "Looks like your unit tests won't work if Bitcoin Core isn't running;
+    maybe they in turn need to check that and disable the test if core isn't available?"
+    https://github.com/petertodd/python-bitcoinlib/pull/10
+    '''
     def test_can_validate(self):
         if False:
             working_address = '1CB2fxLGAZEzgaY4pjr4ndeDWJiz3D3AT7'
