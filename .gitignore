@@ -3,3 +3,5 @@
 
 local*.cfg
 
+build/
+python_bitcoinlib.egg-info/

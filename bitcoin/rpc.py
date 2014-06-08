@@ -451,3 +451,16 @@ class Proxy(RawProxy):
         if 'pubkey' in r:
             r['pubkey'] = unhexlify(r['pubkey'])
         return r
+
+    def _addnode(self, node, arg):
+        r = self._call('addnode', node, arg)
+        return r
+
+    def addnode(self, node):
+        return self._addnode(node, 'add')
+
+    def addnodeonetry(self, node):
+        return self._addnode(node, 'onetry')
+
+    def removenode(self, node):
+        return self._addnode(node, 'remove')
