@@ -67,7 +67,7 @@ Selecting the chain to use
 Do the following:
 
     import bitcoin
-    bitcoin.SelectChain(NAME)
+    bitcoin.SelectParams(NAME)
 
 Where NAME is one of 'testnet', 'mainnet', or 'regtest'. The chain currently
 selected is a global variable that changes behavior everywhere, just like in
