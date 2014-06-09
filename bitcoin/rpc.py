@@ -407,10 +407,17 @@ class Proxy(RawProxy):
         json_outpoints = [{'txid':b2lx(outpoint.hash),'vout':outpoint.n} for outpoint in outpoints]
         return self._call('lockunspent', unlock, json_outpoints)
 
-    def sendrawtransaction(self, tx):
-        """Submit transaction to local node and network."""
+    def sendrawtransaction(self, tx, allowhighfees=False):
+        """Submit transaction to local node and network.
+
+        allowhighfees - Allow even if fees are unreasonably high.
+        """
         hextx = hexlify(tx.serialize())
-        r = self._call('sendrawtransaction', hextx)
+        r = None
+        if allowhighfees:
+            r = self._call('sendrawtransaction', hextx, True)
+        else:
+            r = self._call('sendrawtransaction', hextx)
         return lx(r)
 
     def sendtoaddress(self, addr, amount):
