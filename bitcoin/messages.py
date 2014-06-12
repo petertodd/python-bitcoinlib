@@ -259,6 +259,25 @@ class msg_getdata(MsgSerializable):
     def __repr__(self):
         return "msg_getdata(inv=%s)" % (repr(self.inv))
 
+class msg_notfound(MsgSerializable):
+    command = b"notfound"
+
+    def __init__(self, protover=PROTO_VERSION):
+        super(msg_notfound, self).__init__(protover)
+        self.inv = []
+
+    @classmethod
+    def msg_deser(cls, f, protover=PROTO_VERSION):
+        c = cls()
+        c.inv = VectorSerializer.stream_deserialize(CInv, f)
+        return c
+
+    def msg_ser(self, f):
+        VectorSerializer.stream_serialize(CInv, self.inv, f)
+
+    def __repr__(self):
+        return "msg_notfound(inv=%s)" % (repr(self.inv))
+
 
 class msg_getblocks(MsgSerializable):
     command = b"getblocks"
@@ -440,7 +459,7 @@ class msg_mempool(MsgSerializable):
         return "msg_mempool()"
 
 msg_classes = [msg_version, msg_verack, msg_addr, msg_alert, msg_inv,
-               msg_getdata, msg_getblocks, msg_getheaders,
+               msg_getdata, msg_notfound, msg_getblocks, msg_getheaders,
                msg_headers, msg_tx, msg_block, msg_getaddr, msg_ping,
                msg_pong, msg_mempool]
 
