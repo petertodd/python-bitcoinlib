@@ -442,6 +442,32 @@ class msg_pong(MsgSerializable):
         return "msg_pong(0x%x)" % (self.nonce,)
 
 
+class msg_reject(MsgSerializable):
+    command = b"reject"
+
+    def __init__(self, protover=PROTO_VERSION):
+        super(msg_reject, self).__init__(protover)
+        self.message = b'(Message Unitialized)'
+        self.ccode = b'\0'
+        self.reason = b'(Reason Unitialized)'
+
+    @classmethod
+    def msg_deser(cls, f, protover=PROTO_VERSION):
+        c = cls()
+        c.message = VarStringSerializer.stream_deserialize(f)
+        c.ccode = struct.unpack(b"<c", ser_read(f,1))[0]
+        c.reason = VarStringSerializer.stream_deserialize(f)
+        return c
+
+    def msg_ser(self, f):
+        VarStringSerializer.stream_serialize(self.message, f)
+        f.write(struct.pack(b"<c", self.ccode))
+        VarStringSerializer.stream_serialize(self.reason, f)
+
+    def __repr__(self):
+        return "msg_reject(messsage=%s, ccode=%s, reason=%s)" % (self.message, self.ccode, self.reason)
+
+
 class msg_mempool(MsgSerializable):
     command = b"mempool"
 
@@ -461,7 +487,7 @@ class msg_mempool(MsgSerializable):
 msg_classes = [msg_version, msg_verack, msg_addr, msg_alert, msg_inv,
                msg_getdata, msg_notfound, msg_getblocks, msg_getheaders,
                msg_headers, msg_tx, msg_block, msg_getaddr, msg_ping,
-               msg_pong, msg_mempool]
+               msg_pong, msg_reject, msg_mempool]
 
 messagemap = {}
 for cls in msg_classes:
