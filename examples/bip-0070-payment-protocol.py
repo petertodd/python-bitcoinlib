@@ -12,6 +12,7 @@ Handles incoming serialized string data in the form of a http request
 and returns an appropriate response using googles protocol buffers.
 """
 
+# https://github.com/bitcoin/bips/blob/master/bip-0070/paymentrequest.proto
 import payments_pb2
 o = payments_pb2
 
