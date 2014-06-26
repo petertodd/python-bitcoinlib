@@ -12,6 +12,8 @@ Handles incoming serialized string data in the form of a http request
 and returns an appropriate response using googles protocol buffers.
 """
 
+import urllib2
+
 # https://github.com/bitcoin/bips/blob/master/bip-0070/paymentrequest.proto
 import payments_pb2
 o = payments_pb2
@@ -46,8 +48,14 @@ def payment_request(request):
 
     pro = o.PaymentRequest()
     pro.serialized_payment_details = pdo.SerializeToString()
+    
+    sds_pr = pro.SerializeToString()
+    
+    open('sds_pr_blob', 'wb').write(sds_pr)
+    headers = {'Content-Type' : 'application/bitcoin-payment', 'Accept' : 'application/bitcoin-paymentrequest'}
+    response = urllib2.Request('file:sds_prblob', None, headers)
 
-    return HttpResponse(pro.SerializeToString(), content_type="application/bitcoin-paymentrequest")
+    return urllib2.urlrequest(response.read())
 
 
 def payment_ack(request):
@@ -58,5 +66,11 @@ def payment_ack(request):
     pao.memo = 'String shown to user after payment confirmation'
 
     refund_address = CBitcoinAddress.from_scriptPubKey(CScript(pao.payment.refund_to[0].script))
+    
+    sds_pa = pao.SerializeToString()
+    
+    open('sds_pablob', 'wb').write(sds_pa)
+    headers = {'Content-Type' : 'application/bitcoin-payment', 'Accept' : 'application/bitcoin-paymentack'}
+    response = urllib2.Request('file:sds_pablob', None, headers)
 
-    return HttpResponse(pao.SerializeToString(), content_type="application/bitcoin-paymentack")
+    return urllib2.urlrequest(response.read())
