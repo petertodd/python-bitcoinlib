@@ -41,6 +41,7 @@ def payment_request(request):
     serialized_pubkey = btc.to_scriptPubKey()
 
     pdo = o.PaymentDetails()
+    #pdo.network = 'test'
     pdo.outputs.add(amount = btc_amount,script = serialized_pubkey)
     pdo.time = int(time())
     pdo.memo = 'String shown to user before confirming payment'
