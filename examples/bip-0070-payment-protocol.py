@@ -8,8 +8,8 @@
 
 """Bip-0070-related functionality
 
-Handles incoming serialized string data in the form of a http request 
-and returns an appropriate response using googles protocol buffers.
+Creates http response objects suitable for use with
+the bitcoin bip 70 using googles protocol buffers.
 """
 
 import urllib2
@@ -26,8 +26,8 @@ from bitcoin.rpc import Proxy
 
 from time import time
 
-def payment_request(request):
-    """Generates a PaymentRequest object"""
+def payment_request():
+    """Generates a http PaymentRequest object"""
 
     bc = Proxy()
     btc = bc.getnewaddress()
@@ -54,16 +54,16 @@ def payment_request(request):
     
     open('sds_pr_blob', 'wb').write(sds_pr)
     headers = {'Content-Type' : 'application/bitcoin-payment', 'Accept' : 'application/bitcoin-paymentrequest'}
-    response = urllib2.Request('file:sds_pr_blob', None, headers)
+    http_response_object = urllib2.Request('file:sds_pr_blob', None, headers)
 
-    return response
+    return http_response_object
 
 
-def payment_ack(request):
+def payment_ack(serialized_Payment_message):
     """Generates a PaymentACK object, captures client refund address and returns a message"""
 
     pao = o.PaymentACK()
-    pao.payment.ParseFromString(request.body)
+    pao.payment.ParseFromString(serialized_Payment_message)
     pao.memo = 'String shown to user after payment confirmation'
 
     refund_address = CBitcoinAddress.from_scriptPubKey(CScript(pao.payment.refund_to[0].script))
@@ -72,6 +72,6 @@ def payment_ack(request):
     
     open('sds_pa_blob', 'wb').write(sds_pa)
     headers = {'Content-Type' : 'application/bitcoin-payment', 'Accept' : 'application/bitcoin-paymentack'}
-    response = urllib2.Request('file:sds_pa_blob', None, headers)
+    http_response_object = urllib2.Request('file:sds_pa_blob', None, headers)
 
-    return response
+    return http_response_object
