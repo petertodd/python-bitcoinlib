@@ -9,7 +9,7 @@
 """Bip-0070-related functionality
 
 Creates http response objects suitable for use with
-the bitcoin bip 70 using googles protocol buffers.
+bitcoin bip 70 using googles protocol buffers.
 """
 
 import urllib2
