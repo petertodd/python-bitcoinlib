@@ -8,7 +8,7 @@
 import hashlib
 
 from bitcoin import SelectParams
-from bitcoin.core import b2x, lx, COIN, COutPoint, CTxOut, CTxIn, CTransaction, Hash160
+from bitcoin.core import b2x, lx, COIN, COutPoint, CMutableTxOut, CMutableTxIn, CMutableTransaction, Hash160
 from bitcoin.core.script import CScript, OP_DUP, OP_HASH160, OP_EQUALVERIFY, OP_CHECKSIG, SignatureHash, SIGHASH_ALL
 from bitcoin.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
 from bitcoin.wallet import CBitcoinAddress, CBitcoinSecret
@@ -30,7 +30,7 @@ vout = 0
 
 # Create the txin structure, which includes the outpoint. The scriptSig
 # defaults to being empty.
-txin = CTxIn(COutPoint(txid, vout))
+txin = CMutableTxIn(COutPoint(txid, vout))
 
 # We also need the scriptPubKey of the output we're spending because
 # SignatureHash() replaces the transaction scriptSig's with it.
@@ -41,10 +41,10 @@ txin_scriptPubKey = CScript([OP_DUP, OP_HASH160, Hash160(seckey.pub), OP_EQUALVE
 
 # Create the txout. This time we create the scriptPubKey from a Bitcoin
 # address.
-txout = CTxOut(0.001*COIN, CBitcoinAddress('1C7zdTfnkzmr13HfA2vNm5SJYRK6nEKyq8').to_scriptPubKey())
+txout = CMutableTxOut(0.001*COIN, CBitcoinAddress('1C7zdTfnkzmr13HfA2vNm5SJYRK6nEKyq8').to_scriptPubKey())
 
 # Create the unsigned transaction.
-tx = CTransaction([txin],[txout])
+tx = CMutableTransaction([txin],[txout])
 
 # Calculate the signature hash for that transaction.
 sighash = SignatureHash(txin_scriptPubKey, tx, 0, SIGHASH_ALL)

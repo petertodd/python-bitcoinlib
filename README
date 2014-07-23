@@ -48,6 +48,14 @@ corresponding Satoshi C++ code uses the same naming conventions: CTransaction,
 CBlockHeader, nValue etc. Otherwise Python naming conventions are followed.
 
 
+Mutable vs. Immutable objects
+-----------------------------
+
+Like the Bitcoin Core codebase CTransaction is immutable and
+CMutableTransaction is mutable; unlike the Bitcoin Core codebase this
+distinction also applies to COutPoint, CTxIn, CTxOut, and CBlock.
+
+
 Example Code
 ------------
 

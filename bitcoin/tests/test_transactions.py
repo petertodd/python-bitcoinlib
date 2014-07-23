@@ -7,7 +7,7 @@ import json
 import unittest
 import os
 
-from bitcoin.core import COutPoint, CTxIn, CTxOut, CTransaction, CheckTransaction, CheckTransactionError, lx, x, b2x, ValidationError
+from bitcoin.core import *
 from bitcoin.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
 
 from bitcoin.tests.test_scripteval import parse_script
@@ -65,10 +65,10 @@ class Test_CTxIn(unittest.TestCase):
 
 class Test_CTransaction(unittest.TestCase):
     def test_is_coinbase(self):
-        tx = CTransaction()
+        tx = CMutableTransaction()
         self.assertFalse(tx.is_coinbase())
 
-        tx.vin.append(CTxIn())
+        tx.vin.append(CMutableTxIn())
 
         # IsCoinBase() in reference client doesn't check if vout is empty
         self.assertTrue(tx.is_coinbase())

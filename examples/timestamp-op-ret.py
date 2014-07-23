@@ -40,13 +40,13 @@ for digest in digests:
 
     change_addr = proxy.getnewaddress()
     change_pubkey = proxy.validateaddress(change_addr)['pubkey']
-    change_out = CTxOut(MAX_MONEY, CScript([change_pubkey, OP_CHECKSIG]))
+    change_out = CMutableTxOut(MAX_MONEY, CScript([change_pubkey, OP_CHECKSIG]))
 
-    digest_outs = [CTxOut(0, CScript([script.OP_RETURN, digest]))]
+    digest_outs = [CMutableTxOut(0, CScript([script.OP_RETURN, digest]))]
 
     txouts = [change_out] + digest_outs
 
-    tx = CTransaction(txins, txouts)
+    tx = CMutableTransaction(txins, txouts)
 
 
     FEE_PER_BYTE = 0.00025*COIN/1000
