@@ -762,7 +762,7 @@ def VerifySignature(txFrom, txTo, inIdx):
         raise VerifySignatureError("txin prevout.n >= len(txFrom.vout)")
     txout = txFrom.vout[txin.prevout.n]
 
-    if txin.prevout.hash != bitcoin.core.serialize.Hash(txFrom.serialize()):
+    if txin.prevout.hash != txFrom.GetHash():
         raise VerifySignatureError("prevout hash does not match txFrom")
 
     VerifyScript(txin.scriptSig, txout.scriptPubKey, txTo, inIdx)

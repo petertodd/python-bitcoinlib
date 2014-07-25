@@ -320,10 +320,18 @@ class CBlock(CBlockHeader):
                             nBits=self.nBits,
                             nNonce=self.nNonce)
 
+    def GetHash(self):
+        """Return the block hash
+
+        Note that this is the hash of the header, not the entire serialized
+        block.
+        """
+        return self.get_header.GetHash()
+
     def calc_merkle_root(self):
         hashes = []
         for tx in self.vtx:
-            hashes.append(Hash(tx.serialize()))
+            hashes.append(tx.GetHash())
         return CBlock.calc_merkle_root_from_hashes(hashes)
 
 
@@ -455,7 +463,7 @@ def CheckBlockHeader(block_header, fCheckPoW = True, cur_time=None):
 
     # Check proof-of-work matches claimed amount
     if fCheckPoW:
-        CheckProofOfWork(Hash(block_header.serialize()), block_header.nBits)
+        CheckProofOfWork(block_header.GetHash(), block_header.nBits)
 
     # Check timestamp
     if block_header.nTime > cur_time + 2 * 60 * 60:
@@ -512,7 +520,7 @@ def CheckBlock(block, fCheckPoW = True, fCheckMerkleRoot = True, cur_time=None):
 
         CheckTransaction(tx)
 
-        txid = Hash(tx.serialize())
+        txid = tx.GetHash()
         if txid in unique_txids:
             raise CheckBlockError("CheckBlock() : duplicate transaction")
         unique_txids.add(txid)
