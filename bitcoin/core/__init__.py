@@ -413,36 +413,68 @@ class CBlockHeader(ImmutableSerializable):
 
 class CBlock(CBlockHeader):
     """A block including all transactions in it"""
-    __slots__ = ['vtx']
+    __slots__ = ['vtx', 'vMerkleTree']
+
+    @staticmethod
+    def build_merkle_tree_from_txids(txids):
+        """Build a full merkle tree from txids
+
+        txids - iterable of txids
+
+        Returns a new merkle tree in deepest first order.
+        """
+        merkle_tree = list(txids)
+
+        size = len(txids)
+        j = 0
+        while size > 1:
+            for i in range(0, size, 2):
+                i2 = min(i+1, size-1)
+                merkle_tree.append(Hash(merkle_tree[j+i] + merkle_tree[j+i2]))
+
+            j += size
+            size = (size + 1) // 2
+
+        return merkle_tree
+
+    @staticmethod
+    def build_merkle_tree_from_txs(txs):
+        """Build a full merkle tree from transactions"""
+        txids = [tx.GetHash() for tx in txs]
+        return CBlock.build_merkle_tree_from_txids(txids)
+
+    def calc_merkle_root(self):
+        """Calculate the merkle root
+
+        The calculated merkle root is not cached; every invocation
+        re-calculates it from scratch.
+        """
+        if not len(self.vtx):
+            raise ValueError('Block contains no transactions')
+        return self.build_merkle_tree_from_txs(self.vtx)[-1]
 
     def __init__(self, nVersion=2, hashPrevBlock=b'\x00'*32, hashMerkleRoot=b'\x00'*32, nTime=0, nBits=0, nNonce=0, vtx=()):
-        """Create a new block
-
-        Note that if hashMerkleRoot is set
-        """
+        """Create a new block"""
         super(CBlock, self).__init__(nVersion, hashPrevBlock, hashMerkleRoot, nTime, nBits, nNonce)
+
+        vMerkleTree = tuple(CBlock.build_merkle_tree_from_txs(vtx))
+        object.__setattr__(self, 'vMerkleTree', vMerkleTree)
         object.__setattr__(self, 'vtx', tuple(CTransaction.from_tx(tx) for tx in vtx))
 
     @classmethod
     def stream_deserialize(cls, f):
         self = super(CBlock, cls).stream_deserialize(f)
+
         vtx = VectorSerializer.stream_deserialize(CTransaction, f)
+        vMerkleTree = tuple(CBlock.build_merkle_tree_from_txs(vtx))
+        object.__setattr__(self, 'vMerkleTree', vMerkleTree)
         object.__setattr__(self, 'vtx', tuple(vtx))
+
         return self
 
     def stream_serialize(self, f):
         super(CBlock, self).stream_serialize(f)
         VectorSerializer.stream_serialize(CTransaction, self.vtx, f)
-
-    @staticmethod
-    def calc_merkle_root_from_hashes(hashes):
-        while len(hashes) > 1:
-            newhashes = []
-            for i in range(0, len(hashes), 2):
-                i2 = min(i+1, len(hashes)-1)
-                newhashes.append(hashlib.sha256(hashlib.sha256(hashes[i] + hashes[i2]).digest()).digest())
-            hashes = newhashes
-        return hashes[0]
 
     def get_header(self):
         """Return the block header
@@ -468,12 +500,6 @@ class CBlock(CBlockHeader):
             _cached_GetHash = self.get_header().GetHash()
             object.__setattr__(self, '_cached_GetHash', _cached_GetHash)
             return _cached_GetHash
-
-    def calc_merkle_root(self):
-        hashes = []
-        for tx in self.vtx:
-            hashes.append(tx.GetHash())
-        return CBlock.calc_merkle_root_from_hashes(hashes)
 
 class CoreChainParams(object):
     """Define consensus-critical parameters of a given instance of the Bitcoin system"""
