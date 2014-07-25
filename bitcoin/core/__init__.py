@@ -86,6 +86,16 @@ class ValidationError(Exception):
     transactions, scripts, etc. is derived from this class.
     """
 
+def __make_mutable(cls):
+    # For speed we use a class decorator that removes the immutable
+    # restrictions directly. In addition the modified behavior of GetHash() and
+    # hash() is undone.
+    cls.__setattr__ = object.__setattr__
+    cls.__delattr__ = object.__delattr__
+    cls.GetHash = Serializable.GetHash
+    cls.__hash__ = Serializable.__hash__
+    return cls
+
 
 class COutPoint(ImmutableSerializable):
     """The combination of a transaction hash and an index n into its vout"""
@@ -132,10 +142,9 @@ class COutPoint(ImmutableSerializable):
         else:
             return cls(outpoint.hash, outpoint.n)
 
+@__make_mutable
 class CMutableOutPoint(COutPoint):
     """A mutable COutPoint"""
-    __setattr__ = object.__setattr__
-    __delattr__ = object.__delattr__
 
     @classmethod
     def from_outpoint(cls, outpoint):
@@ -189,10 +198,9 @@ class CTxIn(ImmutableSerializable):
         else:
             return cls(COutPoint.from_txout(txin.prevout), txin.scriptSig, txin.nSequence)
 
+@__make_mutable
 class CMutableTxIn(CTxIn):
     """A mutable CTxIn"""
-    __setattr__ = object.__setattr__
-    __delattr__ = object.__delattr__
 
     def __init__(self, prevout=None, scriptSig=CScript(), nSequence = 0xffffffff):
         if not (0 <= nSequence <= 0xffffffff):
@@ -259,10 +267,9 @@ class CTxOut(ImmutableSerializable):
         else:
             return cls(txout.nValue, txout.scriptPubKey)
 
+@__make_mutable
 class CMutableTxOut(CTxOut):
     """A mutable CTxOut"""
-    __setattr__ = object.__setattr__
-    __delattr__ = object.__delattr__
 
     @classmethod
     def from_txout(cls, txout):
@@ -322,10 +329,9 @@ class CTransaction(ImmutableSerializable):
             return cls(tx.vin, tx.vout, tx.nLockTime, tx.nVersion)
 
 
+@__make_mutable
 class CMutableTransaction(CTransaction):
     """A mutable transaction"""
-    __setattr__ = object.__setattr__
-    __delattr__ = object.__delattr__
 
     def __init__(self, vin=None, vout=None, nLockTime=0, nVersion=1):
         if not (0 <= nLockTime <= 0xffffffff):
@@ -456,7 +462,12 @@ class CBlock(CBlockHeader):
         Note that this is the hash of the header, not the entire serialized
         block.
         """
-        return self.get_header.GetHash()
+        try:
+            return self._cached_GetHash
+        except AttributeError:
+            _cached_GetHash = self.get_header().GetHash()
+            object.__setattr__(self, '_cached_GetHash', _cached_GetHash)
+            return _cached_GetHash
 
     def calc_merkle_root(self):
         hashes = []

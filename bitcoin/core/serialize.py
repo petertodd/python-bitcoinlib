@@ -109,12 +109,30 @@ class Serializable(object):
 class ImmutableSerializable(Serializable):
     """Immutable serializable object"""
 
+    __slots__ = ['_cached_GetHash', '_cached__hash__']
+
     def __setattr__(self, name, value):
         raise AttributeError('Object is immutable')
 
     def __delattr__(self, name):
         raise AttributeError('Object is immutable')
 
+    def GetHash(self):
+        """Return the hash of the serialized object"""
+        try:
+            return self._cached_GetHash
+        except AttributeError:
+            _cached_GetHash = super(ImmutableSerializable, self).GetHash()
+            object.__setattr__(self, '_cached_GetHash', _cached_GetHash)
+            return _cached_GetHash
+
+    def __hash__(self):
+        try:
+            return self._cached__hash__
+        except AttributeError:
+            _cached__hash__ = hash(self.serialize())
+            object.__setattr__(self, '_cached__hash__', _cached__hash__)
+            return _cached__hash__
 
 class Serializer(object):
     """Base class for object serializers"""
