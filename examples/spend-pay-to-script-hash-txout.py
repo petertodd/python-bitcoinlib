@@ -5,6 +5,11 @@
 
 """Low-level example of how to spend a standard pay-to-pubkey-hash txout"""
 
+import sys
+if sys.version_info.major < 3:
+    sys.stderr.write('Sorry, Python 3.x required by this example.\n')
+    sys.exit(1)
+
 import hashlib
 
 from bitcoin import SelectParams
