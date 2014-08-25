@@ -787,11 +787,18 @@ class CScript(bytes):
         """Test if the script only contains pushdata ops
 
         Note that this test is consensus-critical.
+
+        Scripts that contain invalid pushdata ops return False, matching the
+        behavior in Bitcoin Core.
         """
-        for (op, op_data, idx) in self.raw_iter():
-            # Note how OP_RESERVED is considered a pushdata op.
-            if op > OP_16:
-                return False
+        try:
+            for (op, op_data, idx) in self.raw_iter():
+                # Note how OP_RESERVED is considered a pushdata op.
+                if op > OP_16:
+                    return False
+
+        except CScriptTruncatedPushDataError: # Invalid pushdata
+            return False
         return True
 
     def is_unspendable(self):
