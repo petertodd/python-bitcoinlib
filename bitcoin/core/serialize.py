@@ -46,12 +46,11 @@ class SerializationError(Exception):
     """Base class for serialization errors"""
 
 
-class SerializationTruncationError(Exception):
+class SerializationTruncationError(SerializationError):
     """Serialized data was truncated
 
     Thrown by deserialize() and stream_deserialize()
     """
-
 
 def ser_read(f, n):
     """Read from a stream safely
