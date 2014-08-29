@@ -10,6 +10,29 @@ from binascii import unhexlify
 
 from bitcoin.core.serialize import *
 
+class Test_Serializable(unittest.TestCase):
+    def test_extra_data(self):
+        """Serializable.deserialize() fails if extra data is present"""
+
+        class FooSerializable(Serializable):
+            @classmethod
+            def stream_deserialize(cls, f):
+                return cls()
+
+            def stream_serialize(self, f):
+                pass
+
+        try:
+            FooSerializable.deserialize(b'\x00')
+        except DeserializationExtraDataError as err:
+            self.assertEqual(err.obj, FooSerializable())
+            self.assertEqual(err.padding, b'\x00')
+
+        else:
+            self.fail("DeserializationExtraDataError not raised")
+
+        FooSerializable.deserialize(b'\x00', allow_padding=True)
+
 class Test_VarIntSerializer(unittest.TestCase):
     def test(self):
         def T(value, expected):

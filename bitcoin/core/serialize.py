@@ -52,6 +52,18 @@ class SerializationTruncationError(SerializationError):
     Thrown by deserialize() and stream_deserialize()
     """
 
+class DeserializationExtraDataError(SerializationError):
+    """Deserialized data had extra data at the end
+
+    Thrown by deserialize() when not all data is consumed during
+    deserialization. The deserialized object and extra padding not consumed are
+    saved.
+    """
+    def __init__(self, msg, obj, padding):
+        super(DeserializationExtraDataError, self).__init__(msg)
+        self.obj = obj
+        self.padding = padding
+
 def ser_read(f, n):
     """Read from a stream safely
 
@@ -85,9 +97,22 @@ class Serializable(object):
         return f.getvalue()
 
     @classmethod
-    def deserialize(cls, buf):
-        """Deserialize bytes, returning an instance"""
-        return cls.stream_deserialize(BytesIO(buf))
+    def deserialize(cls, buf, allow_padding=False):
+        """Deserialize bytes, returning an instance
+
+        allow_padding - Allow buf to include extra padding. (default False)
+
+        If allow_padding is False and not all bytes are consumed during
+        deserialization DeserializationExtraDataError will be raised.
+        """
+        fd = BytesIO(buf)
+        r = cls.stream_deserialize(fd)
+        if not allow_padding:
+            padding = fd.read()
+            if len(padding) != 0:
+                raise DeserializationExtraDataError('Not all bytes consumed during deserialization',
+                                                    r, padding)
+        return r
 
     def GetHash(self):
         """Return the hash of the serialized object"""
