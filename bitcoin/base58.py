@@ -1,12 +1,14 @@
-
+# Copyright (C) 2011 Sam Rushing
+# Copyright (C) 2013-2014 The python-bitcoinlib developers
 #
-# base58.py
-# Original source: git://github.com/joric/brutus.git
-# which was forked from git://github.com/samrushing/caesure.git
+# This file is part of python-bitcoinlib.
 #
-# Distributed under the MIT/X11 software license, see the accompanying
-# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+# It is subject to the license terms in the LICENSE file found in the top-level
+# directory of this distribution.
 #
+# No part of python-bitcoinlib, including this file, may be copied, modified,
+# propagated, or distributed except according to the terms contained in the
+# LICENSE file.
 
 """Base58 encoding and decoding"""
 

@@ -1,9 +1,14 @@
-
+# Copyright (C) 2011 Sam Rushing
+# Copyright (C) 2012-2014 The python-bitcoinlib developers
 #
-# key.py - OpenSSL wrapper
-# Source: git://github.com/joric/brutus.git
-# which was forked from git://github.com/samrushing/caesure.git
+# This file is part of python-bitcoinlib.
 #
+# It is subject to the license terms in the LICENSE file found in the top-level
+# directory of this distribution.
+#
+# No part of python-bitcoinlib, including this file, may be copied, modified,
+# propagated, or distributed except according to the terms contained in the
+# LICENSE file.
 
 """ECC secp256k1 crypto routines
 
