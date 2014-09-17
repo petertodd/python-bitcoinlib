@@ -178,7 +178,7 @@ class CTxIn(ImmutableSerializable):
         return cls(prevout, scriptSig, nSequence)
 
     def stream_serialize(self, f):
-        self.prevout.stream_serialize(f)
+        COutPoint.stream_serialize(self.prevout, f)
         BytesSerializer.stream_serialize(self.scriptSig, f)
         f.write(struct.pack(b"<I", self.nSequence))
 
