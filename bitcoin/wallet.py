@@ -88,6 +88,14 @@ class P2SHBitcoinAddress(CBitcoinAddress):
         return super(P2SHBitcoinAddress, cls).from_bytes(data, nVersion)
 
     @classmethod
+    def from_redeemScript(cls, redeemScript):
+        """Convert a redeemScript to a P2SH address
+
+        Convenience function: equivalent to P2SHBitcoinAddress.from_scriptPubKey(redeemScript.to_p2sh_scriptPubKey())
+        """
+        return cls.from_scriptPubKey(redeemScript.to_p2sh_scriptPubKey())
+
+    @classmethod
     def from_scriptPubKey(cls, scriptPubKey):
         """Convert a scriptPubKey to a P2SH address
 

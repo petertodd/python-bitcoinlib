@@ -114,6 +114,11 @@ class Test_CBitcoinAddress(unittest.TestCase):
         T('1111111111111111111114oLvT2',
           '76a914000000000000000000000000000000000000000088ac')
 
+class Test_P2SHBitcoinAddress(unittest.TestCase):
+    def test_from_redeemScript(self):
+        addr = P2SHBitcoinAddress.from_redeemScript(CScript())
+        self.assertEqual(str(addr), '3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy')
+
 class Test_P2PKHBitcoinAddress(unittest.TestCase):
     def test_from_non_canonical_scriptPubKey(self):
         def T(hex_scriptpubkey, expected_str_address):
