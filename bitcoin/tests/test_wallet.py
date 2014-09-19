@@ -115,6 +115,47 @@ class Test_CBitcoinAddress(unittest.TestCase):
           '76a914000000000000000000000000000000000000000088ac')
 
 class Test_P2PKHBitcoinAddress(unittest.TestCase):
+    def test_from_non_canonical_scriptPubKey(self):
+        def T(hex_scriptpubkey, expected_str_address):
+            scriptPubKey = CScript(x(hex_scriptpubkey))
+            addr = P2PKHBitcoinAddress.from_scriptPubKey(scriptPubKey)
+            self.assertEqual(str(addr), expected_str_address)
+
+            # now test that CBitcoinAddressError is raised with accept_non_canonical_pushdata=False
+            with self.assertRaises(CBitcoinAddressError):
+                P2PKHBitcoinAddress.from_scriptPubKey(scriptPubKey, accept_non_canonical_pushdata=False)
+
+        T('76a94c14000000000000000000000000000000000000000088ac', '1111111111111111111114oLvT2')
+        T('76a94d1400000000000000000000000000000000000000000088ac', '1111111111111111111114oLvT2'),
+        T('76a94e14000000000000000000000000000000000000000000000088ac', '1111111111111111111114oLvT2')
+
+        # make sure invalid scripts raise CBitcoinAddressError
+        with self.assertRaises(CBitcoinAddressError):
+            P2PKHBitcoinAddress.from_scriptPubKey(x('76a94c14'))
+
+    def test_from_bare_checksig_scriptPubKey(self):
+        def T(hex_scriptpubkey, expected_str_address):
+            scriptPubKey = CScript(x(hex_scriptpubkey))
+            addr = P2PKHBitcoinAddress.from_scriptPubKey(scriptPubKey)
+            self.assertEqual(str(addr), expected_str_address)
+
+            # now test that CBitcoinAddressError is raised with accept_non_canonical_pushdata=False
+            with self.assertRaises(CBitcoinAddressError):
+                P2PKHBitcoinAddress.from_scriptPubKey(scriptPubKey, accept_bare_checksig=False)
+
+        # compressed
+        T('21000000000000000000000000000000000000000000000000000000000000000000ac', '14p5cGy5DZmtNMQwTQiytBvxMVuTmFMSyU')
+
+        # uncompressed
+        T('410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ac', '1QLFaVVt99p1y18zWSZnespzhkFxjwBbdP')
+
+        # non-canonical encoding
+        T('4c21000000000000000000000000000000000000000000000000000000000000000000ac', '14p5cGy5DZmtNMQwTQiytBvxMVuTmFMSyU')
+
+        # odd-lengths are *not* accepted
+        with self.assertRaises(CBitcoinAddressError):
+            P2PKHBitcoinAddress.from_scriptPubKey(x('2200000000000000000000000000000000000000000000000000000000000000000000ac'))
+
     def test_from_valid_pubkey(self):
         """Create P2PKHBitcoinAddress's from valid pubkeys"""
 

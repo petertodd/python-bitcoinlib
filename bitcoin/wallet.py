@@ -139,14 +139,23 @@ class P2PKHBitcoinAddress(CBitcoinAddress):
         return P2PKHBitcoinAddress.from_bytes(pubkey_hash)
 
     @classmethod
-    def from_scriptPubKey(cls, scriptPubKey, allow_non_canonical_pushdata=False, allow_bare_checksig=False):
+    def from_scriptPubKey(cls, scriptPubKey, accept_non_canonical_pushdata=True, accept_bare_checksig=True):
         """Convert a scriptPubKey to a P2PKH address
 
         Raises CBitcoinAddressError if the scriptPubKey isn't of the correct
         form.
+
+        accept_non_canonical_pushdata - Allow non-canonical pushes (default True)
+        accept_bare_checksig          - Treat bare-checksig as P2PKH scriptPubKeys (default True)
         """
-        if allow_non_canonical_pushdata or allow_bare_checksig:
-            raise NotImplementedError
+        if accept_non_canonical_pushdata:
+            # Canonicalize script pushes
+            scriptPubKey = script.CScript(scriptPubKey) # in case it's not a CScript instance yet
+
+            try:
+                scriptPubKey = script.CScript(tuple(scriptPubKey)) # canonicalize
+            except bitcoin.core.script.CScriptInvalidError:
+                raise CBitcoinAddressError('not a P2PKH scriptPubKey: script is invalid')
 
         if (len(scriptPubKey) == 25
                 and bord(scriptPubKey[0])  == script.OP_DUP
@@ -156,8 +165,27 @@ class P2PKHBitcoinAddress(CBitcoinAddress):
                 and bord(scriptPubKey[24]) == script.OP_CHECKSIG):
             return cls.from_bytes(scriptPubKey[3:23], bitcoin.params.BASE58_PREFIXES['PUBKEY_ADDR'])
 
-        else:
-            raise CBitcoinAddressError('not a P2PKH scriptPubKey')
+        elif accept_bare_checksig:
+            pubkey = None
+
+            # We can operate on the raw bytes directly because we've
+            # canonicalized everything above.
+            if (len(scriptPubKey) == 35 # compressed
+                  and bord(scriptPubKey[0])  == 0x21
+                  and bord(scriptPubKey[34]) == script.OP_CHECKSIG):
+
+                pubkey = scriptPubKey[1:34]
+
+            elif (len(scriptPubKey) == 67 # uncompressed
+                    and bord(scriptPubKey[0]) == 0x41
+                    and bord(scriptPubKey[66]) == script.OP_CHECKSIG):
+
+                pubkey = scriptPubKey[1:65]
+
+            if pubkey is not None:
+                return cls.from_pubkey(pubkey, accept_invalid=True)
+
+        raise CBitcoinAddressError('not a P2PKH scriptPubKey')
 
     def to_scriptPubKey(self):
         """Convert an address to a scriptPubKey"""
