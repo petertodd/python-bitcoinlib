@@ -15,51 +15,143 @@ import unittest
 
 from bitcoin.core import b2x, x
 from bitcoin.core.script import CScript
+from bitcoin.core.key import CPubKey
 from bitcoin.wallet import *
 
 class Test_CBitcoinAddress(unittest.TestCase):
-    def test(self):
-        a = CBitcoinAddress('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa')
-        self.assertEqual(a.to_bytes(), b"b\xe9\x07\xb1\\\xbf'\xd5BS\x99\xeb\xf6\xf0\xfbP\xeb\xb8\x8f\x18")
-        self.assertEqual(a.nVersion, 0)
+    def test_create_from_string(self):
+        """Create CBitcoinAddress's from strings"""
 
-        a = CBitcoinAddress('mpXwg4jMtRhuSpVq4xS3HFHmCmWp9NyGKt')
-        self.assertEqual(a.to_bytes(), b"b\xe9\x07\xb1\\\xbf'\xd5BS\x99\xeb\xf6\xf0\xfbP\xeb\xb8\x8f\x18")
-        self.assertEqual(a.nVersion, 111)
+        def T(str_addr, expected_bytes, expected_nVersion, expected_class):
+            addr = CBitcoinAddress(str_addr)
+            self.assertEqual(addr.to_bytes(), expected_bytes)
+            self.assertEqual(addr.nVersion, expected_nVersion)
+            self.assertEqual(addr.__class__, expected_class)
 
-        a = CBitcoinAddress('37k7toV1Nv4DfmQbmZ8KuZDQCYK9x5KpzP')
-        self.assertEqual(a.to_bytes(), b'Bf\xfco,(a\xd7\xfe"\x9b\'\x9ay\x80:\xfc\xa7\xba4')
-        self.assertEqual(a.nVersion, 5)
+        T('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
+          x('62e907b15cbf27d5425399ebf6f0fb50ebb88f18'), 0,
+          P2PKHBitcoinAddress)
 
-        a = CBitcoinAddress('2MyJKxYR2zNZZsZ39SgkCXWCfQtXKhnWSWq')
-        self.assertEqual(a.to_bytes(), b'Bf\xfco,(a\xd7\xfe"\x9b\'\x9ay\x80:\xfc\xa7\xba4')
-        self.assertEqual(a.nVersion, 196)
+        T('37k7toV1Nv4DfmQbmZ8KuZDQCYK9x5KpzP',
+          x('4266fc6f2c2861d7fe229b279a79803afca7ba34'), 5,
+          P2SHBitcoinAddress)
 
+    def test_wrong_nVersion(self):
+        """Creating a CBitcoinAddress from a unknown nVersion fails"""
+
+        # tests run in mainnet, so both of the following should fail
+        with self.assertRaises(CBitcoinAddressError):
+            CBitcoinAddress('mpXwg4jMtRhuSpVq4xS3HFHmCmWp9NyGKt')
+
+        with self.assertRaises(CBitcoinAddressError):
+            CBitcoinAddress('2MyJKxYR2zNZZsZ39SgkCXWCfQtXKhnWSWq')
 
     def test_from_scriptPubKey(self):
-        def T(hex_scriptpubkey, expected_str_address):
+        def T(hex_scriptpubkey, expected_str_address, expected_class):
             scriptPubKey = CScript(x(hex_scriptpubkey))
-            self.assertEqual(str(CBitcoinAddress.from_scriptPubKey(scriptPubKey)),
-                             expected_str_address)
+            addr = CBitcoinAddress.from_scriptPubKey(scriptPubKey)
+            self.assertEqual(str(addr), expected_str_address)
+            self.assertEqual(addr.__class__, expected_class)
 
-        T('a914000000000000000000000000000000000000000087', '31h1vYVSYuKP6AhS86fbRdMw9XHieotbST')
-        T('76a914000000000000000000000000000000000000000088ac', '1111111111111111111114oLvT2')
+        T('a914000000000000000000000000000000000000000087', '31h1vYVSYuKP6AhS86fbRdMw9XHieotbST',
+          P2SHBitcoinAddress)
+        T('76a914000000000000000000000000000000000000000088ac', '1111111111111111111114oLvT2',
+          P2PKHBitcoinAddress)
+
+    def test_from_nonstd_scriptPubKey(self):
+        """CBitcoinAddress.from_scriptPubKey() with non-standard scriptPubKeys"""
+
+        # Bad P2SH scriptPubKeys
+
+        # non-canonical pushdata
+        scriptPubKey = CScript(x('a94c14000000000000000000000000000000000000000087'))
+        with self.assertRaises(CBitcoinAddressError):
+            CBitcoinAddress.from_scriptPubKey(scriptPubKey)
+
+        # Bad P2PKH scriptPubKeys
 
         # Missing a byte
         scriptPubKey = CScript(x('76a914000000000000000000000000000000000000000088'))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(CBitcoinAddressError):
             CBitcoinAddress.from_scriptPubKey(scriptPubKey)
 
         # One extra byte
         scriptPubKey = CScript(x('76a914000000000000000000000000000000000000000088acac'))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(CBitcoinAddressError):
             CBitcoinAddress.from_scriptPubKey(scriptPubKey)
 
         # One byte changed
         scriptPubKey = CScript(x('76a914000000000000000000000000000000000000000088ad'))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(CBitcoinAddressError):
             CBitcoinAddress.from_scriptPubKey(scriptPubKey)
 
+    def test_from_invalid_scriptPubKey(self):
+        """CBitcoinAddress.from_scriptPubKey() with invalid scriptPubKeys"""
+
+        # We should raise a CBitcoinAddressError, not any other type of error
+
+        # Truncated P2SH
+        scriptPubKey = CScript(x('a91400000000000000000000000000000000000000'))
+        with self.assertRaises(CBitcoinAddressError):
+            CBitcoinAddress.from_scriptPubKey(scriptPubKey)
+
+        # Truncated P2PKH
+        scriptPubKey = CScript(x('76a91400000000000000000000000000000000000000'))
+        with self.assertRaises(CBitcoinAddressError):
+            CBitcoinAddress.from_scriptPubKey(scriptPubKey)
+
+    def test_to_scriptPubKey(self):
+        """CBitcoinAddress.to_scriptPubKey() works"""
+        def T(str_addr, expected_scriptPubKey_hexbytes):
+            addr = CBitcoinAddress(str_addr)
+
+            actual_scriptPubKey = addr.to_scriptPubKey()
+            self.assertEqual(b2x(actual_scriptPubKey), expected_scriptPubKey_hexbytes)
+
+        T('31h1vYVSYuKP6AhS86fbRdMw9XHieotbST',
+          'a914000000000000000000000000000000000000000087')
+
+        T('1111111111111111111114oLvT2',
+          '76a914000000000000000000000000000000000000000088ac')
+
+class Test_P2PKHBitcoinAddress(unittest.TestCase):
+    def test_from_valid_pubkey(self):
+        """Create P2PKHBitcoinAddress's from valid pubkeys"""
+
+        def T(pubkey, expected_str_addr):
+            addr = P2PKHBitcoinAddress.from_pubkey(pubkey)
+            self.assertEqual(str(addr), expected_str_addr)
+
+        T(x('0378d430274f8c5ec1321338151e9f27f4c676a008bdf8638d07c0b6be9ab35c71'),
+          '1C7zdTfnkzmr13HfA2vNm5SJYRK6nEKyq8')
+        T(x('0478d430274f8c5ec1321338151e9f27f4c676a008bdf8638d07c0b6be9ab35c71a1518063243acd4dfe96b66e3f2ec8013c8e072cd09b3834a19f81f659cc3455'),
+          '1JwSSubhmg6iPtRjtyqhUYYH7bZg3Lfy1T')
+
+        T(CPubKey(x('0378d430274f8c5ec1321338151e9f27f4c676a008bdf8638d07c0b6be9ab35c71')),
+          '1C7zdTfnkzmr13HfA2vNm5SJYRK6nEKyq8')
+        T(CPubKey(x('0478d430274f8c5ec1321338151e9f27f4c676a008bdf8638d07c0b6be9ab35c71a1518063243acd4dfe96b66e3f2ec8013c8e072cd09b3834a19f81f659cc3455')),
+          '1JwSSubhmg6iPtRjtyqhUYYH7bZg3Lfy1T')
+
+    def test_from_invalid_pubkeys(self):
+        """Create P2PKHBitcoinAddress's from invalid pubkeys"""
+
+        # first test with accept_invalid=True
+        def T(invalid_pubkey, expected_str_addr):
+            addr = P2PKHBitcoinAddress.from_pubkey(invalid_pubkey, accept_invalid=True)
+            self.assertEqual(str(addr), expected_str_addr)
+
+        T(x(''),
+          '1HT7xU2Ngenf7D4yocz2SAcnNLW7rK8d4E')
+        T(x('0378d430274f8c5ec1321338151e9f27f4c676a008bdf8638d07c0b6be9ab35c72'),
+          '1L9V4NXbNtZsLjrD3nkU7gtEYLWRBWXLiZ')
+
+        # With accept_invalid=False we should get CBitcoinAddressError's
+        with self.assertRaises(CBitcoinAddressError):
+            P2PKHBitcoinAddress.from_pubkey(x(''))
+        with self.assertRaises(CBitcoinAddressError):
+            P2PKHBitcoinAddress.from_pubkey(x('0378d430274f8c5ec1321338151e9f27f4c676a008bdf8638d07c0b6be9ab35c72'))
+        with self.assertRaises(CBitcoinAddressError):
+            P2PKHBitcoinAddress.from_pubkey(CPubKey(x('0378d430274f8c5ec1321338151e9f27f4c676a008bdf8638d07c0b6be9ab35c72')))
 
 class Test_CBitcoinSecret(unittest.TestCase):
     def test(self):

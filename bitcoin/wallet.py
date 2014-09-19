@@ -26,8 +26,9 @@ if sys.version > '3':
 
 import bitcoin
 import bitcoin.base58
-import bitcoin.core.script as script
+import bitcoin.core
 import bitcoin.core.key
+import bitcoin.core.script as script
 
 class CBitcoinAddressError(bitcoin.base58.Base58Error):
     """Raised when an invalid Bitcoin address is encountered"""
@@ -36,33 +37,132 @@ class CBitcoinAddress(bitcoin.base58.CBase58Data):
     """A Bitcoin address"""
 
     @classmethod
-    def from_scriptPubKey(cls, scriptPubKey):
-        if scriptPubKey.is_p2sh():
-            return cls.from_bytes(scriptPubKey[2:22], bitcoin.params.BASE58_PREFIXES['SCRIPT_ADDR'])
+    def from_bytes(cls, data, nVersion):
+        self = super(CBitcoinAddress, cls).from_bytes(data, nVersion)
 
-        elif (len(scriptPubKey) == 25 and
-              bord(scriptPubKey[0])  == script.OP_DUP and
-              bord(scriptPubKey[1])  == script.OP_HASH160 and
-              bord(scriptPubKey[2])  == 0x14 and
-              bord(scriptPubKey[23]) == script.OP_EQUALVERIFY and
-              bord(scriptPubKey[24]) == script.OP_CHECKSIG):
-            return cls.from_bytes(scriptPubKey[3:23], bitcoin.params.BASE58_PREFIXES['PUBKEY_ADDR'])
+        if nVersion == bitcoin.params.BASE58_PREFIXES['SCRIPT_ADDR']:
+            self.__class__ = P2SHBitcoinAddress
+
+        elif nVersion == bitcoin.params.BASE58_PREFIXES['PUBKEY_ADDR']:
+            self.__class__ = P2PKHBitcoinAddress
 
         else:
-            # FIXME: add bare CHECKSIG and support for non-standard PUSHDATA's
-            raise ValueError('scriptPubKey not recognized')
+           raise CBitcoinAddressError('Version %d not a recognized Bitcoin Address' % nVersion)
+
+        return self
+
+    @classmethod
+    def from_scriptPubKey(cls, scriptPubKey):
+        """Convert a scriptPubKey to a CBitcoinAddress
+
+        Returns a CBitcoinAddress subclass, either P2SHBitcoinAddress or
+        P2PKHBitcoinAddress. If the scriptPubKey is not recognized
+        CBitcoinAddressError will be raised.
+        """
+        try:
+            return P2SHBitcoinAddress.from_scriptPubKey(scriptPubKey)
+        except CBitcoinAddressError:
+            pass
+
+        try:
+            return P2PKHBitcoinAddress.from_scriptPubKey(scriptPubKey)
+        except CBitcoinAddressError:
+            pass
+
+        raise CBitcoinAddressError('scriptPubKey not a valid address')
 
     def to_scriptPubKey(self):
         """Convert an address to a scriptPubKey"""
-        if self.nVersion == bitcoin.params.BASE58_PREFIXES['PUBKEY_ADDR']:
-            return script.CScript([script.OP_DUP, script.OP_HASH160, self, script.OP_EQUALVERIFY, script.OP_CHECKSIG])
+        raise NotImplementedError
 
-        elif self.nVersion == bitcoin.params.BASE58_PREFIXES['SCRIPT_ADDR']:
-            return script.CScript([script.OP_HASH160, self, script.OP_EQUAL])
+class P2SHBitcoinAddress(CBitcoinAddress):
+    @classmethod
+    def from_bytes(cls, data, nVersion=None):
+        if nVersion is None:
+            nVersion = bitcoin.params.BASE58_PREFIXES['SCRIPT_ADDR']
+
+        elif nVersion != bitcoin.params.BASE58_PREFIXES['SCRIPT_ADDR']:
+            raise ValueError('nVersion incorrect for P2SH address: got %d; expected %d' % \
+                                (nVersion, bitcoin.params.BASE58_PREFIXES['SCRIPT_ADDR']))
+
+        return super(P2SHBitcoinAddress, cls).from_bytes(data, nVersion)
+
+    @classmethod
+    def from_scriptPubKey(cls, scriptPubKey):
+        """Convert a scriptPubKey to a P2PKH address
+
+        Raises CBitcoinAddressError if the scriptPubKey isn't of the correct
+        form.
+        """
+        if scriptPubKey.is_p2sh():
+            return cls.from_bytes(scriptPubKey[2:22], bitcoin.params.BASE58_PREFIXES['SCRIPT_ADDR'])
 
         else:
-            raise ValueError("CBitcoinAddress: Don't know how to convert version %d to a scriptPubKey" % self.nVersion)
+            raise CBitcoinAddressError('not a P2SH scriptPubKey')
 
+    def to_scriptPubKey(self):
+        """Convert an address to a scriptPubKey"""
+        assert self.nVersion == bitcoin.params.BASE58_PREFIXES['SCRIPT_ADDR']
+        return script.CScript([script.OP_HASH160, self, script.OP_EQUAL])
+
+class P2PKHBitcoinAddress(CBitcoinAddress):
+    @classmethod
+    def from_bytes(cls, data, nVersion=None):
+        if nVersion is None:
+            nVersion = bitcoin.params.BASE58_PREFIXES['PUBKEY_ADDR']
+
+        elif nVersion != bitcoin.params.BASE58_PREFIXES['PUBKEY_ADDR']:
+            raise ValueError('nVersion incorrect for P2PKH address: got %d; expected %d' % \
+                                (nVersion, bitcoin.params.BASE58_PREFIXES['PUBKEY_ADDR']))
+
+        return super(P2PKHBitcoinAddress, cls).from_bytes(data, nVersion)
+
+    @classmethod
+    def from_pubkey(cls, pubkey, accept_invalid=False):
+        """Create a P2PKH bitcoin address from a pubkey
+
+        Raises CBitcoinAddressError if pubkey is invalid, unless accept_invalid
+        is True.
+
+        The pubkey must be a bytes instance; CECKey instances are not accepted.
+        """
+        if not isinstance(pubkey, bytes):
+            raise TypeError('pubkey must be bytes instance; got %r' % pubkey.__class__)
+
+        if not accept_invalid:
+            if not isinstance(pubkey, bitcoin.core.key.CPubKey):
+                pubkey = bitcoin.core.key.CPubKey(pubkey)
+            if not pubkey.is_fullyvalid:
+                raise CBitcoinAddressError('invalid pubkey')
+
+        pubkey_hash = bitcoin.core.Hash160(pubkey)
+        return P2PKHBitcoinAddress.from_bytes(pubkey_hash)
+
+    @classmethod
+    def from_scriptPubKey(cls, scriptPubKey, allow_non_canonical_pushdata=False, allow_bare_checksig=False):
+        """Convert a scriptPubKey to a P2PKH address
+
+        Raises CBitcoinAddressError if the scriptPubKey isn't of the correct
+        form.
+        """
+        if allow_non_canonical_pushdata or allow_bare_checksig:
+            raise NotImplementedError
+
+        if (len(scriptPubKey) == 25
+                and bord(scriptPubKey[0])  == script.OP_DUP
+                and bord(scriptPubKey[1])  == script.OP_HASH160
+                and bord(scriptPubKey[2])  == 0x14
+                and bord(scriptPubKey[23]) == script.OP_EQUALVERIFY
+                and bord(scriptPubKey[24]) == script.OP_CHECKSIG):
+            return cls.from_bytes(scriptPubKey[3:23], bitcoin.params.BASE58_PREFIXES['PUBKEY_ADDR'])
+
+        else:
+            raise CBitcoinAddressError('not a P2PKH scriptPubKey')
+
+    def to_scriptPubKey(self):
+        """Convert an address to a scriptPubKey"""
+        assert self.nVersion == bitcoin.params.BASE58_PREFIXES['PUBKEY_ADDR']
+        return script.CScript([script.OP_DUP, script.OP_HASH160, self, script.OP_EQUALVERIFY, script.OP_CHECKSIG])
 
 class CKey(object):
     """An encapsulated private key
