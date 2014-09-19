@@ -84,6 +84,9 @@ def ser_read(f, n):
 
 class Serializable(object):
     """Base class for serializable objects"""
+
+    __slots__ = []
+
     def stream_serialize(self, f):
         """Serialize to a stream"""
         raise NotImplementedError
