@@ -1,6 +1,18 @@
 python-bitcoinlib release notes
 ===============================
 
+v0.2.1
+======
+
+* Improve bitcoin address handling. P2SH and P2PKH addresses now get their own
+  classes - P2SHBitcoinAddress and P2PKHBitcoinAddress respectively - and P2PKH
+  can now convert scriptPubKeys containing non-canonical pushes as well as bare
+  checksig to addresses.
+* .deserialize() methods now fail if there is extra data left over.
+* Various other small bugfixes.
+* License is now LGPL v3 or later.
+
+
 v0.2.0
 ======
 
