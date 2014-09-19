@@ -89,7 +89,7 @@ class P2SHBitcoinAddress(CBitcoinAddress):
 
     @classmethod
     def from_scriptPubKey(cls, scriptPubKey):
-        """Convert a scriptPubKey to a P2PKH address
+        """Convert a scriptPubKey to a P2SH address
 
         Raises CBitcoinAddressError if the scriptPubKey isn't of the correct
         form.
