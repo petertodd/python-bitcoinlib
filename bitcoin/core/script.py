@@ -800,7 +800,7 @@ class CScript(bytes):
                 if op > OP_16:
                     return False
 
-        except CScriptTruncatedPushDataError: # Invalid pushdata
+        except CScriptInvalidError:
             return False
         return True
 

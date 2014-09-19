@@ -303,8 +303,21 @@ class Test_CScript(unittest.TestCase):
         T('61', False)
 
     def test_is_push_only_on_invalid_pushdata(self):
-        invalid_script = CScript(b'\x01')
-        self.assertFalse(invalid_script.is_push_only())
+        def T(hex_script):
+            invalid_script = CScript(x(hex_script))
+            self.assertFalse(invalid_script.is_push_only())
+
+        T('01')
+        T('02ff')
+        T('4b')
+        T('4c01')
+        T('4c02ff')
+        T('4d')
+        T('4d0100')
+        T('4d0200ff')
+        T('4e')
+        T('4e01000000')
+        T('4e02000000ff')
 
     def test_is_unspendable(self):
         def T(serialized, b):
