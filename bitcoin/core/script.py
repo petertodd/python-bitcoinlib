@@ -804,6 +804,36 @@ class CScript(bytes):
             return False
         return True
 
+    def has_canonical_pushes(self):
+        """Test if script only uses canonical pushes
+
+        Not yet consensus critical; may be in the future.
+        """
+        try:
+            for (op, data, idx) in self.raw_iter():
+                if op > OP_16:
+                    continue
+
+                elif op < OP_PUSHDATA1 and op > OP_0 and len(data) == 1 and bord(data[0]) <= 16:
+                    # Could have used an OP_n code, rather than a 1-byte push.
+                    return False
+
+                elif op == OP_PUSHDATA1 and len(data) < OP_PUSHDATA1:
+                    # Could have used a normal n-byte push, rather than OP_PUSHDATA1.
+                    return False
+
+                elif op == OP_PUSHDATA2 and len(data) <= 0xFF:
+                    # Could have used a OP_PUSHDATA1.
+                    return False
+
+                elif op == OP_PUSHDATA4 and len(data) <= 0xFFFF:
+                    # Could have used a OP_PUSHDATA2.
+                    return False
+
+        except CScriptInvalidError: # Invalid pushdata
+            return False
+        return True
+
     def is_unspendable(self):
         """Test if the script is provably unspendable"""
         return (len(self) > 0 and
