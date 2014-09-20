@@ -424,11 +424,20 @@ class CBlock(CBlockHeader):
 
     @staticmethod
     def build_merkle_tree_from_txids(txids):
-        """Build a full merkle tree from txids
+        """Build a full CBlock merkle tree from txids
 
         txids - iterable of txids
 
-        Returns a new merkle tree in deepest first order.
+        Returns a new merkle tree in deepest first order. The last element is
+        the merkle root.
+
+        WARNING! If you're reading this because you're learning about crypto
+        and/or designing a new system that will use merkle trees, keep in mind
+        that the following merkle tree algorithm has a serious flaw related to
+        duplicate txids, resulting in a vulnerability. (CVE-2012-2459) Bitcoin
+        has since worked around the flaw, but for new applications you should
+        use something different; don't just copy-and-paste this code without
+        understanding the problem first.
         """
         merkle_tree = list(txids)
 
