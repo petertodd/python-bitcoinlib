@@ -11,7 +11,7 @@
 # propagated, or distributed except according to the terms contained in the
 # LICENSE file.
 
-"""Low-level example of how to spend a standard pay-to-pubkey-hash txout"""
+"""Low-level example of how to spend a standard pay-to-pubkey-hash (P2PKH) txout"""
 
 import sys
 if sys.version_info.major < 3:
