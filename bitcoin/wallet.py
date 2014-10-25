@@ -37,13 +37,14 @@ class CBitcoinAddress(bitcoin.base58.CBase58Data):
     """A Bitcoin address"""
 
     @classmethod
-    def from_bytes(cls, data, nVersion):
+    def from_bytes(cls, data, nVersion, network=bitcoin.params):
         self = super(CBitcoinAddress, cls).from_bytes(data, nVersion)
+        self.network = network
 
-        if nVersion == bitcoin.params.BASE58_PREFIXES['SCRIPT_ADDR']:
+        if nVersion == network.BASE58_PREFIXES['SCRIPT_ADDR']:
             self.__class__ = P2SHBitcoinAddress
 
-        elif nVersion == bitcoin.params.BASE58_PREFIXES['PUBKEY_ADDR']:
+        elif nVersion == network.BASE58_PREFIXES['PUBKEY_ADDR']:
             self.__class__ = P2PKHBitcoinAddress
 
         else:
@@ -52,7 +53,7 @@ class CBitcoinAddress(bitcoin.base58.CBase58Data):
         return self
 
     @classmethod
-    def from_scriptPubKey(cls, scriptPubKey):
+    def from_scriptPubKey(cls, scriptPubKey, network=bitcoin.params):
         """Convert a scriptPubKey to a CBitcoinAddress
 
         Returns a CBitcoinAddress subclass, either P2SHBitcoinAddress or
@@ -77,56 +78,56 @@ class CBitcoinAddress(bitcoin.base58.CBase58Data):
 
 class P2SHBitcoinAddress(CBitcoinAddress):
     @classmethod
-    def from_bytes(cls, data, nVersion=None):
+    def from_bytes(cls, data, nVersion=None, network=bitcoin.params):
         if nVersion is None:
-            nVersion = bitcoin.params.BASE58_PREFIXES['SCRIPT_ADDR']
+            nVersion = network.BASE58_PREFIXES['SCRIPT_ADDR']
 
-        elif nVersion != bitcoin.params.BASE58_PREFIXES['SCRIPT_ADDR']:
+        elif nVersion != network.BASE58_PREFIXES['SCRIPT_ADDR']:
             raise ValueError('nVersion incorrect for P2SH address: got %d; expected %d' % \
-                                (nVersion, bitcoin.params.BASE58_PREFIXES['SCRIPT_ADDR']))
+                                (nVersion, network.BASE58_PREFIXES['SCRIPT_ADDR']))
 
-        return super(P2SHBitcoinAddress, cls).from_bytes(data, nVersion)
+        return super(P2SHBitcoinAddress, cls).from_bytes(data, nVersion, network=network)
 
     @classmethod
-    def from_redeemScript(cls, redeemScript):
+    def from_redeemScript(cls, redeemScript, network=bitcoin.params):
         """Convert a redeemScript to a P2SH address
 
         Convenience function: equivalent to P2SHBitcoinAddress.from_scriptPubKey(redeemScript.to_p2sh_scriptPubKey())
         """
-        return cls.from_scriptPubKey(redeemScript.to_p2sh_scriptPubKey())
+        return cls.from_scriptPubKey(redeemScript.to_p2sh_scriptPubKey(), network)
 
     @classmethod
-    def from_scriptPubKey(cls, scriptPubKey):
+    def from_scriptPubKey(cls, scriptPubKey, network=bitcoin.params):
         """Convert a scriptPubKey to a P2SH address
 
         Raises CBitcoinAddressError if the scriptPubKey isn't of the correct
         form.
         """
         if scriptPubKey.is_p2sh():
-            return cls.from_bytes(scriptPubKey[2:22], bitcoin.params.BASE58_PREFIXES['SCRIPT_ADDR'])
+            return cls.from_bytes(scriptPubKey[2:22], network.BASE58_PREFIXES['SCRIPT_ADDR'])
 
         else:
             raise CBitcoinAddressError('not a P2SH scriptPubKey')
 
     def to_scriptPubKey(self):
         """Convert an address to a scriptPubKey"""
-        assert self.nVersion == bitcoin.params.BASE58_PREFIXES['SCRIPT_ADDR']
+        assert self.nVersion == self.network.BASE58_PREFIXES['SCRIPT_ADDR']
         return script.CScript([script.OP_HASH160, self, script.OP_EQUAL])
 
 class P2PKHBitcoinAddress(CBitcoinAddress):
     @classmethod
-    def from_bytes(cls, data, nVersion=None):
+    def from_bytes(cls, data, nVersion=None, network=bitcoin.params):
         if nVersion is None:
-            nVersion = bitcoin.params.BASE58_PREFIXES['PUBKEY_ADDR']
+            nVersion = network.BASE58_PREFIXES['PUBKEY_ADDR']
 
-        elif nVersion != bitcoin.params.BASE58_PREFIXES['PUBKEY_ADDR']:
+        elif nVersion != network.BASE58_PREFIXES['PUBKEY_ADDR']:
             raise ValueError('nVersion incorrect for P2PKH address: got %d; expected %d' % \
-                                (nVersion, bitcoin.params.BASE58_PREFIXES['PUBKEY_ADDR']))
+                                (nVersion, network.BASE58_PREFIXES['PUBKEY_ADDR']))
 
         return super(P2PKHBitcoinAddress, cls).from_bytes(data, nVersion)
 
     @classmethod
-    def from_pubkey(cls, pubkey, accept_invalid=False):
+    def from_pubkey(cls, pubkey, accept_invalid=False, network=bitcoin.params):
         """Create a P2PKH bitcoin address from a pubkey
 
         Raises CBitcoinAddressError if pubkey is invalid, unless accept_invalid
@@ -144,10 +145,11 @@ class P2PKHBitcoinAddress(CBitcoinAddress):
                 raise CBitcoinAddressError('invalid pubkey')
 
         pubkey_hash = bitcoin.core.Hash160(pubkey)
-        return P2PKHBitcoinAddress.from_bytes(pubkey_hash)
+        return P2PKHBitcoinAddress.from_bytes(pubkey_hash, network=network)
 
     @classmethod
-    def from_scriptPubKey(cls, scriptPubKey, accept_non_canonical_pushdata=True, accept_bare_checksig=True):
+    def from_scriptPubKey(cls, scriptPubKey, accept_non_canonical_pushdata=True, accept_bare_checksig=True,
+                          network=bitcoin.params):
         """Convert a scriptPubKey to a P2PKH address
 
         Raises CBitcoinAddressError if the scriptPubKey isn't of the correct
@@ -171,7 +173,7 @@ class P2PKHBitcoinAddress(CBitcoinAddress):
                 and bord(scriptPubKey[2])  == 0x14
                 and bord(scriptPubKey[23]) == script.OP_EQUALVERIFY
                 and bord(scriptPubKey[24]) == script.OP_CHECKSIG):
-            return cls.from_bytes(scriptPubKey[3:23], bitcoin.params.BASE58_PREFIXES['PUBKEY_ADDR'])
+            return cls.from_bytes(scriptPubKey[3:23], network.BASE58_PREFIXES['PUBKEY_ADDR'], network=network)
 
         elif accept_bare_checksig:
             pubkey = None
@@ -191,13 +193,13 @@ class P2PKHBitcoinAddress(CBitcoinAddress):
                 pubkey = scriptPubKey[1:65]
 
             if pubkey is not None:
-                return cls.from_pubkey(pubkey, accept_invalid=True)
+                return cls.from_pubkey(pubkey, accept_invalid=True, network=network)
 
         raise CBitcoinAddressError('not a P2PKH scriptPubKey')
 
     def to_scriptPubKey(self):
         """Convert an address to a scriptPubKey"""
-        assert self.nVersion == bitcoin.params.BASE58_PREFIXES['PUBKEY_ADDR']
+        assert self.nVersion == self.network.BASE58_PREFIXES['PUBKEY_ADDR']
         return script.CScript([script.OP_DUP, script.OP_HASH160, self, script.OP_EQUALVERIFY, script.OP_CHECKSIG])
 
 class CKey(object):
@@ -231,16 +233,17 @@ class CBitcoinSecret(bitcoin.base58.CBase58Data, CKey):
     """A base58-encoded secret key"""
 
     @classmethod
-    def from_secret_bytes(cls, secret, compressed=True):
+    def from_secret_bytes(cls, secret, compressed=True, network=bitcoin.params):
         """Create a secret key from a 32-byte secret"""
         self = cls.from_bytes(secret + (b'\x01' if compressed else b''),
-                              bitcoin.params.BASE58_PREFIXES['SECRET_KEY'])
+                              network.BASE58_PREFIXES.BASE58_PREFIXES['SECRET_KEY'])
         self.__init__(None)
+
         return self
 
-    def __init__(self, s):
-        if self.nVersion != bitcoin.params.BASE58_PREFIXES['SECRET_KEY']:
+    def __init__(self, s, network=bitcoin.params):
+        if self.nVersion != network.BASE58_PREFIXES['SECRET_KEY']:
             raise CBitcoinSecretError('Not a base58-encoded secret key: got nVersion=%d; expected nVersion=%d' % \
-                                      (self.nVersion, bitcoin.params.BASE58_PREFIXES['SECRET_KEY']))
+                                      (self.nVersion, network.BASE58_PREFIXES['SECRET_KEY']))
 
         CKey.__init__(self, self[0:32], len(self) > 32 and bord(self[32]) == 1)

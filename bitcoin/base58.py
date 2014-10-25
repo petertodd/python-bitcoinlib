@@ -100,16 +100,16 @@ class CBase58Data(bytes):
 
     Includes a version and checksum.
     """
-    def __new__(cls, s):
+    def __new__(cls, s, network=bitcoin.current_params):
         k = decode(s)
         verbyte, data, check0 = k[0:1], k[1:-4], k[-4:]
         check1 = bitcoin.core.Hash(verbyte + data)[:4]
         if check0 != check1:
             raise Base58ChecksumError('Checksum mismatch: expected %r, calculated %r' % (check0, check1))
 
-        return cls.from_bytes(data, bord(verbyte[0]))
+        return cls.from_bytes(data, bord(verbyte[0]), network=network)
 
-    def __init__(self, s):
+    def __init__(self, s, network=bitcoin.current_params):
         """Initialize from base58-encoded string
 
         Note: subclasses put your initialization routines here, but ignore the
@@ -118,7 +118,7 @@ class CBase58Data(bytes):
         """
 
     @classmethod
-    def from_bytes(cls, data, nVersion):
+    def from_bytes(cls, data, nVersion, network=bitcoin.current_params):
         """Instantiate from data and nVersion"""
         if not (0 <= nVersion <= 255):
             raise ValueError('nVersion must be in range 0 to 255 inclusive; got %d' % nVersion)
