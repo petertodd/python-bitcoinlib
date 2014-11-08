@@ -12,7 +12,12 @@
 
 """Bitcoin Core RPC support"""
 
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (
+    absolute_import,
+    division,
+    print_function,
+    unicode_literals,
+)
 
 try:
     import http.client as httplib
@@ -31,7 +36,17 @@ except ImportError:
     import urlparse
 
 import bitcoin
-from bitcoin.core import COIN, lx, b2lx, CBlock, CTransaction, COutPoint, CTxOut
+
+from bitcoin.core import (
+    COIN,
+    lx,
+    b2lx,
+    CBlock,
+    CTransaction,
+    COutPoint,
+    CTxOut,
+)
+
 from bitcoin.core.script import CScript
 from bitcoin.wallet import CBitcoinAddress
 

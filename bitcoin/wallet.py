@@ -15,7 +15,12 @@ Includes things like representing addresses and converting them to/from
 scriptPubKeys; currently there is no actual wallet support implemented.
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (
+    absolute_import,
+    division,
+    print_function,
+    unicode_literals,
+)
 
 import sys
 bchr = chr
