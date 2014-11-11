@@ -2,12 +2,18 @@ python-bitcoinlib
 -----------------
 [![Build Status](https://travis-ci.org/icook/python-bitcoinlib.svg?branch=master)](https://travis-ci.org/icook/python-bitcoinlib)
 
-This Python2/3 library provides an easy interface to the bitcoin data
+This Python library provides an easy interface to the bitcoin data
 structures and protocol. The approach is low-level and "ground up", with a
 focus on providing tools to manipulate the internals of how Bitcoin works.
 
-"The Swiss Army Knife of Bitcoin protocol." - Wladimir J. van der Laan
+> "The Swiss Army Knife of Bitcoin protocol." - Wladimir J. van der Laan
 
+Currently supported tested versions include:
+
+* Python 3.4
+* Python 3.3
+* Python 3.2
+* Python 2.7
 
 Requirements
 ------------
