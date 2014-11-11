@@ -16,6 +16,7 @@ import hashlib
 import socket
 import struct
 import sys
+import time
 
 from .script import CScript
 
