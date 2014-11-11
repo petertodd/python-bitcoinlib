@@ -4,4 +4,6 @@
 local*.cfg
 
 build/
+doc/_build/
+.tox
 python_bitcoinlib.egg-info/
