@@ -1,5 +1,6 @@
 python-bitcoinlib
 -----------------
+[![Build Status](https://travis-ci.org/icook/python-bitcoinlib.svg?branch=master)](https://travis-ci.org/icook/python-bitcoinlib)
 
 This Python2/3 library provides an easy interface to the bitcoin data
 structures and protocol. The approach is low-level and "ground up", with a
