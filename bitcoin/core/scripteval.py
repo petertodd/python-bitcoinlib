@@ -172,7 +172,7 @@ def _CheckMultiSig(opcode, script, stack, txTo, inIdx, err_raiser, nOpCount):
     # Of course, this can only come up in very contrived cases now that
     # scriptSig and scriptPubKey are processed separately.
     for k in range(sigs_count):
-        sig = stack[-isig-k]
+        sig = stack[-isig - k]
         script = FindAndDelete(script, CScript([sig]))
 
     success = True

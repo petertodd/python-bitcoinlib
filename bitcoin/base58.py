@@ -47,20 +47,21 @@ def encode(b):
     # Divide that integer into bas58
     res = []
     while n > 0:
-        n, r = divmod (n, 58)
+        n, r = divmod(n, 58)
         res.append(b58_digits[r])
     res = ''.join(res[::-1])
 
     # Encode leading zeros as base58 zeros
-    import sys
     czero = b'\x00'
     if sys.version > '3':
         # In Python3 indexing a bytes returns numbers, not characters.
         czero = 0
     pad = 0
     for c in b:
-        if c == czero: pad += 1
-        else: break
+        if c == czero:
+            pad += 1
+        else:
+            break
     return b58_digits[0] * pad + res
 
 def decode(s):

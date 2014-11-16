@@ -21,7 +21,7 @@ import ctypes.util
 import hashlib
 import sys
 
-ssl = ctypes.cdll.LoadLibrary(ctypes.util.find_library ('ssl') or 'libeay32')
+ssl = ctypes.cdll.LoadLibrary(ctypes.util.find_library('ssl') or 'libeay32')
 
 # this specifies the curve used with ECDSA.
 NID_secp256k1 = 714 # from openssl/obj_mac.h
@@ -31,7 +31,7 @@ def _check_result (val, func, args):
     if val == 0:
         raise ValueError
     else:
-        return ctypes.c_void_p (val)
+        return ctypes.c_void_p(val)
 
 ssl.EC_KEY_new_by_curve_name.restype = ctypes.c_void_p
 ssl.EC_KEY_new_by_curve_name.errcheck = _check_result

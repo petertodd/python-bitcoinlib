@@ -45,14 +45,14 @@ total_bytes = 0
 start_time = time.time()
 
 fd = sys.stdout.buffer
-for i in range(n+1):
+for i in range(n + 1):
     block = proxy.getblock(proxy.getblockhash(i))
 
     block_bytes = block.serialize()
 
     total_bytes += len(block_bytes)
     print('%.2f KB/s, height %d, %d bytes' %
-            ((total_bytes/1000)/(time.time() - start_time),
+            ((total_bytes / 1000) / (time.time() - start_time),
              i, len(block_bytes)),
           file=sys.stderr)
 

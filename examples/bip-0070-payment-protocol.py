@@ -54,11 +54,12 @@ def payment_request():
 
     pro = o.PaymentRequest()
     pro.serialized_payment_details = pdo.SerializeToString()
-    
+
     sds_pr = pro.SerializeToString()
-    
+
     open('sds_pr_blob', 'wb').write(sds_pr)
-    headers = {'Content-Type' : 'application/bitcoin-payment', 'Accept' : 'application/bitcoin-paymentrequest'}
+    headers = {'Content-Type': 'application/bitcoin-payment',
+               'Accept': 'application/bitcoin-paymentrequest'}
     http_response_object = urllib2.Request('file:sds_pr_blob', None, headers)
 
     return http_response_object
@@ -72,9 +73,9 @@ def payment_ack(serialized_Payment_message):
     pao.memo = 'String shown to user after payment confirmation'
 
     refund_address = CBitcoinAddress.from_scriptPubKey(CScript(pao.payment.refund_to[0].script))
-    
+
     sds_pa = pao.SerializeToString()
-    
+
     open('sds_pa_blob', 'wb').write(sds_pa)
     headers = {'Content-Type' : 'application/bitcoin-payment', 'Accept' : 'application/bitcoin-paymentack'}
     http_response_object = urllib2.Request('file:sds_pa_blob', None, headers)

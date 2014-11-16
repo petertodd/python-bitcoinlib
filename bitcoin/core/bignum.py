@@ -22,13 +22,13 @@ def bn_bytes(v, have_ext=False):
     ext = 0
     if have_ext:
         ext = 1
-    return ((v.bit_length()+7)//8) + ext
+    return ((v.bit_length() + 7) // 8) + ext
 
 def bn2bin(v):
     s = bytearray()
     i = bn_bytes(v)
     while i > 0:
-        s.append((v >> ((i-1) * 8)) & 0xff)
+        s.append((v >> ((i - 1) * 8)) & 0xff)
         i -= 1
     return s
 

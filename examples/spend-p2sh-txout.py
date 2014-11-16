@@ -66,7 +66,7 @@ txin = CMutableTxIn(COutPoint(txid, vout))
 txout = CMutableTxOut(0.0005*COIN, CBitcoinAddress('323uf9MgLaSn9T7vDaK1cGAZ2qpvYUuqSp').to_scriptPubKey())
 
 # Create the unsigned transaction.
-tx = CMutableTransaction([txin],[txout])
+tx = CMutableTransaction([txin], [txout])
 
 # Calculate the signature hash for that transaction. Note how the script we use
 # is the redeemScript, not the scriptPubKey. That's because when the CHECKSIG
