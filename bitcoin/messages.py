@@ -21,9 +21,9 @@ if sys.version > '3':
 else:
     import cStringIO as io
 
-from .core import *
-from .core.serialize import *
-from .net import *
+from bitcoin.core import *
+from bitcoin.core.serialize import *
+from bitcoin.net import *
 from bitcoin import MainParams
 
 MSG_TX = 1
