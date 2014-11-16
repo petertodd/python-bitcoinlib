@@ -21,8 +21,8 @@ import sys
 bchr = chr
 bord = ord
 if sys.version > '3':
-        bchr = lambda x: bytes([x])
-        bord = lambda x: x
+    bchr = lambda x: bytes([x])
+    bord = lambda x: x
 
 import bitcoin
 import bitcoin.base58

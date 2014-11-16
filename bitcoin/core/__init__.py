@@ -35,7 +35,7 @@ MIN_PROTO_VERSION = 209
 CADDR_TIME_VERSION = 31402
 
 def MoneyRange(nValue):
-        return 0 <= nValue <= MAX_MONEY
+    return 0 <= nValue <= MAX_MONEY
 
 def py2_x(h):
     """Convert a hex string to bytes"""

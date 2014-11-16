@@ -18,9 +18,9 @@ import sys
 bchr = chr
 bord = ord
 if sys.version > '3':
-        long = int
-        bchr = lambda x: bytes([x])
-        bord = lambda x: x
+    long = int
+    bchr = lambda x: bytes([x])
+    bord = lambda x: x
 
 import binascii
 
