@@ -373,10 +373,6 @@ class msg_getaddr(MsgSerializable):
     def __repr__(self):
         return "msg_getaddr()"
 
-#msg_checkorder
-#msg_submitorder
-#msg_reply
-
 
 class msg_ping(MsgSerializable):
     command = b"ping"
