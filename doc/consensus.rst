@@ -1,7 +1,7 @@
-API
+Consensus-critical API
 =========================
 
-bitcoin.core
+Core
 -------------------------
 Basic core definitions, datastructures, and (context-independent) validation 
 
@@ -9,41 +9,36 @@ Basic core definitions, datastructures, and (context-independent) validation
    :members:
    :undoc-members:
 
-bitcoin.core.bignum
--------------------------
 Bignum handling
+-------------------------
 
 .. automodule:: bitcoin.core.bignum
    :members:
    :undoc-members:
 
-bitcoin.core.key
+ECC Public Keys
 -------------------------
-ECC pubkeys
 
 .. automodule:: bitcoin.core.key
    :members:
    :undoc-members:
 
-bitcoin.core.script
+Scripts and Opcodes
 -------------------------
-Scripts and opcodes
 
 .. automodule:: bitcoin.core.script
    :members:
    :undoc-members:
 
-bitcoin.core.scripteval
--------------------------
 Script evaluation/verification
+------------------------------
 
 .. automodule:: bitcoin.core.scripteval
    :members:
    :undoc-members:
 
-bitcoin.core.serialize
--------------------------
 Serialization
+-------------------------
 
 .. automodule:: bitcoin.core.serialize
    :members:
