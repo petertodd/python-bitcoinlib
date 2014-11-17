@@ -33,7 +33,7 @@ bitcoin.core.scripteval - Script evaluation/verification
 bitcoin.core.serialize  - Serialization
 
 In the future the bitcoin.core may use the Satoshi sourcecode directly as a
-libary. Non-consensus critical modules include the following:
+library. Non-consensus critical modules include the following:
 
 bitcoin            - Chain selection
 bitcoin.base58     - Base58 encoding
