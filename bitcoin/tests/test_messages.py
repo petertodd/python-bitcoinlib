@@ -114,6 +114,12 @@ class Test_messages(unittest.TestCase):
         m = MsgSerializable.stream_deserialize(f)
         self.assertEqual(m.command, msg_verack.command)
 
+    def test_fail_invalid_message(self):
+        bad_verack_bytes = b'\xf8' + self.verackbytes[1:]
+        f = BytesIO(bad_verack_bytes)
+        with self.assertRaises(ValueError):
+            MsgSerializable.stream_deserialize(f)
+
     def test_msg_verack_to_bytes(self):
         m = msg_verack()
         b = m.to_bytes()
