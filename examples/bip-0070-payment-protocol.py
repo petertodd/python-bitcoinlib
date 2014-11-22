@@ -18,12 +18,6 @@ bitcoin bip 70 using googles protocol buffers.
 
 import urllib2
 
-##  The payments_pb2 template is available at
-##  https://github.com/bitcoin/bips/blob/master/bip-0070/paymentrequest.proto
-import payments_pb2
-##  Instantiate main protobuf object (o).
-o = payments_pb2
-
 import bitcoin
 #bitcoin.SelectParams('testnet')
 from bitcoin.wallet import CBitcoinAddress
@@ -38,6 +32,12 @@ from time import time
 from Crypto.Hash import SHA256
 from Crypto.Signature import PKCS1_v1_5
 from Crypto.PublicKey import RSA
+
+##  The payments_pb2 template is available at
+##  https://github.com/bitcoin/bips/blob/master/bip-0070/paymentrequest.proto
+import payments_pb2
+##  Instantiate main protobuf object (o).
+o = payments_pb2
 
 def paymentrequest():
     """Generates a http(s) PaymentRequest object"""
