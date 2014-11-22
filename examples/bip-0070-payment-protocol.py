@@ -21,6 +21,7 @@ import urllib2
 ##  The payments_pb2 template is available at
 ##  https://github.com/bitcoin/bips/blob/master/bip-0070/paymentrequest.proto
 import payments_pb2
+##  Instantiate main protobuf object (o).
 o = payments_pb2
 
 import bitcoin
@@ -40,9 +41,6 @@ from Crypto.PublicKey import RSA
 
 def paymentrequest():
     """Generates a http(s) PaymentRequest object"""
-
-##  Instantiate main protobuf object (o).
-    o = payments_pb2
 
 ##  Setting the 'amount' field to 0 (zero) should prompt the user to enter
 ##  the amount for us but a bug in bitcoin core qt version 0.9.1 (at time of
