@@ -12,7 +12,7 @@
 # LICENSE file.
 
 """Bip-0070-related functionality
-Creates http response objects suitable for use with
+Creates http(s) response objects suitable for use with
 bitcoin bip 70 using googles protocol buffers.
 """
 
