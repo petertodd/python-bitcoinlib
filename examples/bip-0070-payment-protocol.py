@@ -64,7 +64,6 @@ def paymentrequest():
 #####################################################################################################
 
 ##  Certificate chain example using nginx and ssl certificates obtained from comodo.com.
-##  This step is optional.
     #ssl_dir = '/etc/nginx/ssl/'
     #cert0 = open(ssl_dir + 'example_com.der', 'rb').read()
     #cert1 = open(ssl_dir + 'COMODORSADomainValidationSecureServerCA.der', 'rb').read()
