@@ -72,7 +72,6 @@ def paymentrequest():
 
 ##  According to the documentation if you wish to use ssl the certificates are to be added one by one
 ##  using the 'append()' method in the correct order.
-##  We can achieve this with a list and for loop.
     #cert_list = (cert0, cert1, cert2, cert3)
 
 ##  Instantiate X509Certificates object (xco)
