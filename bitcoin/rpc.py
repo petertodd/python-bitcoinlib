@@ -322,6 +322,21 @@ class Proxy(RawProxy):
 
         return r
 
+    def getreceivedbyaddress(self, addr, minconf=1):
+        """Get the amount (in satoshi) received by <address> in transactions 
+        with at least [minconf] confirmations. It correctly handles the case 
+        where someone has sent to the address in multiple transactions. 
+
+        Works only for addresses in the local wallet, external addresses will 
+        always show 0.
+
+        addr - The selected address.
+        minconf - Only include transactions confirmed at least this many times. (default=1)
+        """
+        addr = str(addr)
+        r = self._call('getreceivedbyaddress', addr, minconf)
+        return int(r*COIN)
+
     def gettransaction(self, txid):
         """Get detailed information about in-wallet transaction txid
 
