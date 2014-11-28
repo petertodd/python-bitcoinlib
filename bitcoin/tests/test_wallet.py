@@ -46,6 +46,23 @@ class Test_CBitcoinAddress(unittest.TestCase):
         with self.assertRaises(CBitcoinAddressError):
             CBitcoinAddress('2MyJKxYR2zNZZsZ39SgkCXWCfQtXKhnWSWq')
 
+    def test_create_from_string_specify_network(self):
+        """Create CBitcoinAddress's from strings, and override the default network parameters"""
+
+        def T(str_addr, expected_bytes, expected_nVersion, expected_class):
+            addr = CBitcoinAddress(str_addr, network=bitcoin.TestNetParams())
+            self.assertEqual(addr.to_bytes(), expected_bytes)
+            self.assertEqual(addr.nVersion, expected_nVersion)
+            self.assertEqual(addr.__class__, expected_class)
+
+        T('mpXwg4jMtRhuSpVq4xS3HFHmCmWp9NyGKt',
+          x('62e907b15cbf27d5425399ebf6f0fb50ebb88f18'), 111,
+          P2PKHBitcoinAddress)
+
+        T('2MyJKxYR2zNZZsZ39SgkCXWCfQtXKhnWSWq',
+          x('4266fc6f2c2861d7fe229b279a79803afca7ba34'), 196,
+          P2SHBitcoinAddress)
+
     def test_from_scriptPubKey(self):
         def T(hex_scriptpubkey, expected_str_address, expected_class):
             scriptPubKey = CScript(x(hex_scriptpubkey))

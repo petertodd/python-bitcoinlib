@@ -70,3 +70,11 @@ def SelectParams(name):
         params = bitcoin.core.coreparams = RegTestParams()
     else:
         raise ValueError('Unknown chain %r' % name)
+
+class _CurrentPrefixParams(object):
+    """Always returns the current params. Used for default values in methods needing a network configuration."""
+    @property
+    def BASE58_PREFIXES(self):
+        return bitcoin.params.BASE58_PREFIXES
+
+current_params = _CurrentPrefixParams()

@@ -190,6 +190,7 @@ class Proxy(RawProxy):
                        service_port=None,
                        btc_conf_file=None,
                        timeout=HTTP_TIMEOUT,
+                       network=bitcoin.params,
                        **kwargs):
         """Create a proxy to a bitcoin RPC service
 
@@ -211,10 +212,12 @@ class Proxy(RawProxy):
         super(Proxy, self).__init__(service_url=service_url, service_port=service_port, btc_conf_file=btc_conf_file,
                                     timeout=HTTP_TIMEOUT,
                                     **kwargs)
+        self.__network = network
+
     def getaccountaddress(self, account=None):
         """Return the current Bitcoin address for receiving payments to this account."""
         r = self._call('getaccountaddress', account)
-        return CBitcoinAddress(r)
+        return CBitcoinAddress(r, network=self.__network)
 
     def getbalance(self, account='*', minconf=1):
         """Get the balance
@@ -272,7 +275,7 @@ class Proxy(RawProxy):
         else:
             r = self._call('getnewaddress')
 
-        return CBitcoinAddress(r)
+        return CBitcoinAddress(r, network=self.__network)
 
     def getrawchangeaddress(self):
         """Returns a new Bitcoin address, for receiving change.
@@ -280,7 +283,7 @@ class Proxy(RawProxy):
         This is for use with raw transactions, NOT normal use.
         """
         r = self._call('getrawchangeaddress')
-        return CBitcoinAddress(r)
+        return CBitcoinAddress(r, network=self.__network)
 
     def getrawmempool(self, verbose=False):
         """Return the mempool"""
@@ -390,7 +393,7 @@ class Proxy(RawProxy):
             del unspent['txid']
             del unspent['vout']
 
-            unspent['address'] = CBitcoinAddress(unspent['address'])
+            unspent['address'] = CBitcoinAddress(unspent['address'], network=self.__network)
             unspent['scriptPubKey'] = CScript(unhexlify(unspent['scriptPubKey']))
             unspent['amount'] = int(unspent['amount'] * COIN)
             r2.append(unspent)
@@ -448,7 +451,7 @@ class Proxy(RawProxy):
         """Return information about an address"""
         r = self._call('validateaddress', str(address))
         if r['isvalid']:
-            r['address'] = CBitcoinAddress(r['address'])
+            r['address'] = CBitcoinAddress(r['address'], network=self.__network)
         if 'pubkey' in r:
             r['pubkey'] = unhexlify(r['pubkey'])
         return r
