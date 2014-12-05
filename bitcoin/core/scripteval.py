@@ -16,7 +16,12 @@ unlikely to match Satoshi Bitcoin exactly. Think carefully before using this
 module.
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (
+    absolute_import,
+    division,
+    print_function,
+    unicode_literals,
+)
 
 import sys
 bord = ord

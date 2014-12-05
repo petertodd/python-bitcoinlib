@@ -15,7 +15,12 @@ Functionality to build scripts, as well as SignatureHash(). Script evaluation
 is in bitcoin.core.scripteval
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (
+    absolute_import,
+    division,
+    print_function,
+    unicode_literals,
+)
 
 import sys
 bchr = chr

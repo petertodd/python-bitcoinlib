@@ -9,13 +9,22 @@
 # propagated, or distributed except according to the terms contained in the
 # LICENSE file.
 
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (
+    absolute_import,
+    division,
+    print_function,
+    unicode_literals,
+)
 
 import struct
 import socket
 from binascii import hexlify
 
-from .core import PROTO_VERSION, CADDR_TIME_VERSION
+from .core import (
+    PROTO_VERSION,
+    CADDR_TIME_VERSION,
+)
+
 from .core.serialize import *
 
 
