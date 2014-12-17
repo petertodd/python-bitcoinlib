@@ -20,7 +20,7 @@ import math
 import bitcoin.core
 import bitcoin.core.serialize
 
-def ROTL32(x, r):
+def _ROTL32(x, r):
     assert x <= 0xFFFFFFFF
     return ((x << r) & 0xFFFFFFFF) | (x >> (32 - r))
 
@@ -44,11 +44,11 @@ def MurmurHash3(nHashSeed, vDataToHash):
         k1 = struct.unpack(b"<L", vDataToHash[i:i+4])[0]
 
         k1 = (k1 * c1) & 0xFFFFFFFF
-        k1 = ROTL32(k1, 15)
+        k1 = _ROTL32(k1, 15)
         k1 = (k1 * c2) & 0xFFFFFFFF
 
         h1 ^= k1
-        h1 = ROTL32(h1, 13)
+        h1 = _ROTL32(h1, 13)
         h1 = (((h1*5) & 0xFFFFFFFF) + 0xe6546b64) & 0xFFFFFFFF
 
         i += 4
@@ -70,7 +70,7 @@ def MurmurHash3(nHashSeed, vDataToHash):
 
     k1 &= 0xFFFFFFFF
     k1 = (k1 * c1) & 0xFFFFFFFF
-    k1 = ROTL32(k1, 15)
+    k1 = _ROTL32(k1, 15)
     k1 = (k1 * c2) & 0xFFFFFFFF
     h1 ^= k1
 
