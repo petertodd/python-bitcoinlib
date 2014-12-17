@@ -19,10 +19,10 @@ module.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
-bord = ord
+_bord = ord
 if sys.version > '3':
     long = int
-    bord = lambda x: x
+    _bord = lambda x: x
 
 import copy
 import hashlib
@@ -103,7 +103,7 @@ def _CastToBigNum(s, err_raiser):
 
 def _CastToBool(s):
     for i in range(len(s)):
-        sv = bord(s[i])
+        sv = _bord(s[i])
         if sv != 0:
             if (i == (len(s) - 1)) and (sv == 0x80):
                 return False
@@ -118,7 +118,7 @@ def _CheckSig(sig, pubkey, script, txTo, inIdx, err_raiser):
 
     if len(sig) == 0:
         return False
-    hashtype = bord(sig[-1])
+    hashtype = _bord(sig[-1])
     sig = sig[:-1]
 
     # Raw signature hash due to the SIGHASH_SINGLE bug

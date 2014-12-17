@@ -23,12 +23,12 @@ import struct
 import sys
 
 if sys.version > '3':
-    bchr = lambda x: bytes([x])
-    bord = lambda x: x[0]
+    _bchr = lambda x: bytes([x])
+    _bord = lambda x: x[0]
     from io import BytesIO
 else:
-    bchr = chr
-    bord = ord
+    _bchr = chr
+    _bord = ord
     from cStringIO import StringIO as BytesIO
 
 MAX_SIZE = 0x02000000
@@ -194,20 +194,20 @@ class VarIntSerializer(Serializer):
         if i < 0:
             raise ValueError('varint must be non-negative integer')
         elif i < 0xfd:
-            f.write(bchr(i))
+            f.write(_bchr(i))
         elif i <= 0xffff:
-            f.write(bchr(0xfd))
+            f.write(_bchr(0xfd))
             f.write(struct.pack(b'<H', i))
         elif i <= 0xffffffff:
-            f.write(bchr(0xfe))
+            f.write(_bchr(0xfe))
             f.write(struct.pack(b'<I', i))
         else:
-            f.write(bchr(0xff))
+            f.write(_bchr(0xff))
             f.write(struct.pack(b'<Q', i))
 
     @classmethod
     def stream_deserialize(cls, f):
-        r = bord(ser_read(f, 1))
+        r = _bord(ser_read(f, 1))
         if r < 0xfd:
             return r
         elif r == 0xfd:
