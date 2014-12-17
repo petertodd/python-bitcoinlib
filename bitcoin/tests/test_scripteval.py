@@ -15,6 +15,10 @@ import json
 import os
 import unittest
 
+import sys
+if sys.version > '3':
+    long = int
+
 from binascii import unhexlify
 
 from bitcoin.core import ValidationError

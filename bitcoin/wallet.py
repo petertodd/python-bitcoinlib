@@ -242,3 +242,14 @@ class CBitcoinSecret(bitcoin.base58.CBase58Data, CKey):
                                       (self.nVersion, bitcoin.params.BASE58_PREFIXES['SECRET_KEY']))
 
         CKey.__init__(self, self[0:32], len(self) > 32 and _bord(self[32]) == 1)
+
+
+__all__ = (
+        'CBitcoinAddressError',
+        'CBitcoinAddress',
+        'P2SHBitcoinAddress',
+        'P2PKHBitcoinAddress',
+        'CKey',
+        'CBitcoinSecretError',
+        'CBitcoinSecret',
+)

@@ -11,15 +11,22 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import hashlib
+import random
 import struct
 import time
-import random
+
+# Py3 compatibility
 import sys
 
 if sys.version > '3':
-    import io
+    _bchr = lambda x: bytes([x])
+    _bord = lambda x: x[0]
+    from io import BytesIO as _BytesIO
 else:
-    import cStringIO as io
+    _bchr = chr
+    _bord = ord
+    from cStringIO import StringIO as _BytesIO
 
 # Bad practice, so we have a __all__ at the end; this should be cleaned up
 # later.
@@ -45,7 +52,7 @@ class MsgSerializable(Serializable):
         raise NotImplementedError
 
     def to_bytes(self, params=MainParams()):
-        f = BytesIO()
+        f = _BytesIO()
         self.msg_ser(f)
         body = f.getvalue()
         res = params.MESSAGE_START
@@ -63,7 +70,7 @@ class MsgSerializable(Serializable):
 
     @classmethod
     def from_bytes(cls, b, protover=PROTO_VERSION):
-        f = BytesIO(b)
+        f = _BytesIO(b)
         return MsgSerializable.stream_deserialize(f, protover=protover)
 
     @classmethod
@@ -93,7 +100,7 @@ class MsgSerializable(Serializable):
         if command in messagemap:
             cls = messagemap[command]
             #        print("Going to deserialize '%s'" % msg)
-            return cls.msg_deser(BytesIO(msg))
+            return cls.msg_deser(_BytesIO(msg))
         else:
             print("Command '%s' not in messagemap" % str(command, 'ascii'))
             return None

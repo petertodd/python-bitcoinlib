@@ -9,7 +9,7 @@
 # propagated, or distributed except according to the terms contained in the
 # LICENSE file.
 
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function
 
 import binascii
 import hashlib
@@ -732,3 +732,42 @@ def CheckBlock(block, fCheckPoW = True, fCheckMerkleRoot = True, cur_time=None):
     # Check merkle root
     if fCheckMerkleRoot and block.hashMerkleRoot != block.calc_merkle_root():
         raise CheckBlockError("CheckBlock() : hashMerkleRoot mismatch")
+
+__all__ = (
+        'Hash',
+        'Hash160',
+        'COIN',
+        'MAX_MONEY',
+        'MAX_BLOCK_SIZE',
+        'MAX_BLOCK_SIGOPS',
+        'MoneyRange',
+        'x',
+        'b2x',
+        'lx',
+        'b2lx',
+        'str_money_value',
+        'ValidationError',
+        'COutPoint',
+        'CMutableOutPoint',
+        'CTxIn',
+        'CMutableTxIn',
+        'CTxOut',
+        'CMutableTxOut',
+        'CTransaction',
+        'CMutableTransaction',
+        'CBlockHeader',
+        'CBlock',
+        'CoreChainParams',
+        'CoreMainParams',
+        'CoreTestNetParams',
+        'CoreRegTestParams',
+        'CheckTransactionError',
+        'CheckTransaction',
+        'CheckBlockHeaderError',
+        'CheckProofOfWorkError',
+        'CheckProofOfWork',
+        'CheckBlockHeader',
+        'CheckBlockError',
+        'GetLegacySigOpCount',
+        'CheckBlock',
+)

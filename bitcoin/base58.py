@@ -144,3 +144,13 @@ class CBase58Data(bytes):
 
     def __repr__(self):
         return '%s(%r)' % (self.__class__.__name__, str(self))
+
+__all__ = (
+        'B58_DIGITS',
+        'Base58Error',
+        'InvalidBase58Error',
+        'encode',
+        'decode',
+        'Base58ChecksumError',
+        'CBase58Data',
+)

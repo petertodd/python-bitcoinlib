@@ -164,3 +164,7 @@ class CPubKey(bytes):
         else:
             return '%s(b%s)' % (self.__class__.__name__, super(CPubKey, self).__repr__())
 
+__all__ = (
+        'CECKey',
+        'CPubKey',
+)

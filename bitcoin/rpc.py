@@ -466,3 +466,9 @@ class Proxy(RawProxy):
 
     def removenode(self, node):
         return self._addnode(node, 'remove')
+
+__all__ = (
+        'JSONRPCException',
+        'RawProxy',
+        'Proxy',
+)
