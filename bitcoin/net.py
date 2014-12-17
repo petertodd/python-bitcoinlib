@@ -18,6 +18,8 @@ from binascii import hexlify
 from .core import PROTO_VERSION, CADDR_TIME_VERSION
 from .core.serialize import *
 
+PROTO_VERSION = 60002
+CADDR_TIME_VERSION = 31402
 
 class CAddress(Serializable):
     def __init__(self, protover=PROTO_VERSION):
