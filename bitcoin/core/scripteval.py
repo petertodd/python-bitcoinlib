@@ -35,7 +35,7 @@ import bitcoin.core.serialize
 # we're not exporting the whole contents of the script module.
 from bitcoin.core.script import *
 
-nMaxNumSize = 4
+MAX_NUM_SIZE = 4
 MAX_STACK_ITEMS = 1000
 
 SCRIPT_VERIFY_P2SH = object()
@@ -97,7 +97,7 @@ class VerifyOpFailedError(EvalScriptError):
 
 def _CastToBigNum(s, err_raiser):
     v = bitcoin.core.bignum.vch2bn(s)
-    if len(s) > nMaxNumSize:
+    if len(s) > MAX_NUM_SIZE:
         raise err_raiser(EvalScriptError, 'CastToBigNum() : overflow')
     return v
 
