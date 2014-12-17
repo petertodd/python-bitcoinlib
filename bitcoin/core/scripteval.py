@@ -200,7 +200,7 @@ def _CheckMultiSig(opcode, script, stack, txTo, inIdx, err_raiser, nOpCount):
 
 
 # OP_2MUL and OP_2DIV are *not* included in this list as they are disabled
-ISA_UNOP = {
+_ISA_UNOP = {
     OP_1ADD,
     OP_1SUB,
     OP_NEGATE,
@@ -241,7 +241,7 @@ def _UnaryOp(opcode, stack, err_raiser):
 
 
 # OP_LSHIFT and OP_RSHIFT are *not* included in this list as they are disabled
-ISA_BINOP = {
+_ISA_BINOP = {
     OP_ADD,
     OP_SUB,
     OP_BOOLAND,
@@ -399,10 +399,10 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, flags=()):
                 v = sop - (OP_1 - 1)
                 stack.append(bitcoin.core.bignum.bn2vch(v))
 
-            elif sop in ISA_BINOP:
+            elif sop in _ISA_BINOP:
                 _BinOp(sop, stack, err_raiser)
 
-            elif sop in ISA_UNOP:
+            elif sop in _ISA_UNOP:
                 _UnaryOp(sop, stack, err_raiser)
 
             elif sop == OP_2DROP:
