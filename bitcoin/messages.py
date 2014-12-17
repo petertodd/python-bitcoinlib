@@ -21,6 +21,8 @@ if sys.version > '3':
 else:
     import cStringIO as io
 
+# Bad practice, so we have a __all__ at the end; this should be cleaned up
+# later.
 from bitcoin.core import *
 from bitcoin.core.serialize import *
 from bitcoin.net import *
@@ -438,3 +440,28 @@ msg_classes = [msg_version, msg_verack, msg_addr, msg_alert, msg_inv,
 messagemap = {}
 for cls in msg_classes:
     messagemap[cls.command] = cls
+
+
+__all__ = (
+        'MSG_TX',
+        'MSG_BLOCK',
+        'MSG_FILTERED_BLOCK',
+        'MsgSerializable',
+        'msg_version',
+        'msg_verack',
+        'msg_addr',
+        'msg_alert',
+        'msg_inv',
+        'msg_getdata',
+        'msg_getblocks',
+        'msg_getheaders',
+        'msg_headers',
+        'msg_tx',
+        'msg_block',
+        'msg_getaddr',
+        'msg_ping',
+        'msg_pong',
+        'msg_mempool',
+        'msg_classes',
+        'messagemap',
+)
