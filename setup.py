@@ -10,7 +10,7 @@ with open(os.path.join(here, 'README')) as f:
 requires = []
 
 setup(name='python-bitcoinlib',
-      version='0.3.0',
+      version='0.3.1-SNAPSHOT',
       description='This python library provides an easy interface to the Bitcoin data structures and protocol.',
       long_description=README,
       classifiers=[
