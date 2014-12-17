@@ -29,7 +29,7 @@ import copy
 import struct
 
 import bitcoin.core
-import bitcoin.core.bignum
+import bitcoin.core._bignum
 
 MAX_SCRIPT_SIZE = 10000
 MAX_SCRIPT_ELEMENT_SIZE = 520
@@ -521,7 +521,7 @@ class CScript(bytes):
             elif other == -1:
                 other = bytes(_bchr(OP_1NEGATE))
             else:
-                other = CScriptOp.encode_op_pushdata(bitcoin.core.bignum.bn2vch(other))
+                other = CScriptOp.encode_op_pushdata(bitcoin.core._bignum.bn2vch(other))
         elif isinstance(other, (bytes, bytearray)):
             other = CScriptOp.encode_op_pushdata(other)
         return other

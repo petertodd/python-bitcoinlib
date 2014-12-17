@@ -26,7 +26,6 @@ consensus critical and non-consensus-critical.
 
 bitcoin.core            - Basic core definitions, datastructures, and
                           (context-independent) validation
-bitcoin.core.bignum     - Bignum handling
 bitcoin.core.key        - ECC pubkeys
 bitcoin.core.script     - Scripts and opcodes
 bitcoin.core.scripteval - Script evaluation/verification

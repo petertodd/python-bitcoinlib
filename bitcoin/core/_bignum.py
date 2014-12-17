@@ -9,7 +9,9 @@
 # propagated, or distributed except according to the terms contained in the
 # LICENSE file.
 
-"""Bignum routines"""
+# Bignum routines
+#
+# Internally used for script evaluation; not to be used externally.
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
