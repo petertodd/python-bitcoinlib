@@ -15,8 +15,12 @@ import struct
 import socket
 from binascii import hexlify
 
-from .core import PROTO_VERSION, CADDR_TIME_VERSION
-from .core.serialize import *
+from bitcoin.core.serialize import (
+        Serializable,
+        VarStringSerializer,
+        ser_read,
+        uint256VectorSerializer,
+)
 
 PROTO_VERSION = 60002
 CADDR_TIME_VERSION = 31402
@@ -170,3 +174,13 @@ class CAlert(Serializable):
 
     def __repr__(self):
         return "CAlert(vchMsg.sz %d, vchSig.sz %d)" % (len(self.vchMsg), len(self.vchSig))
+
+__all__ = (
+        'PROTO_VERSION',
+        'CADDR_TIME_VERSION',
+        'CAddress',
+        'CInv',
+        'CBlockLocator',
+        'CUnsignedAlert',
+        'CAlert',
+)
