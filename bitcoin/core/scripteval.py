@@ -31,6 +31,8 @@ import bitcoin.core
 import bitcoin.core.key
 import bitcoin.core.serialize
 
+# Importing everything for simplicity; note that we use __all__ at the end so
+# we're not exporting the whole contents of the script module.
 from bitcoin.core.script import *
 
 nMaxNumSize = 4
@@ -762,3 +764,22 @@ def VerifySignature(txFrom, txTo, inIdx):
         raise VerifySignatureError("prevout hash does not match txFrom")
 
     VerifyScript(txin.scriptSig, txout.scriptPubKey, txTo, inIdx)
+
+
+__all__ = (
+        'MAX_STACK_ITEMS',
+        'SCRIPT_VERIFY_P2SH',
+        'SCRIPT_VERIFY_STRICTENC',
+        'SCRIPT_VERIFY_EVEN_S',
+        'SCRIPT_VERIFY_NOCACHE',
+        'EvalScriptError',
+        'MaxOpCountError',
+        'MissingOpArgumentsError',
+        'ArgumentsInvalidError',
+        'VerifyOpFailedError',
+        'EvalScript',
+        'VerifyScriptError',
+        'VerifyScript',
+        'VerifySignatureError',
+        'VerifySignature',
+)
