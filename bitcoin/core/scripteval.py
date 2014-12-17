@@ -41,13 +41,6 @@ SCRIPT_VERIFY_STRICTENC = object()
 SCRIPT_VERIFY_EVEN_S = object()
 SCRIPT_VERIFY_NOCACHE = object()
 
-# Invalid even when occuring in an unexecuted OP_IF branch due to either being
-# disabled, or never implemented.
-disabled_opcodes = set((OP_VERIF, OP_VERNOTIF,
-                        OP_CAT, OP_SUBSTR, OP_LEFT, OP_RIGHT, OP_INVERT, OP_AND,
-                        OP_OR, OP_XOR, OP_2MUL, OP_2DIV, OP_MUL, OP_DIV, OP_MOD,
-                        OP_LSHIFT, OP_RSHIFT))
-
 class EvalScriptError(bitcoin.core.ValidationError):
     """Base class for exceptions raised when a script fails during EvalScript()
 
@@ -377,7 +370,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, flags=()):
                     altstack=altstack, vfExec=vfExec, pbegincodehash=pbegincodehash, nOpCount=nOpCount[0])
 
 
-        if sop in disabled_opcodes:
+        if sop in DISABLED_OPCODES:
             err_raiser(EvalScriptError, 'opcode %s is disabled' % OPCODE_NAMES[sop])
 
         if sop > OP_16:
