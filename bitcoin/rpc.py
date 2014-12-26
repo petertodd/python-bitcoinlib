@@ -55,7 +55,6 @@ class JSONRPCException(Exception):
 
 
 class RawProxy(object):
-    # FIXME: need a CChainParams rather than hard-coded service_port
     def __init__(self, service_url=None,
                        service_port=None,
                        btc_conf_file=None,
@@ -108,7 +107,10 @@ class RawProxy(object):
         self.__service_url = service_url
         self.__url = urlparse.urlparse(service_url)
         if self.__url.port is None:
-            port = 80
+            if self.__url.scheme == 'https':
+                port = httplib.HTTPS_PORT
+            else:
+                port = httplib.HTTP_PORT
         else:
             port = self.__url.port
         self.__id_count = 0
