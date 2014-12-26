@@ -78,7 +78,8 @@ class RawProxy(object):
 
             # Extract contents of bitcoin.conf to build service_url
             with open(btc_conf_file, 'r') as fd:
-                conf = {}
+                # Bitcoin Core accepts empty rpcuser, not specified in btc_conf_file
+                conf = {'rpcuser': ""}
                 for line in fd.readlines():
                     if '#' in line:
                         line = line[:line.index('#')]
@@ -98,6 +99,9 @@ class RawProxy(object):
                     conf['rpcssl'] = True
                 else:
                     raise ValueError('Unknown rpcssl value %r' % conf['rpcssl'])
+
+                if 'rpcpassword' not in conf:
+                    raise ValueError('The value of rpcpassword not specified in the configuration file: %s' % btc_conf_file)
 
                 service_url = ('%s://%s:%s@localhost:%d' %
                     ('https' if conf['rpcssl'] else 'http',
