@@ -45,6 +45,27 @@ class RegTestParams(bitcoin.core.CoreRegTestParams):
                        'SCRIPT_ADDR':196,
                        'SECRET_KEY' :239}
 
+class DogeMainParams(bitcoin.core.CoreDogeMainParams):
+    MESSAGE_START = b'\xc0\xc0\xc0\xc0'
+    DEFAULT_PORT = 22556
+    RPC_PORT = 22555
+    DNS_SEEDS = (('dogecoin.com', 'seed.dogecoin.com'),
+                 ('mophides.com', 'seed.mophides.com'),
+                 ('dglibrary.org', 'seed.dglibrary.org'),
+                 ('dogechain.info', 'seed.dogechain.info'))
+    BASE58_PREFIXES = {'PUBKEY_ADDR':30,
+                       'SCRIPT_ADDR':22,
+                       'SECRET_KEY' :158}
+
+class DogeTestNetParams(bitcoin.core.CoreDogeTestNetParams):
+    MESSAGE_START = b'\xfc\xc1\xb7\xdc'
+    DEFAULT_PORT = 44556
+    RPC_PORT = 44555
+    DNS_SEEDS = (('lionservers.de', 'testdoge-seed-static.lionservers.de'))
+    BASE58_PREFIXES = {'PUBKEY_ADDR':113,
+                       'SCRIPT_ADDR':196,
+                       'SECRET_KEY' :241}
+
 """Master global setting for what chain params we're using.
 
 However, don't set this directly, use SelectParams() instead so as to set the
@@ -53,7 +74,7 @@ bitcoin.core.params correctly too.
 #params = bitcoin.core.coreparams = MainParams()
 params = MainParams()
 
-def SelectParams(name):
+def SelectParams(name, coin = 'BTC'):
     """Select the chain parameters to use
 
     name is one of 'mainnet', 'testnet', or 'regtest'
@@ -61,12 +82,22 @@ def SelectParams(name):
     Default chain is 'mainnet'
     """
     global params
-    bitcoin.core._SelectCoreParams(name)
-    if name == 'mainnet':
-        params = bitcoin.core.coreparams = MainParams()
-    elif name == 'testnet':
-        params = bitcoin.core.coreparams = TestNetParams()
-    elif name == 'regtest':
-        params = bitcoin.core.coreparams = RegTestParams()
+    bitcoin.core._SelectCoreParams(name, coin)
+    if coin == 'BTC':
+        if name == 'mainnet':
+            params = bitcoin.core.coreparams = MainParams()
+        elif name == 'testnet':
+            params = bitcoin.core.coreparams = TestNetParams()
+        elif name == 'regtest':
+            params = bitcoin.core.coreparams = RegTestParams()
+        else:
+            raise ValueError('Unknown Bitcoin chain %r' % name)
+    elif coin == 'DOGE':
+        if name == 'mainnet':
+            params = bitcoin.core.coreparams = DogeMainParams()
+        elif name == 'testnet':
+            params = bitcoin.core.coreparams = DogeTestNetParams()
+        else:
+            raise ValueError('Unknown Dogecoin chain %r' % name)
     else:
-        raise ValueError('Unknown chain %r' % name)
+        raise ValueError('Unknown coin %r' % coin)

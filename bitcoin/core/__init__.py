@@ -558,24 +558,44 @@ class CoreRegTestParams(CoreTestNetParams):
     SUBSIDY_HALVING_INTERVAL = 150
     PROOF_OF_WORK_LIMIT = 2**256-1 >> 1
 
+class CoreDogeMainParams(CoreChainParams):
+    NAME = 'dogecoin_main'
+    GENESIS_BLOCK = CBlock.deserialize(x('010000000000000000000000000000000000000000000000000000000000000000000000696ad20e2dd4365c7459b4a4a5af743d5e92c6da3229e6532cd605f6533f2a5b24a6a152f0ff0f1e678601000101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff1004ffff001d0104084e696e746f6e646fffffffff010058850c020000004341040184710fa689ad5023690c80f3a49c8f13f8d45b8c857fbcbc8bc4a8e4d3eb4b10f4d4604fa08dce601aaf0f470216fe1b51850b4acf21b179c45070ac7b03a9ac00000000'))
+    SUBSIDY_HALVING_INTERVAL = 100000
+    PROOF_OF_WORK_LIMIT = 2**256-1 >> 32
+
+class CoreDogeTestNetParams(CoreDogeMainParams):
+    NAME = 'dogecoin_test'
+    GENESIS_BLOCK = CBlock.deserialize(x('010000000000000000000000000000000000000000000000000000000000000000000000696ad20e2dd4365c7459b4a4a5af743d5e92c6da3229e6532cd605f6533f2a5bb9a7f052f0ff0f1ef7390f000101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff1004ffff001d0104084e696e746f6e646fffffffff010058850c020000004341040184710fa689ad5023690c80f3a49c8f13f8d45b8c857fbcbc8bc4a8e4d3eb4b10f4d4604fa08dce601aaf0f470216fe1b51850b4acf21b179c45070ac7b03a9ac00000000'))
+
 """Master global setting for what core chain params we're using"""
 coreparams = CoreMainParams()
 
-def _SelectCoreParams(name):
+def _SelectCoreParams(name, coin='BTC'):
     """Select the core chain parameters to use
 
     Don't use this directly, use bitcoin.SelectParams() instead so both
     consensus-critical and general parameters are set properly.
     """
     global coreparams
-    if name == 'mainnet':
-        coreparams = CoreMainParams()
-    elif name == 'testnet':
-        coreparams = CoreTestNetParams()
-    elif name == 'regtest':
-        coreparams = CoreRegTestParams()
+    if coin == 'BTC':
+        if name == 'mainnet':
+            coreparams = CoreMainParams()
+        elif name == 'testnet':
+            coreparams = CoreTestNetParams()
+        elif name == 'regtest':
+            coreparams = CoreRegTestParams()
+        else:
+            raise ValueError('Unknown Bitcoin chain %r' % name)
+    elif coin == 'DOGE':
+        if name == 'mainnet':
+            coreparams = CoreDogeMainParams()
+        elif name == 'testnet':
+            coreparams = CoreDogeTestNetParams()
+        else:
+            raise ValueError('Unknown Dogecoin chain %r' % name)
     else:
-        raise ValueError('Unknown chain %r' % name)
+        raise ValueError('Unknown coin %r' % coin)
 
 
 class CheckTransactionError(ValidationError):
