@@ -1,5 +1,5 @@
 # Copyright (C) 2007 Jan-Klaas Kollhof
-# Copyright (C) 2011-2014 The python-bitcoinlib developers
+# Copyright (C) 2011-2015 The python-bitcoinlib developers
 #
 # This file is part of python-bitcoinlib.
 #
@@ -33,7 +33,7 @@ except ImportError:
 import bitcoin
 from bitcoin.core import COIN, lx, b2lx, CBlock, CTransaction, COutPoint, CTxOut
 from bitcoin.core.script import CScript
-from bitcoin.wallet import CBitcoinAddress
+from bitcoin.wallet import CBitcoinAddress, CBitcoinSecret
 
 DEFAULT_USER_AGENT = "AuthServiceProxy/0.1"
 
@@ -211,6 +211,14 @@ class Proxy(RawProxy):
         super(Proxy, self).__init__(service_url=service_url, service_port=service_port, btc_conf_file=btc_conf_file,
                                     timeout=timeout,
                                     **kwargs)
+
+    def dumpprivkey(self, addr):
+        """Return the private key matching an address
+        """
+        r = self._call('dumpprivkey', str(addr))
+
+        return CBitcoinSecret(r)
+
     def getaccountaddress(self, account=None):
         """Return the current Bitcoin address for receiving payments to this account."""
         r = self._call('getaccountaddress', account)
