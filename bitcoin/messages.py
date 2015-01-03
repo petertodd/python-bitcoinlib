@@ -33,7 +33,7 @@ else:
 from bitcoin.core import *
 from bitcoin.core.serialize import *
 from bitcoin.net import *
-from bitcoin import MainParams
+import bitcoin
 
 MSG_TX = 1
 MSG_BLOCK = 2
@@ -51,7 +51,9 @@ class MsgSerializable(Serializable):
     def msg_deser(cls, f, protover=PROTO_VERSION):
         raise NotImplementedError
 
-    def to_bytes(self, params=MainParams()):
+    def to_bytes(self, params=None):
+        if params is None:
+            params = bitcoin.params
         f = _BytesIO()
         self.msg_ser(f)
         body = f.getvalue()
@@ -74,7 +76,9 @@ class MsgSerializable(Serializable):
         return MsgSerializable.stream_deserialize(f, protover=protover)
 
     @classmethod
-    def stream_deserialize(cls, f, params=MainParams(), protover=PROTO_VERSION):
+    def stream_deserialize(cls, f, params=None, protover=PROTO_VERSION):
+        if params is None:
+            params = bitcoin.params
         recvbuf = ser_read(f, 4 + 12 + 4 + 4)
 
         # check magic
