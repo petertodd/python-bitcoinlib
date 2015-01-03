@@ -13,7 +13,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import struct
 import socket
-from binascii import hexlify
 
 from bitcoin.core.serialize import (
         Serializable,
@@ -21,6 +20,7 @@ from bitcoin.core.serialize import (
         ser_read,
         uint256VectorSerializer,
 )
+from bitcoin.core import b2lx
 
 PROTO_VERSION = 60002
 CADDR_TIME_VERSION = 31402
@@ -80,7 +80,7 @@ class CInv(Serializable):
         f.write(self.hash)
 
     def __repr__(self):
-        return "CInv(type=%s hash=%s)" % (self.typemap[self.type], hexlify(self.hash))
+        return "CInv(type=%s hash=%s)" % (self.typemap[self.type], b2lx(self.hash))
 
 
 class CBlockLocator(Serializable):
