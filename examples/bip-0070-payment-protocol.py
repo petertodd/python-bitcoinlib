@@ -1,4 +1,4 @@
-#!/usr/bin/python2.7
+#!/usr/bin/env python3
 
 # Copyright (C) 2013-2014 The python-bitcoinlib developers
 #
