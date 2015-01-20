@@ -14,7 +14,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import unittest
 
 from bitcoin.core import b2x, x
-from bitcoin.core.script import CScript
+from bitcoin.core.script import CScript, IsLowDERSignature
 from bitcoin.core.key import CPubKey
 from bitcoin.wallet import *
 
@@ -220,6 +220,7 @@ class Test_CBitcoinSecret(unittest.TestCase):
 
         # Check a valid signature
         self.assertTrue(key.pub.verify(hash, sig))
+        self.assertTrue(IsLowDERSignature(sig))
 
         # Check invalid hash returns false
         self.assertFalse(key.pub.verify(b'\xFF'*32, sig))

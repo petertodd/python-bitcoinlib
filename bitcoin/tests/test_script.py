@@ -426,3 +426,11 @@ class Test_CScript(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             CScript([b'a' * 518]).to_p2sh_scriptPubKey()
+
+class Test_IsLowDERSignature(unittest.TestCase):
+    def test_high_s_value(self):
+        sig = x('3046022100820121109528efda8bb20ca28788639e5ba5b365e0a84f8bd85744321e7312c6022100a7c86a21446daa405306fe10d0a9906e37d1a2c6b6fdfaaf6700053058029bbe')
+        self.assertFalse(IsLowDERSignature(sig))
+    def test_low_s_value(self):
+        sig = x('3045022100b135074e08cc93904a1712b2600d3cb01899a5b1cc7498caa4b8585bcf5f27e7022074ab544045285baef0a63f0fb4c95e577dcbf5c969c0bf47c7da8e478909d669')
+        self.assertTrue(IsLowDERSignature(sig))
