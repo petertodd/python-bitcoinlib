@@ -114,7 +114,24 @@ class CECKey:
 
     def verify(self, hash, sig):
         """Verify a DER signature"""
-        return _ssl.ECDSA_verify(0, hash, len(hash), sig, len(sig), self.k) == 1
+        if not sig:
+          return false
+
+        # New versions of OpenSSL will reject non-canonical DER signatures. de/re-serialize first.
+        norm_sig = ctypes.c_void_p(0)
+        _ssl.d2i_ECDSA_SIG(ctypes.byref(norm_sig), ctypes.byref(ctypes.c_char_p(sig)), len(sig))
+
+        derlen = _ssl.i2d_ECDSA_SIG(norm_sig, 0)
+        if derlen == 0:
+            _ssl.ECDSA_SIG_free(norm_sig)
+            return false
+
+        norm_der = ctypes.create_string_buffer(derlen)
+        _ssl.i2d_ECDSA_SIG(norm_sig, ctypes.byref(ctypes.pointer(norm_der)))
+        _ssl.ECDSA_SIG_free(norm_sig)
+
+        # -1 = error, 0 = bad sig, 1 = good
+        return _ssl.ECDSA_verify(0, hash, len(hash), norm_der, derlen, self.k) == 1
 
     def set_compressed(self, compressed):
         if compressed:
