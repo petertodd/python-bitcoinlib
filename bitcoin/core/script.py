@@ -25,6 +25,7 @@ if sys.version > '3':
     _bchr = lambda x: bytes([x])
     _bord = lambda x: x
 
+import array
 import copy
 import struct
 
@@ -797,6 +798,57 @@ def FindAndDelete(script, sig):
         r += script[last_sop_idx:]
     return CScript(r)
 
+def IsLowDERSignature(sig):
+    """
+    Loosely correlates with IsLowDERSignature() from script/interpreter.cpp
+    Verifies that the S value in a DER signature is the lowest possible value.
+    Used by BIP62 malleability fixes.
+    """
+    length_r = sig[3]
+    if isinstance(length_r, str):
+        length_r = int(struct.unpack('B', length_r)[0])
+    length_s = sig[5 + length_r]
+    if isinstance(length_s, str):
+        length_s = int(struct.unpack('B', length_s)[0])
+    s_val = list(struct.unpack(str(length_s) + 'B', sig[6 + length_r:6 + length_r + length_s]))
+
+    # If the S value is above the order of the curve divided by two, its
+    # complement modulo the order could have been used instead, which is
+    # one byte shorter when encoded correctly.
+    max_mod_half_order = [
+      0x7f,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
+      0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
+      0x5d,0x57,0x6e,0x73,0x57,0xa4,0x50,0x1d,
+      0xdf,0xe9,0x2f,0x46,0x68,0x1b,0x20,0xa0]
+
+    return CompareBigEndian(s_val, [0]) > 0 and \
+      CompareBigEndian(s_val, max_mod_half_order) <= 0
+
+def CompareBigEndian(c1, c2):
+    """
+    Loosely matches CompareBigEndian() from eccryptoverify.cpp
+    Compares two arrays of bytes, and returns a negative value if the first is
+    less than the second, 0 if they're equal, and a positive value if the
+    first is greater than the second.
+    """
+    c1 = list(c1)
+    c2 = list(c2)
+
+    # Adjust starting positions until remaining lengths of the two arrays match
+    while len(c1) > len(c2):
+        if c1.pop(0) > 0:
+            return 1
+    while len(c2) > len(c1):
+        if c2.pop(0) > 0:
+            return -1
+
+    while len(c1) > 0:
+        diff = c1.pop(0) - c2.pop(0)
+        if diff != 0:
+            return diff
+
+    return 0
+
 
 def RawSignatureHash(script, txTo, inIdx, hashtype):
     """Consensus-correct SignatureHash
@@ -1008,4 +1060,5 @@ __all__ = (
         'FindAndDelete',
         'RawSignatureHash',
         'SignatureHash',
+        'IsLowDERSignature',
 )
