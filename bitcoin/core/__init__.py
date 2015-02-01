@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2014 The python-bitcoinlib developers
+# Copyright (C) 2012-2015 The python-bitcoinlib developers
 #
 # This file is part of python-bitcoinlib.
 #
@@ -24,12 +24,15 @@ from .serialize import *
 
 # Core definitions
 COIN = 100000000
-MAX_MONEY = 21000000 * COIN
 MAX_BLOCK_SIZE = 1000000
 MAX_BLOCK_SIGOPS = MAX_BLOCK_SIZE/50
 
-def MoneyRange(nValue):
-    return 0 <= nValue <= MAX_MONEY
+def MoneyRange(nValue, params=None):
+    global coreparams
+    if not params:
+      params = coreparams
+
+    return 0 <= nValue <= params.MAX_MONEY
 
 def _py2_x(h):
     """Convert a hex string to bytes"""
@@ -537,12 +540,14 @@ class CBlock(CBlockHeader):
 
 class CoreChainParams(object):
     """Define consensus-critical parameters of a given instance of the Bitcoin system"""
+    MAX_MONEY = None
     GENESIS_BLOCK = None
     PROOF_OF_WORK_LIMIT = None
     SUBSIDY_HALVING_INTERVAL = None
     NAME = None
 
 class CoreMainParams(CoreChainParams):
+    MAX_MONEY = 21000000 * COIN
     NAME = 'mainnet'
     GENESIS_BLOCK = CBlock.deserialize(x('0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c0101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4d04ffff001d0104455468652054696d65732030332f4a616e2f32303039204368616e63656c6c6f72206f6e206272696e6b206f66207365636f6e64206261696c6f757420666f722062616e6b73ffffffff0100f2052a01000000434104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5fac00000000'))
     SUBSIDY_HALVING_INTERVAL = 210000
@@ -586,6 +591,7 @@ def CheckTransaction(tx):
 
     Raises CheckTransactionError
     """
+    global coreparams
 
     if not tx.vin:
         raise CheckTransactionError("CheckTransaction() : vin empty")
@@ -601,7 +607,7 @@ def CheckTransaction(tx):
     for txout in tx.vout:
         if txout.nValue < 0:
             raise CheckTransactionError("CheckTransaction() : txout.nValue negative")
-        if txout.nValue > MAX_MONEY:
+        if txout.nValue > coreparams.MAX_MONEY:
             raise CheckTransactionError("CheckTransaction() : txout.nValue too high")
         nValueOut += txout.nValue
         if not MoneyRange(nValueOut):
@@ -737,7 +743,6 @@ __all__ = (
         'Hash',
         'Hash160',
         'COIN',
-        'MAX_MONEY',
         'MAX_BLOCK_SIZE',
         'MAX_BLOCK_SIGOPS',
         'MoneyRange',
