@@ -107,5 +107,6 @@ Unit tests
 
 Under bitcoin/tests using test data from Bitcoin Core. To run them:
 
-python -m unittest discover
-python3 -m unittest discover
+    python -m unittest discover && python3 -m unittest discover
+
+Please run the tests on both Python2 and Python3 for your pull-reqs!
