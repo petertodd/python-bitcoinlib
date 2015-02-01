@@ -4,7 +4,7 @@ python-bitcoinlib release notes
 v0.3.0
 ======
 
-Major change: cleaned up what symbols are exported by modules. __all__ is now
+Major change: cleaned up what symbols are exported by modules. \_\_all\_\_ is now
 used extensively, which may break some applications that were not importing the
 right modules. Along those lines some implementation details like the ssl
 attribute of the bitcoin.core.key module, and the entire bitcoin.core.bignum
