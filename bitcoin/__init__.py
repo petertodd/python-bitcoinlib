@@ -13,7 +13,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import bitcoin.core
 
-class MainParams(bitcoin.core.CoreChainParams):
+class MainParams(bitcoin.core.CoreMainParams):
     MESSAGE_START = b'\xf9\xbe\xb4\xd9'
     DEFAULT_PORT = 8333
     RPC_PORT = 8332
