@@ -429,6 +429,12 @@ class Proxy(RawProxy):
             r = self._call('sendrawtransaction', hextx)
         return lx(r)
 
+    def sendmany(self, fromaccount, payments, minconf=1, comment=''):
+        """Sent amount to a given address"""
+        json_payments = {str(addr):float(amount)/COIN for addr,amount in payments.items()}
+        r = self._call('sendmany', fromaccount, json_payments, minconf, comment)
+        return lx(r)
+
     def sendtoaddress(self, addr, amount):
         """Sent amount to a given address"""
         addr = str(addr)
