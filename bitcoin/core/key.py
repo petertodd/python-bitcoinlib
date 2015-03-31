@@ -28,6 +28,13 @@ _ssl = ctypes.cdll.LoadLibrary(ctypes.util.find_library('ssl') or 'libeay32')
 # this specifies the curve used with ECDSA.
 _NID_secp256k1 = 714 # from openssl/obj_mac.h
 
+# test that openssl support secp256k1
+if _ssl.EC_KEY_new_by_curve_name(_NID_secp256k1) == 0:
+    errno = _ssl.ERR_get_error()
+    errmsg = ctypes.create_string_buffer(120)
+    _ssl.ERR_error_string_n(errno, errmsg, 120)
+    raise RuntimeError('openssl error: %s' % errmsg.value)
+
 # Thx to Sam Devlin for the ctypes magic 64-bit fix.
 def _check_result (val, func, args):
     if val == 0:
