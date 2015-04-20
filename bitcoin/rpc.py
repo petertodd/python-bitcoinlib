@@ -109,6 +109,10 @@ class RawProxy(object):
 
         self.__service_url = service_url
         self.__url = urlparse.urlparse(service_url)
+
+        if self.__url.scheme not in ('https', 'http'):
+            raise ValueError('Unsupported URL scheme %r' % self.__url.scheme)
+
         if self.__url.port is None:
             if self.__url.scheme == 'https':
                 port = httplib.HTTPS_PORT
