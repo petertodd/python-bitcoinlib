@@ -218,6 +218,16 @@ class Proxy(RawProxy):
                                     timeout=timeout,
                                     **kwargs)
 
+    def createrawtransaction(self, *args):
+        """Get rawtransactions when provided vin and vout
+
+        FIXME: Implement options and accept outpoints instead of user args
+        """
+        r = self._call('createrawtransaction', *args)
+        r = str(r)
+        tx = CTransaction.deserialize(unhexlify(r))
+        return tx
+
     def dumpprivkey(self, addr):
         """Return the private key matching an address
         """
