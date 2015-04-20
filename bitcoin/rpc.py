@@ -190,6 +190,9 @@ class RawProxy(object):
         return json.loads(http_response.read().decode('utf8'),
                           parse_float=decimal.Decimal)
 
+    def __del__(self):
+        self.__conn.close()
+
 
 class Proxy(RawProxy):
     def __init__(self, service_url=None,
