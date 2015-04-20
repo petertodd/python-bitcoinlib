@@ -153,6 +153,9 @@ class COutPoint(ImmutableSerializable):
         else:
             return 'COutPoint(lx(%r), %i)' % (b2lx(self.hash), self.n)
 
+    def __str__(self):
+        return '%s:%i' % (b2lx(self.hash), self.n)
+
     @classmethod
     def from_outpoint(cls, outpoint):
         """Create an immutable copy of an existing OutPoint

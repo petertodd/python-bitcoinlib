@@ -58,6 +58,17 @@ class Test_COutPoint(unittest.TestCase):
         T( COutPoint(lx('4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b'), 0),
           "COutPoint(lx('4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b'), 0)")
 
+    def test_str(self):
+        def T(outpoint, expected):
+            actual = str(outpoint)
+            self.assertEqual(actual, expected)
+        T(COutPoint(),
+          '0000000000000000000000000000000000000000000000000000000000000000:4294967295')
+        T(COutPoint(lx('4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b'), 0),
+                       '4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b:0')
+        T(COutPoint(lx('4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b'), 10),
+                       '4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b:10')
+
 class Test_CMutableOutPoint(unittest.TestCase):
     def test_GetHash(self):
         """CMutableOutPoint.GetHash() is not cached"""
