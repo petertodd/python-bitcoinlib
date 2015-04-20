@@ -58,8 +58,7 @@ class RawProxy(object):
     def __init__(self, service_url=None,
                        service_port=None,
                        btc_conf_file=None,
-                       timeout=DEFAULT_HTTP_TIMEOUT,
-                       _connection=None):
+                       timeout=DEFAULT_HTTP_TIMEOUT):
         """Low-level JSON-RPC proxy
 
         Unlike Proxy no conversion is done from the raw JSON objects.
@@ -122,10 +121,7 @@ class RawProxy(object):
         authpair = authpair.encode('utf8')
         self.__auth_header = b"Basic " + base64.b64encode(authpair)
 
-        if _connection:
-            # Callables re-use the connection of the original proxy
-            self.__conn = _connection
-        elif self.__url.scheme == 'https':
+        if self.__url.scheme == 'https':
             self.__conn = httplib.HTTPSConnection(self.__url.hostname, port=port,
                                                   key_file=None, cert_file=None,
                                                   timeout=timeout)
