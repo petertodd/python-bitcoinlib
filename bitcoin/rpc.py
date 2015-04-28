@@ -219,7 +219,23 @@ class Proxy(RawProxy):
                                     **kwargs)
 
     def createrawtransaction(self, *args):
-        """Get rawtransactions when provided vin and vout
+        """Get rawtransactions when provided arguments, returns an object of
+        type CTransaction that can be used as an input for signrawtransaction.
+
+        Minimum required inputs.
+        1. List of transactions
+            [
+                {
+                    "txid": "id",
+                    "vout": n
+                }
+                ,...
+            ]
+        2. Dictionary of addresses with amounts being sent to each address
+            {
+                "address": x.xxx
+                ,....
+            }
 
         FIXME: Implement options and accept outpoints instead of user args
         """
