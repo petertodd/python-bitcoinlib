@@ -7,7 +7,9 @@ here = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(here, 'README')) as f:
     README = f.read()
 
-requires = []
+requires = [
+    'cryptography',
+]
 
 setup(name='python-bitcoinlib',
       version='0.4.1-SNAPSHOT',
