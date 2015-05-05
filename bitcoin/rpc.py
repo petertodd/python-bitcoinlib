@@ -388,17 +388,11 @@ class Proxy(RawProxy):
         r['bestblock'] = lx(r['bestblock'])
         return r
 
-    def importaddress(self, addr, label=None, rescan=True):
+    def importaddress(self, addr, label='', rescan=True):
         """Adds an address or pubkey to wallet without the associated privkey."""
         addr = str(addr)
 
-        if label is not None:
-            if rescan:
-                r = self._call('importaddress', addr, label, True)
-            else:
-                r = self._call('importaddress', addr, label)
-        else:
-            r = self._call('importaddress', addr)
+        r = self._call('importaddress', addr, label, rescan)
         return r
 
     def listunspent(self, minconf=0, maxconf=9999999, addrs=None):
