@@ -106,7 +106,21 @@ if args.fd is sys.stdin:
     # work around a bug where even though we specified binary encoding we get
     # the sys.stdin instead.
     args.fd = sys.stdin.buffer
-padded_lines = [b'\x00' + line.rstrip().ljust(args.min_len) + b'\x00' for line in args.fd.readlines()]
+raw_padded_lines = [b'\x00' + line.rstrip().ljust(args.min_len) + b'\x00' for line in args.fd.readlines()]
+
+# combine lines if < MAX_SCRIPT_ELEMENT_SIZE
+padded_lines = []
+prev_line = b'\x00'
+for line in raw_padded_lines:
+    if len(prev_line) + len(line) <= MAX_SCRIPT_ELEMENT_SIZE:
+        prev_line = prev_line + line[1:]
+
+    else:
+        padded_lines.append(prev_line)
+        prev_line = line
+
+if prev_line:
+    padded_lines.append(prev_line)
 
 scripts = []
 while padded_lines:
