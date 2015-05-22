@@ -315,7 +315,7 @@ class Proxy(RawProxy):
 
         Raises IndexError if transaction not found.
 
-        verbse - If true a dict is returned instead with additional information
+        verbose - If true a dict is returned instead with additional information
                  on the transaction.
 
         Note that if all txouts are spent and the transaction index is not
