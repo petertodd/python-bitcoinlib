@@ -114,10 +114,13 @@ def _CastToBool(s):
 
 
 def _CheckSig(sig, pubkey, script, txTo, inIdx, err_raiser):
-    key = bitcoin.core.key.CECKey()
-    key.set_pubkey(pubkey)
-
+    # See TX cc60b1f899ec0a69b7c3f25ddf32c4524096a9c5b01cbd84c6d0312a0c478984
     if len(sig) == 0:
+        return False
+    key = bitcoin.core.key.CECKey()
+    try:
+        key.set_pubkey(pubkey)
+    except bitcoin.core.key.OpenSSLError:
         return False
     hashtype = _bord(sig[-1])
     sig = sig[:-1]
