@@ -136,7 +136,6 @@ class Test_CTransaction(unittest.TestCase):
 
                 VerifyScript(tx.vin[i].scriptSig, prevouts[tx.vin[i].prevout], tx, i, flags=flags)
 
-
     def test_tx_invalid(self):
         for prevouts, tx, enforceP2SH in load_test_vectors('tx_invalid.json'):
             try:
