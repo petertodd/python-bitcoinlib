@@ -335,11 +335,16 @@ class msg_headers(MsgSerializable):
     @classmethod
     def msg_deser(cls, f, protover=PROTO_VERSION):
         c = cls()
-        c.headers = VectorSerializer.stream_deserialize(CBlock, f)
+        c.headers = VectorSerializer.stream_deserialize(CBlockHeader, f)
+        # Read 0 byte at the end
+        terminator = ser_read(f, 1)
+        assert(terminator == '\x00')
         return c
 
     def msg_ser(self, f):
-        VectorSerializer.stream_serialize(CBlock, self.headers, f)
+        VectorSerializer.stream_serialize(CBlockHeader, self.headers, f)
+        # Should be zero according to https://en.bitcoin.it/wiki/Protocol_documentation#Block_Headers
+        f.write('\x00')
 
     def __repr__(self):
         return "msg_headers(headers=%s)" % (repr(self.headers))
