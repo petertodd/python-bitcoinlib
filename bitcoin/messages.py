@@ -102,7 +102,7 @@ class MsgSerializable(Serializable):
             #        print("Going to deserialize '%s'" % msg)
             return cls.msg_deser(_BytesIO(msg))
         else:
-            print("Command '%s' not in messagemap" % str(command, 'ascii'))
+            print("Command '%s' not in messagemap" % repr(command))
             return None
 
     def stream_serialize(self, f):
