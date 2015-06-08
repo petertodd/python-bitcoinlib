@@ -16,7 +16,9 @@ VERSION = '0.4.0'
 DESCRIPTION = 'The Swiss Army Knife of the Bitcoin protocol.'
 AUTHORS = 'The python-bitcoinlib developers'
 
-import sys, os
+import sphinx
+import sys
+import os
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -107,7 +109,10 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'default'
+if getattr(sphinx, 'version_info', (0, 0)) >= (1, 3):
+    html_theme = 'classic'
+else:
+    html_theme = 'default'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
