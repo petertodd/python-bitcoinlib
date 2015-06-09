@@ -13,6 +13,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import bitcoin.core
 
+# Note that setup.py can break if __init__.py imports any external
+# dependencies, as these might not be installed when setup.py runs. In this
+# case __version__ could be moved to a separate version.py and imported here.
+__version__ = '0.4.1.dev0'
+
 class MainParams(bitcoin.core.CoreMainParams):
     MESSAGE_START = b'\xf9\xbe\xb4\xd9'
     DEFAULT_PORT = 8333
