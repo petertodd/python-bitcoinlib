@@ -13,6 +13,7 @@
 """Bitcoin Core RPC support"""
 
 from __future__ import absolute_import, division, print_function, unicode_literals
+import ssl
 
 try:
     import http.client as httplib
@@ -100,6 +101,22 @@ class RawProxy(object):
                 else:
                     raise ValueError('Unknown rpcssl value %r' % conf['rpcssl'])
 
+                if conf['rpcssl'] and 'rpcsslcertificatechainfile' in conf and 'rpcsslprivatekeyfile' in conf:
+                    self.__ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+                    if os.path.exists(conf['rpcsslcertificatechainfile']):
+                        certificate = conf['rpcsslcertificatechainfile']
+                    elif os.path.exists(os.path.join(os.path.dirname(btc_conf_file), conf['rpcsslcertificatechainfile'])):
+                        certificate = os.path.join(os.path.dirname(btc_conf_file), conf['rpcsslcertificatechainfile'])
+                    else:
+                        raise ValueError('The value of rpcsslcertificatechainfile is not correctly specified in the configuration file: %s' % btc_conf_file)
+                    if os.path.exists(conf['rpcsslprivatekeyfile']):
+                        private_key = conf['rpcsslprivatekeyfile']
+                    elif os.path.exists(os.path.join(os.path.dirname(btc_conf_file), conf['rpcsslprivatekeyfile'])):
+                        private_key = os.path.join(os.path.dirname(btc_conf_file), conf['rpcsslprivatekeyfile'])
+                    else:
+                        raise ValueError('The value of rpcsslprivatekeyfile is not correctly specified in the configuration file: %s' % btc_conf_file)
+                    self.__ssl_context.load_cert_chain(certificate, private_key)
+
                 if 'rpcpassword' not in conf:
                     raise ValueError('The value of rpcpassword not specified in the configuration file: %s' % btc_conf_file)
 
@@ -128,7 +145,7 @@ class RawProxy(object):
 
         if self.__url.scheme == 'https':
             self.__conn = httplib.HTTPSConnection(self.__url.hostname, port=port,
-                                                  key_file=None, cert_file=None,
+                                                  context=self.__ssl_context,
                                                   timeout=timeout)
         else:
             self.__conn = httplib.HTTPConnection(self.__url.hostname, port=port,
