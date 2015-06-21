@@ -3,6 +3,8 @@
 from setuptools import setup, find_packages
 import os
 
+from bitcoin import __version__
+
 here = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(here, 'README')) as f:
     README = f.read()
@@ -10,7 +12,7 @@ with open(os.path.join(here, 'README')) as f:
 requires = []
 
 setup(name='python-bitcoinlib',
-      version='0.4.1-SNAPSHOT',
+      version=__version__,
       description='The Swiss Army Knife of the Bitcoin protocol.',
       long_description=README,
       classifiers=[

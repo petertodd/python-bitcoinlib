@@ -121,7 +121,8 @@ class msg_version(MsgSerializable):
         self.addrTo = CAddress(PROTO_VERSION)
         self.addrFrom = CAddress(PROTO_VERSION)
         self.nNonce = random.getrandbits(64)
-        self.strSubVer = b'/python-bitcoin-0.0.1/'
+        self.strSubVer = (b'/python-bitcoinlib:' +
+                          bitcoin.__version__.encode('ascii') + b'/')
         self.nStartingHeight = -1
 
     @classmethod
