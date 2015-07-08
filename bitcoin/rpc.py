@@ -56,6 +56,9 @@ class JSONRPCException(Exception):
 
 
 class BaseProxy(object):
+    """Base JSON-RPC proxy class. Contains only private methods; do not use
+    directly."""
+
     def __init__(self, service_url=None,
                        service_port=None,
                        btc_conf_file=None,
@@ -195,16 +198,17 @@ class BaseProxy(object):
 
 
 class RawProxy(BaseProxy):
+    """Low-level proxy to a bitcoin JSON-RPC service
 
+    Unlike ``Proxy``, no conversion is done besides parsing JSON. As far as
+    Python is concerned, you can call any method; ``JSONRPCException`` will be
+    raised if the server does not recognize it.
+    """
     def __init__(self, service_url=None,
                        service_port=None,
                        btc_conf_file=None,
                        timeout=DEFAULT_HTTP_TIMEOUT,
                        **kwargs):
-        """Low-level JSON-RPC proxy
-
-        Unlike Proxy no conversion is done from the raw JSON objects.
-        """
         super(RawProxy, self).__init__(service_url=service_url,
                                        service_port=service_port,
                                        btc_conf_file=btc_conf_file,
@@ -226,28 +230,34 @@ class RawProxy(BaseProxy):
 
 
 class Proxy(BaseProxy):
+    """Proxy to a bitcoin RPC service
+
+    Unlike ``RawProxy``, data is passed as ``bitcoin.core`` objects or packed
+    bytes, rather than JSON or hex strings. Not all methods are implemented
+    yet; you can use ``call`` to access missing ones in a forward-compatible
+    way. Assumes Bitcoin Core version >= 0.9; older versions mostly work, but
+    there are a few incompatibilities.
+    """
+
     def __init__(self, service_url=None,
                        service_port=None,
                        btc_conf_file=None,
                        timeout=DEFAULT_HTTP_TIMEOUT,
                        **kwargs):
-        """Create a proxy to a bitcoin RPC service
+        """Create a proxy object
 
-        Unlike RawProxy data is passed as objects, rather than JSON. (not yet
-        fully implemented) Assumes Bitcoin Core version >= 0.9; older versions
-        mostly work, but there are a few incompatibilities.
+        If ``service_url`` is not specified, the username and password are read
+        out of the file ``btc_conf_file``. If ``btc_conf_file`` is not
+        specified, ``~/.bitcoin/bitcoin.conf`` or equivalent is used by
+        default.  The default port is set according to the chain parameters in
+        use: mainnet, testnet, or regtest.
 
-        If service_url is not specified the username and password are read out
-        of the file btc_conf_file. If btc_conf_file is not specified
-        ~/.bitcoin/bitcoin.conf or equivalent is used by default. The default
-        port is set according to the chain parameters in use: mainnet, testnet,
-        or regtest.
+        Usually no arguments to ``Proxy()`` are needed; the local bitcoind will
+        be used.
 
-        Usually no arguments to Proxy() are needed; the local bitcoind will be
-        used.
-
-        timeout - timeout in seconds before the HTTP interface times out
+        ``timeout`` - timeout in seconds before the HTTP interface times out
         """
+
         super(Proxy, self).__init__(service_url=service_url, service_port=service_port, btc_conf_file=btc_conf_file,
                                     timeout=timeout,
                                     **kwargs)
