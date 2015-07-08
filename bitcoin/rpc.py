@@ -48,21 +48,29 @@ if sys.version > '3':
     hexlify = lambda b: binascii.hexlify(b).decode('utf8')
 
 
-class JSONRPCException(Exception):
+class JSONRPCError(Exception):
+    """JSON-RPC protocol error"""
+
     def __init__(self, rpc_error):
-        super(JSONRPCException, self).__init__('msg: %r  code: %r' %
-                (rpc_error['message'], rpc_error['code']))
+        super(JSONRPCException, self).__init__(
+            'msg: %r  code: %r' %
+            (rpc_error['message'], rpc_error['code']))
         self.error = rpc_error
+
+
+# 0.4.0 compatibility
+JSONRPCException = JSONRPCError
 
 
 class BaseProxy(object):
     """Base JSON-RPC proxy class. Contains only private methods; do not use
     directly."""
 
-    def __init__(self, service_url=None,
-                       service_port=None,
-                       btc_conf_file=None,
-                       timeout=DEFAULT_HTTP_TIMEOUT):
+    def __init__(self,
+                 service_url=None,
+                 service_port=None,
+                 btc_conf_file=None,
+                 timeout=DEFAULT_HTTP_TIMEOUT):
 
         if service_url is None:
             # Figure out the path to the bitcoin.conf file
@@ -166,9 +174,9 @@ class BaseProxy(object):
 
         response = self._get_response()
         if response['error'] is not None:
-            raise JSONRPCException(response['error'])
+            raise JSONRPCError(response['error'])
         elif 'result' not in response:
-            raise JSONRPCException({
+            raise JSONRPCError({
                 'code': -343, 'message': 'missing JSON-RPC result'})
         else:
             return response['result']
@@ -187,7 +195,7 @@ class BaseProxy(object):
     def _get_response(self):
         http_response = self.__conn.getresponse()
         if http_response is None:
-            raise JSONRPCException({
+            raise JSONRPCError({
                 'code': -342, 'message': 'missing HTTP response from server'})
 
         return json.loads(http_response.read().decode('utf8'),
@@ -201,14 +209,15 @@ class RawProxy(BaseProxy):
     """Low-level proxy to a bitcoin JSON-RPC service
 
     Unlike ``Proxy``, no conversion is done besides parsing JSON. As far as
-    Python is concerned, you can call any method; ``JSONRPCException`` will be
+    Python is concerned, you can call any method; ``JSONRPCError`` will be
     raised if the server does not recognize it.
     """
-    def __init__(self, service_url=None,
-                       service_port=None,
-                       btc_conf_file=None,
-                       timeout=DEFAULT_HTTP_TIMEOUT,
-                       **kwargs):
+    def __init__(self,
+                 service_url=None,
+                 service_port=None,
+                 btc_conf_file=None,
+                 timeout=DEFAULT_HTTP_TIMEOUT,
+                 **kwargs):
         super(RawProxy, self).__init__(service_url=service_url,
                                        service_port=service_port,
                                        btc_conf_file=btc_conf_file,
@@ -239,11 +248,12 @@ class Proxy(BaseProxy):
     there are a few incompatibilities.
     """
 
-    def __init__(self, service_url=None,
-                       service_port=None,
-                       btc_conf_file=None,
-                       timeout=DEFAULT_HTTP_TIMEOUT,
-                       **kwargs):
+    def __init__(self,
+                 service_url=None,
+                 service_port=None,
+                 btc_conf_file=None,
+                 timeout=DEFAULT_HTTP_TIMEOUT,
+                 **kwargs):
         """Create a proxy object
 
         If ``service_url`` is not specified, the username and password are read
@@ -258,7 +268,9 @@ class Proxy(BaseProxy):
         ``timeout`` - timeout in seconds before the HTTP interface times out
         """
 
-        super(Proxy, self).__init__(service_url=service_url, service_port=service_port, btc_conf_file=btc_conf_file,
+        super(Proxy, self).__init__(service_url=service_url,
+                                    service_port=service_port,
+                                    btc_conf_file=btc_conf_file,
                                     timeout=timeout,
                                     **kwargs)
 
@@ -274,15 +286,18 @@ class Proxy(BaseProxy):
         return CBitcoinSecret(r)
 
     def getaccountaddress(self, account=None):
-        """Return the current Bitcoin address for receiving payments to this account."""
+        """Return the current Bitcoin address for receiving payments to this
+        account."""
         r = self._call('getaccountaddress', account)
         return CBitcoinAddress(r)
 
     def getbalance(self, account='*', minconf=1):
         """Get the balance
 
-        account - The selected account. Defaults to "*" for entire wallet. It may be the default account using "".
-        minconf - Only include transactions confirmed at least this many times. (default=1)
+        account - The selected account. Defaults to "*" for entire wallet. It
+                  may be the default account using "".
+        minconf - Only include transactions confirmed at least this many times.
+                  (default=1)
         """
         r = self._call('getbalance', account, minconf)
         return int(r*COIN)
@@ -299,7 +314,7 @@ class Proxy(BaseProxy):
                     (self.__class__.__name__, block_hash.__class__))
         try:
             r = self._call('getblock', block_hash, False)
-        except JSONRPCException as ex:
+        except JSONRPCError as ex:
             raise IndexError('%s.getblock(): %s (%d)' %
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
         return CBlock.deserialize(unhexlify(r))
@@ -311,7 +326,7 @@ class Proxy(BaseProxy):
         """
         try:
             return lx(self._call('getblockhash', height))
-        except JSONRPCException as ex:
+        except JSONRPCError as ex:
             raise IndexError('%s.getblockhash(): %s (%d)' %
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
 
@@ -368,7 +383,7 @@ class Proxy(BaseProxy):
         """
         try:
             r = self._call('getrawtransaction', b2lx(txid), 1 if verbose else 0)
-        except JSONRPCException as ex:
+        except JSONRPCError as ex:
             raise IndexError('%s.getrawtransaction(): %s (%d)' %
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
         if verbose:
@@ -395,7 +410,8 @@ class Proxy(BaseProxy):
         always show zero.
 
         addr    - The address. (CBitcoinAddress instance)
-        minconf - Only include transactions confirmed at least this many times. (default=1)
+        minconf - Only include transactions confirmed at least this many times.
+                  (default=1)
         """
         r = self._call('getreceivedbyaddress', str(addr), minconf)
         return int(r * COIN)
@@ -409,7 +425,7 @@ class Proxy(BaseProxy):
         """
         try:
             r = self._call('gettransaction', b2lx(txid))
-        except JSONRPCException as ex:
+        except JSONRPCError as ex:
             raise IndexError('%s.getrawtransaction(): %s (%d)' %
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
         return r
@@ -468,7 +484,8 @@ class Proxy(BaseProxy):
 
     def lockunspent(self, unlock, outpoints):
         """Lock or unlock outpoints"""
-        json_outpoints = [{'txid':b2lx(outpoint.hash),'vout':outpoint.n} for outpoint in outpoints]
+        json_outpoints = [{'txid':b2lx(outpoint.hash), 'vout':outpoint.n}
+                          for outpoint in outpoints]
         return self._call('lockunspent', unlock, json_outpoints)
 
     def sendrawtransaction(self, tx, allowhighfees=False):
@@ -486,7 +503,8 @@ class Proxy(BaseProxy):
 
     def sendmany(self, fromaccount, payments, minconf=1, comment=''):
         """Sent amount to a given address"""
-        json_payments = {str(addr):float(amount)/COIN for addr,amount in payments.items()}
+        json_payments = {str(addr):float(amount)/COIN
+                         for addr, amount in payments.items()}
         r = self._call('sendmany', fromaccount, json_payments, minconf, comment)
         return lx(r)
 
@@ -543,7 +561,8 @@ class Proxy(BaseProxy):
         return self._addnode(node, 'remove')
 
 __all__ = (
-        'JSONRPCException',
-        'RawProxy',
-        'Proxy',
+    'JSONRPCError',
+    'JSONRPCException',
+    'RawProxy',
+    'Proxy',
 )
