@@ -12,7 +12,7 @@ Breaking API changes:
 
 New features:
 
-* New RPC calls: getbestblockhash, getmininginfo
+* New RPC calls: getbestblockhash, getblockcount, getmininginfo
 
 v0.4.0
 ======

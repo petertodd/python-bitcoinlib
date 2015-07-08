@@ -323,6 +323,10 @@ class Proxy(BaseProxy):
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
         return CBlock.deserialize(unhexlify(r))
 
+    def getblockcount(self):
+        """Return the number of blocks in the longest block chain"""
+        return self._call('getblockcount')
+
     def getblockhash(self, height):
         """Return hash of block in best-block-chain at height.
 
