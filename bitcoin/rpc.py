@@ -55,15 +55,11 @@ class JSONRPCException(Exception):
         self.error = rpc_error
 
 
-class RawProxy(object):
+class BaseProxy(object):
     def __init__(self, service_url=None,
                        service_port=None,
                        btc_conf_file=None,
                        timeout=DEFAULT_HTTP_TIMEOUT):
-        """Low-level JSON-RPC proxy
-
-        Unlike Proxy no conversion is done from the raw JSON objects.
-        """
 
         if service_url is None:
             # Figure out the path to the bitcoin.conf file
@@ -175,20 +171,6 @@ class RawProxy(object):
             return response['result']
 
 
-    def __getattr__(self, name):
-        if name.startswith('__') and name.endswith('__'):
-            # Python internal stuff
-            raise AttributeError
-
-        # Create a callable to do the actual call
-        f = lambda *args: self._call(name, *args)
-
-        # Make debuggers show <function bitcoin.rpc.name> rather than <function
-        # bitcoin.rpc.<lambda>>
-        f.__name__ = name
-        return f
-
-
     def _batch(self, rpc_call_list):
         postdata = json.dumps(list(rpc_call_list))
         self.__conn.request('POST', self.__url.path, postdata,
@@ -212,7 +194,38 @@ class RawProxy(object):
         self.__conn.close()
 
 
-class Proxy(RawProxy):
+class RawProxy(BaseProxy):
+
+    def __init__(self, service_url=None,
+                       service_port=None,
+                       btc_conf_file=None,
+                       timeout=DEFAULT_HTTP_TIMEOUT,
+                       **kwargs):
+        """Low-level JSON-RPC proxy
+
+        Unlike Proxy no conversion is done from the raw JSON objects.
+        """
+        super(RawProxy, self).__init__(service_url=service_url,
+                                       service_port=service_port,
+                                       btc_conf_file=btc_conf_file,
+                                       timeout=timeout,
+                                       **kwargs)
+
+    def __getattr__(self, name):
+        if name.startswith('__') and name.endswith('__'):
+            # Python internal stuff
+            raise AttributeError
+
+        # Create a callable to do the actual call
+        f = lambda *args: self._call(name, *args)
+
+        # Make debuggers show <function bitcoin.rpc.name> rather than <function
+        # bitcoin.rpc.<lambda>>
+        f.__name__ = name
+        return f
+
+
+class Proxy(BaseProxy):
     def __init__(self, service_url=None,
                        service_port=None,
                        btc_conf_file=None,
@@ -238,6 +251,10 @@ class Proxy(RawProxy):
         super(Proxy, self).__init__(service_url=service_url, service_port=service_port, btc_conf_file=btc_conf_file,
                                     timeout=timeout,
                                     **kwargs)
+
+    def call(self, service_name, *args):
+        """Call an RPC method by name and raw (JSON encodable) arguments"""
+        return self._call(service_name, *args)
 
     def dumpprivkey(self, addr):
         """Return the private key matching an address
