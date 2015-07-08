@@ -302,6 +302,10 @@ class Proxy(BaseProxy):
         r = self._call('getbalance', account, minconf)
         return int(r*COIN)
 
+    def getbestblockhash(self):
+        """Return hash of best (tip) block in longest block chain."""
+        return lx(self._call('getbestblockhash'))
+
     def getblock(self, block_hash):
         """Get block <block_hash>
 
@@ -331,12 +335,16 @@ class Proxy(BaseProxy):
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
 
     def getinfo(self):
-        """Return an object containing various state info"""
+        """Return a JSON object containing various state info"""
         r = self._call('getinfo')
         if 'balance' in r:
             r['balance'] = int(r['balance'] * COIN)
         r['paytxfee'] = int(r['paytxfee'] * COIN)
         return r
+
+    def getmininginfo(self):
+        """Return a JSON object containing mining-related information"""
+        return self._call('getmininginfo')
 
     def getnewaddress(self, account=None):
         """Return a new Bitcoin address for receiving payments.
