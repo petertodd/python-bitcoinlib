@@ -18,6 +18,7 @@ scriptPubKeys; currently there is no actual wallet support implemented.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
+
 _bord = ord
 if sys.version > '3':
     _bord = lambda x: x
@@ -221,6 +222,8 @@ class CKey(object):
     def sign(self, hash):
         return self._cec_key.sign(hash)
 
+    def sign_compact(self, hash):
+        return self._cec_key.sign_compact(hash)
 
 class CBitcoinSecretError(bitcoin.base58.Base58Error):
     pass

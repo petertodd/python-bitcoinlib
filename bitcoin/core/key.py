@@ -15,11 +15,21 @@
 WARNING: This module does not mlock() secrets; your private keys may end up on
 disk in swap! Use with caution!
 """
-
 import ctypes
 import ctypes.util
 import hashlib
 import sys
+import bitcoin
+import bitcoin.signature
+
+_bchr = chr
+_bord = ord
+if sys.version > '3':
+    _bchr = lambda x: bytes([x])
+    _bord = lambda x: x
+    from io import BytesIO as BytesIO
+else:
+    from cStringIO import StringIO as BytesIO
 
 import bitcoin.core.script
 
@@ -128,6 +138,53 @@ class CECKey:
         else:
             return self.signature_to_low_s(mb_sig.raw[:sig_size0.value])
 
+    def sign_compact(self, hash):
+        if not isinstance(hash, bytes):
+            raise TypeError('Hash must be bytes instance; got %r' % hash.__class__)
+        if len(hash) != 32:
+            raise ValueError('Hash must be exactly 32 bytes long')
+
+        sig_size0 = ctypes.c_uint32()
+        sig_size0.value = _ssl.ECDSA_size(self.k)
+        mb_sig = ctypes.create_string_buffer(sig_size0.value)
+        result = _ssl.ECDSA_sign(0, hash, len(hash), mb_sig, ctypes.byref(sig_size0), self.k)
+        assert 1 == result
+
+        if bitcoin.core.script.IsLowDERSignature(mb_sig.raw[:sig_size0.value]):
+            sig = mb_sig.raw[:sig_size0.value]
+        else:
+            sig = self.signature_to_low_s(mb_sig.raw[:sig_size0.value])
+
+        sig = bitcoin.signature.DERSignature.deserialize(sig)
+
+        r_val = sig.r
+        s_val = sig.s
+
+        # assert that the r and s are less than 32 long, excluding leading 0s
+        assert len(r_val) <= 32 or r_val[0:-32] == b'\x00'
+        assert len(s_val) <= 32 or s_val[0:-32] == b'\x00'
+
+        # ensure r and s are always 32 chars long by 0padding
+        r_val = ((b'\x00' * 32) + r_val)[-32:]
+        s_val = ((b'\x00' * 32) + s_val)[-32:]
+
+        # tmp pubkey of self, but always compressed
+        pubkey = CECKey()
+        pubkey.set_pubkey(self.get_pubkey())
+        pubkey.set_compressed(True)
+
+        # bitcoin core does <4, but I've seen other places do <2 and I've never seen a i > 1 so far
+        for i in range(0, 4):
+            cec_key = CECKey()
+            cec_key.set_compressed(True)
+
+            result = cec_key.recover(r_val, s_val, hash, len(hash), i, 1)
+            if result == 1:
+                if cec_key.get_pubkey() == pubkey.get_pubkey():
+                    return r_val + s_val, i
+
+        raise ValueError
+
     def signature_to_low_s(self, sig):
         der_sig = ECDSA_SIG_st()
         _ssl.d2i_ECDSA_SIG(ctypes.byref(ctypes.pointer(der_sig)), ctypes.byref(ctypes.c_char_p(sig)), len(sig))
@@ -185,6 +242,106 @@ class CECKey:
             form = self.POINT_CONVERSION_UNCOMPRESSED
         _ssl.EC_KEY_set_conv_form(self.k, form)
 
+    def recover(self, sigR, sigS, msg, msglen, recid, check):
+        """
+        Perform ECDSA key recovery (see SEC1 4.1.6) for curves over (mod p)-fields
+        recid selects which key is recovered
+        if check is non-zero, additional checks are performed
+        """
+        i = int(recid / 2)
+
+        r = None
+        s = None
+        ctx = None
+        R = None
+        O = None
+        Q = None
+
+        assert len(sigR) == 32, len(sigR)
+        assert len(sigS) == 32, len(sigS)
+
+        try:
+            r = _ssl.BN_bin2bn(bytes(sigR), len(sigR), _ssl.BN_new())
+            s = _ssl.BN_bin2bn(bytes(   sigS), len(sigS), _ssl.BN_new())
+
+            group = _ssl.EC_KEY_get0_group(self.k)
+            ctx = _ssl.BN_CTX_new()
+            order = _ssl.BN_CTX_get(ctx)
+            ctx = _ssl.BN_CTX_new()
+
+            if not _ssl.EC_GROUP_get_order(group, order, ctx):
+                return -2
+
+            x = _ssl.BN_CTX_get(ctx)
+            if not _ssl.BN_copy(x, order):
+                return -1
+            if not _ssl.BN_mul_word(x, i):
+                return -1
+            if not _ssl.BN_add(x, x, r):
+                return -1
+
+            field = _ssl.BN_CTX_get(ctx)
+            if not _ssl.EC_GROUP_get_curve_GFp(group, field, None, None, ctx):
+                return -2
+
+            if _ssl.BN_cmp(x, field) >= 0:
+                return 0
+
+            R = _ssl.EC_POINT_new(group)
+            if R is None:
+                return -2
+            if not _ssl.EC_POINT_set_compressed_coordinates_GFp(group, R, x, recid % 2, ctx):
+                return 0
+
+            if check:
+                O = _ssl.EC_POINT_new(group)
+                if O is None:
+                    return -2
+                if not _ssl.EC_POINT_mul(group, O, None, R, order, ctx):
+                    return -2
+                if not _ssl.EC_POINT_is_at_infinity(group, O):
+                    return 0
+
+            Q = _ssl.EC_POINT_new(group)
+            if Q is None:
+                return -2
+
+            n = _ssl.EC_GROUP_get_degree(group)
+            e = _ssl.BN_CTX_get(ctx)
+            if not _ssl.BN_bin2bn(msg, msglen, e):
+                return -1
+
+            if 8 * msglen > n:
+                _ssl.BN_rshift(e, e, 8 - (n & 7))
+
+            zero = _ssl.BN_CTX_get(ctx)
+            # if not _ssl.BN_zero(zero):
+            #     return -1
+            if not _ssl.BN_mod_sub(e, zero, e, order, ctx):
+                return -1
+            rr = _ssl.BN_CTX_get(ctx)
+            if not _ssl.BN_mod_inverse(rr, r, order, ctx):
+                return -1
+            sor = _ssl.BN_CTX_get(ctx)
+            if not _ssl.BN_mod_mul(sor, s, rr, order, ctx):
+                return -1
+            eor = _ssl.BN_CTX_get(ctx)
+            if not _ssl.BN_mod_mul(eor, e, rr, order, ctx):
+                return -1
+            if not _ssl.EC_POINT_mul(group, Q, eor, R, sor, ctx):
+                return -2
+
+            if not _ssl.EC_KEY_set_public_key(self.k, Q):
+                return -2
+
+            return 1
+        finally:
+            if r: _ssl.BN_free(r)
+            if s: _ssl.BN_free(s)
+            if ctx: _ssl.BN_CTX_free(ctx)
+            if R: _ssl.EC_POINT_free(R)
+            if O: _ssl.EC_POINT_free(O)
+            if Q: _ssl.EC_POINT_free(Q)
 
 class CPubKey(bytes):
     """An encapsulated public key
@@ -203,6 +360,30 @@ class CPubKey(bytes):
         self._cec_key = _cec_key
         self.is_fullyvalid = _cec_key.set_pubkey(self) != 0
         return self
+
+    @classmethod
+    def recover_compact(cls, hash, sig):
+        """Recover a public key from a compact signature."""
+        if len(sig) != 65:
+            raise ValueError("Signature should be 65 characters, not [%d]" % (len(sig), ))
+
+        recid = (_bord(sig[0]) - 27) & 3
+        compressed = (_bord(sig[0]) - 27) & 4 != 0
+
+        cec_key = CECKey()
+        cec_key.set_compressed(compressed)
+
+        sigR = sig[1:33]
+        sigS = sig[33:65]
+
+        result = cec_key.recover(sigR, sigS, hash, len(hash), recid, 0)
+
+        if result < 1:
+            return False
+
+        pubkey = cec_key.get_pubkey()
+
+        return CPubKey(pubkey, _cec_key=cec_key)
 
     @property
     def is_valid(self):
