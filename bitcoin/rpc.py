@@ -48,22 +48,29 @@ if sys.version > '3':
     hexlify = lambda b: binascii.hexlify(b).decode('utf8')
 
 
-class JSONRPCException(Exception):
+class JSONRPCError(Exception):
+    """JSON-RPC protocol error"""
+
     def __init__(self, rpc_error):
-        super(JSONRPCException, self).__init__('msg: %r  code: %r' %
-                (rpc_error['message'], rpc_error['code']))
+        super(JSONRPCException, self).__init__(
+            'msg: %r  code: %r' %
+            (rpc_error['message'], rpc_error['code']))
         self.error = rpc_error
 
 
-class RawProxy(object):
-    def __init__(self, service_url=None,
-                       service_port=None,
-                       btc_conf_file=None,
-                       timeout=DEFAULT_HTTP_TIMEOUT):
-        """Low-level JSON-RPC proxy
+# 0.4.0 compatibility
+JSONRPCException = JSONRPCError
 
-        Unlike Proxy no conversion is done from the raw JSON objects.
-        """
+
+class BaseProxy(object):
+    """Base JSON-RPC proxy class. Contains only private methods; do not use
+    directly."""
+
+    def __init__(self,
+                 service_url=None,
+                 service_port=None,
+                 btc_conf_file=None,
+                 timeout=DEFAULT_HTTP_TIMEOUT):
 
         if service_url is None:
             # Figure out the path to the bitcoin.conf file
@@ -167,26 +174,12 @@ class RawProxy(object):
 
         response = self._get_response()
         if response['error'] is not None:
-            raise JSONRPCException(response['error'])
+            raise JSONRPCError(response['error'])
         elif 'result' not in response:
-            raise JSONRPCException({
+            raise JSONRPCError({
                 'code': -343, 'message': 'missing JSON-RPC result'})
         else:
             return response['result']
-
-
-    def __getattr__(self, name):
-        if name.startswith('__') and name.endswith('__'):
-            # Python internal stuff
-            raise AttributeError
-
-        # Create a callable to do the actual call
-        f = lambda *args: self._call(name, *args)
-
-        # Make debuggers show <function bitcoin.rpc.name> rather than <function
-        # bitcoin.rpc.<lambda>>
-        f.__name__ = name
-        return f
 
 
     def _batch(self, rpc_call_list):
@@ -202,7 +195,7 @@ class RawProxy(object):
     def _get_response(self):
         http_response = self.__conn.getresponse()
         if http_response is None:
-            raise JSONRPCException({
+            raise JSONRPCError({
                 'code': -342, 'message': 'missing HTTP response from server'})
 
         return json.loads(http_response.read().decode('utf8'),
@@ -212,32 +205,78 @@ class RawProxy(object):
         self.__conn.close()
 
 
-class Proxy(RawProxy):
-    def __init__(self, service_url=None,
-                       service_port=None,
-                       btc_conf_file=None,
-                       timeout=DEFAULT_HTTP_TIMEOUT,
-                       **kwargs):
-        """Create a proxy to a bitcoin RPC service
+class RawProxy(BaseProxy):
+    """Low-level proxy to a bitcoin JSON-RPC service
 
-        Unlike RawProxy data is passed as objects, rather than JSON. (not yet
-        fully implemented) Assumes Bitcoin Core version >= 0.9; older versions
-        mostly work, but there are a few incompatibilities.
+    Unlike ``Proxy``, no conversion is done besides parsing JSON. As far as
+    Python is concerned, you can call any method; ``JSONRPCError`` will be
+    raised if the server does not recognize it.
+    """
+    def __init__(self,
+                 service_url=None,
+                 service_port=None,
+                 btc_conf_file=None,
+                 timeout=DEFAULT_HTTP_TIMEOUT,
+                 **kwargs):
+        super(RawProxy, self).__init__(service_url=service_url,
+                                       service_port=service_port,
+                                       btc_conf_file=btc_conf_file,
+                                       timeout=timeout,
+                                       **kwargs)
 
-        If service_url is not specified the username and password are read out
-        of the file btc_conf_file. If btc_conf_file is not specified
-        ~/.bitcoin/bitcoin.conf or equivalent is used by default. The default
-        port is set according to the chain parameters in use: mainnet, testnet,
-        or regtest.
+    def __getattr__(self, name):
+        if name.startswith('__') and name.endswith('__'):
+            # Python internal stuff
+            raise AttributeError
 
-        Usually no arguments to Proxy() are needed; the local bitcoind will be
-        used.
+        # Create a callable to do the actual call
+        f = lambda *args: self._call(name, *args)
 
-        timeout - timeout in seconds before the HTTP interface times out
+        # Make debuggers show <function bitcoin.rpc.name> rather than <function
+        # bitcoin.rpc.<lambda>>
+        f.__name__ = name
+        return f
+
+
+class Proxy(BaseProxy):
+    """Proxy to a bitcoin RPC service
+
+    Unlike ``RawProxy``, data is passed as ``bitcoin.core`` objects or packed
+    bytes, rather than JSON or hex strings. Not all methods are implemented
+    yet; you can use ``call`` to access missing ones in a forward-compatible
+    way. Assumes Bitcoin Core version >= 0.9; older versions mostly work, but
+    there are a few incompatibilities.
+    """
+
+    def __init__(self,
+                 service_url=None,
+                 service_port=None,
+                 btc_conf_file=None,
+                 timeout=DEFAULT_HTTP_TIMEOUT,
+                 **kwargs):
+        """Create a proxy object
+
+        If ``service_url`` is not specified, the username and password are read
+        out of the file ``btc_conf_file``. If ``btc_conf_file`` is not
+        specified, ``~/.bitcoin/bitcoin.conf`` or equivalent is used by
+        default.  The default port is set according to the chain parameters in
+        use: mainnet, testnet, or regtest.
+
+        Usually no arguments to ``Proxy()`` are needed; the local bitcoind will
+        be used.
+
+        ``timeout`` - timeout in seconds before the HTTP interface times out
         """
-        super(Proxy, self).__init__(service_url=service_url, service_port=service_port, btc_conf_file=btc_conf_file,
+
+        super(Proxy, self).__init__(service_url=service_url,
+                                    service_port=service_port,
+                                    btc_conf_file=btc_conf_file,
                                     timeout=timeout,
                                     **kwargs)
+
+    def call(self, service_name, *args):
+        """Call an RPC method by name and raw (JSON encodable) arguments"""
+        return self._call(service_name, *args)
 
     def dumpprivkey(self, addr):
         """Return the private key matching an address
@@ -247,18 +286,25 @@ class Proxy(RawProxy):
         return CBitcoinSecret(r)
 
     def getaccountaddress(self, account=None):
-        """Return the current Bitcoin address for receiving payments to this account."""
+        """Return the current Bitcoin address for receiving payments to this
+        account."""
         r = self._call('getaccountaddress', account)
         return CBitcoinAddress(r)
 
     def getbalance(self, account='*', minconf=1):
         """Get the balance
 
-        account - The selected account. Defaults to "*" for entire wallet. It may be the default account using "".
-        minconf - Only include transactions confirmed at least this many times. (default=1)
+        account - The selected account. Defaults to "*" for entire wallet. It
+                  may be the default account using "".
+        minconf - Only include transactions confirmed at least this many times.
+                  (default=1)
         """
         r = self._call('getbalance', account, minconf)
         return int(r*COIN)
+
+    def getbestblockhash(self):
+        """Return hash of best (tip) block in longest block chain."""
+        return lx(self._call('getbestblockhash'))
 
     def getblock(self, block_hash):
         """Get block <block_hash>
@@ -272,10 +318,14 @@ class Proxy(RawProxy):
                     (self.__class__.__name__, block_hash.__class__))
         try:
             r = self._call('getblock', block_hash, False)
-        except JSONRPCException as ex:
+        except JSONRPCError as ex:
             raise IndexError('%s.getblock(): %s (%d)' %
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
         return CBlock.deserialize(unhexlify(r))
+
+    def getblockcount(self):
+        """Return the number of blocks in the longest block chain"""
+        return self._call('getblockcount')
 
     def getblockhash(self, height):
         """Return hash of block in best-block-chain at height.
@@ -284,17 +334,21 @@ class Proxy(RawProxy):
         """
         try:
             return lx(self._call('getblockhash', height))
-        except JSONRPCException as ex:
+        except JSONRPCError as ex:
             raise IndexError('%s.getblockhash(): %s (%d)' %
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
 
     def getinfo(self):
-        """Return an object containing various state info"""
+        """Return a JSON object containing various state info"""
         r = self._call('getinfo')
         if 'balance' in r:
             r['balance'] = int(r['balance'] * COIN)
         r['paytxfee'] = int(r['paytxfee'] * COIN)
         return r
+
+    def getmininginfo(self):
+        """Return a JSON object containing mining-related information"""
+        return self._call('getmininginfo')
 
     def getnewaddress(self, account=None):
         """Return a new Bitcoin address for receiving payments.
@@ -341,7 +395,7 @@ class Proxy(RawProxy):
         """
         try:
             r = self._call('getrawtransaction', b2lx(txid), 1 if verbose else 0)
-        except JSONRPCException as ex:
+        except JSONRPCError as ex:
             raise IndexError('%s.getrawtransaction(): %s (%d)' %
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
         if verbose:
@@ -368,7 +422,8 @@ class Proxy(RawProxy):
         always show zero.
 
         addr    - The address. (CBitcoinAddress instance)
-        minconf - Only include transactions confirmed at least this many times. (default=1)
+        minconf - Only include transactions confirmed at least this many times.
+                  (default=1)
         """
         r = self._call('getreceivedbyaddress', str(addr), minconf)
         return int(r * COIN)
@@ -382,7 +437,7 @@ class Proxy(RawProxy):
         """
         try:
             r = self._call('gettransaction', b2lx(txid))
-        except JSONRPCException as ex:
+        except JSONRPCError as ex:
             raise IndexError('%s.getrawtransaction(): %s (%d)' %
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
         return r
@@ -441,7 +496,8 @@ class Proxy(RawProxy):
 
     def lockunspent(self, unlock, outpoints):
         """Lock or unlock outpoints"""
-        json_outpoints = [{'txid':b2lx(outpoint.hash),'vout':outpoint.n} for outpoint in outpoints]
+        json_outpoints = [{'txid':b2lx(outpoint.hash), 'vout':outpoint.n}
+                          for outpoint in outpoints]
         return self._call('lockunspent', unlock, json_outpoints)
 
     def sendrawtransaction(self, tx, allowhighfees=False):
@@ -459,7 +515,8 @@ class Proxy(RawProxy):
 
     def sendmany(self, fromaccount, payments, minconf=1, comment=''):
         """Sent amount to a given address"""
-        json_payments = {str(addr):float(amount)/COIN for addr,amount in payments.items()}
+        json_payments = {str(addr):float(amount)/COIN
+                         for addr, amount in payments.items()}
         r = self._call('sendmany', fromaccount, json_payments, minconf, comment)
         return lx(r)
 
@@ -516,7 +573,8 @@ class Proxy(RawProxy):
         return self._addnode(node, 'remove')
 
 __all__ = (
-        'JSONRPCException',
-        'RawProxy',
-        'Proxy',
+    'JSONRPCError',
+    'JSONRPCException',
+    'RawProxy',
+    'Proxy',
 )

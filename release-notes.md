@@ -1,6 +1,19 @@
 python-bitcoinlib release notes
 ===============================
 
+v0.5.0
+======
+
+Breaking API changes:
+
+* Proxy no longer has ``__getattr__`` to support arbitrary methods. Use
+  RawProxy or Proxy.call instead. This allows new wrappers to be added safely.
+  See docstrings for details.
+
+New features:
+
+* New RPC calls: getbestblockhash, getblockcount, getmininginfo
+
 v0.4.0
 ======
 
