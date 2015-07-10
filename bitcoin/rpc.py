@@ -10,7 +10,18 @@
 # propagated, or distributed except according to the terms contained in the
 # LICENSE file.
 
-"""Bitcoin Core RPC support"""
+"""Bitcoin Core RPC support
+
+By default this uses the standard library ``json`` module. By monkey patching,
+a different implementation can be used instead, at your own risk:
+
+>>> import simplejson
+>>> import bitcoin.rpc
+>>> bitcoin.rpc.json = simplejson
+
+(``simplejson`` is the externally maintained version of the same module and
+thus better optimized but perhaps less stable.)
+"""
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 import ssl
