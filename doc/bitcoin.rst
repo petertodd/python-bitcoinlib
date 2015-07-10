@@ -49,6 +49,22 @@ bitcoin
     :undoc-members:
     :show-inheritance:
 
+:mod:`signature`
+----------------
+
+.. automodule:: bitcoin.signature
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`signmessage`
+------------------
+
+.. automodule:: bitcoin.signmessage
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 :mod:`wallet`
 -------------
 
