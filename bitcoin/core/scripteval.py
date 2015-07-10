@@ -361,6 +361,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, flags=()):
             """Helper function for raising EvalScriptError exceptions
 
             cls   - subclass you want to raise
+
             *args - arguments
 
             Fills in the state of execution for you.
@@ -680,9 +681,13 @@ def EvalScript(stack, scriptIn, txTo, inIdx, flags=()):
     """Evaluate a script
 
     stack    - Initial stack
+
     scriptIn - Script
+
     txTo     - Transaction the script is a part of
+
     inIdx    - txin index of the scriptSig
+
     flags    - SCRIPT_VERIFY_* flags to apply
     """
 
@@ -703,8 +708,11 @@ def VerifyScript(scriptSig, scriptPubKey, txTo, inIdx, flags=()):
     """Verify a scriptSig satisfies a scriptPubKey
 
     scriptSig    - Signature
+
     scriptPubKey - PubKey
+
     txTo         - Spending transaction
+
     inIdx        - Index of the transaction input containing scriptSig
 
     Raises a ValidationError subclass if the validation fails.

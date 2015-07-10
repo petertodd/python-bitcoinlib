@@ -663,6 +663,7 @@ def CheckBlockHeader(block_header, fCheckPoW = True, cur_time=None):
     """Context independent CBlockHeader checks.
 
     fCheckPoW - Check proof-of-work.
+
     cur_time  - Current time. Defaults to time.time()
 
     Raises CBlockHeaderError if block header is invalid.
@@ -699,7 +700,9 @@ def CheckBlock(block, fCheckPoW = True, fCheckMerkleRoot = True, cur_time=None):
     transaction.
 
     fCheckPoW        - Check proof-of-work.
+
     fCheckMerkleRoot - Check merkle root matches transactions.
+
     cur_time         - Current time. Defaults to time.time()
     """
 

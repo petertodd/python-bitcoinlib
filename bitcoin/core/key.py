@@ -245,7 +245,9 @@ class CECKey:
     def recover(self, sigR, sigS, msg, msglen, recid, check):
         """
         Perform ECDSA key recovery (see SEC1 4.1.6) for curves over (mod p)-fields
+
         recid selects which key is recovered
+
         if check is non-zero, additional checks are performed
         """
         i = int(recid / 2)
@@ -349,7 +351,9 @@ class CPubKey(bytes):
     Attributes:
 
     is_valid      - Corresponds to CPubKey.IsValid()
+
     is_fullyvalid - Corresponds to CPubKey.IsFullyValid()
+
     is_compressed - Corresponds to CPubKey.IsCompressed()
     """
 
