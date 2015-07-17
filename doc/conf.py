@@ -46,6 +46,15 @@ extensions = [
     'sphinx.ext.viewcode',
 ]
 
+autodoc_default_flags = [
+    'members',
+    'undoc-members',
+    'show-inheritance',
+]
+
+# Include __init__ docstring in class level docs
+autoclass_content = 'both'
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 

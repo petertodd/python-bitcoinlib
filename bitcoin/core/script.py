@@ -741,7 +741,7 @@ class CScript(bytes):
         redeemScript to spend.
 
         checksize - Check if the redeemScript is larger than the 520-byte max
-                    pushdata limit; raise ValueError if limit exceeded.
+        pushdata limit; raise ValueError if limit exceeded.
 
         Since a >520-byte PUSHDATA makes EvalScript() fail, it's not actually
         possible to redeem P2SH outputs with redeem scripts >520 bytes.
