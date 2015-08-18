@@ -35,6 +35,60 @@ import bitcoin.core.script
 
 _ssl = ctypes.cdll.LoadLibrary(ctypes.util.find_library('ssl') or 'libeay32')
 
+_ssl.BN_new.restype = ctypes.c_void_p
+_ssl.BN_new.argtypes = []
+
+_ssl.BN_bin2bn.restype = ctypes.c_void_p
+_ssl.BN_bin2bn.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_void_p]
+
+_ssl.BN_CTX_free.restype = None
+_ssl.BN_CTX_free.argtypes = [ctypes.c_void_p]
+
+_ssl.BN_CTX_new.restype = ctypes.c_void_p
+_ssl.BN_CTX_new.argtypes = []
+
+_ssl.ECDH_compute_key.restype = ctypes.c_int
+_ssl.ECDH_compute_key.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p]
+
+_ssl.ECDSA_sign.restype = ctypes.c_int
+_ssl.ECDSA_sign.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
+
+_ssl.ECDSA_verify.restype = ctypes.c_int
+_ssl.ECDSA_verify.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p]
+
+_ssl.EC_KEY_free.restype = None
+_ssl.EC_KEY_free.argtypes = [ctypes.c_void_p]
+
+_ssl.EC_KEY_new_by_curve_name.restype = ctypes.c_void_p
+_ssl.EC_KEY_new_by_curve_name.argtypes = [ctypes.c_int]
+
+_ssl.EC_KEY_get0_group.restype = ctypes.c_void_p
+_ssl.EC_KEY_get0_group.argtypes = [ctypes.c_void_p]
+
+_ssl.EC_KEY_get0_public_key.restype = ctypes.c_void_p
+_ssl.EC_KEY_get0_public_key.argtypes = [ctypes.c_void_p]
+
+_ssl.EC_KEY_set_private_key.restype = ctypes.c_int
+_ssl.EC_KEY_set_private_key.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+
+_ssl.EC_KEY_set_conv_form.restype = None
+_ssl.EC_KEY_set_conv_form.argtypes = [ctypes.c_void_p, ctypes.c_int]
+
+_ssl.EC_KEY_set_public_key.restype = ctypes.c_int
+_ssl.EC_KEY_set_public_key.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+
+_ssl.i2o_ECPublicKey.restype = ctypes.c_void_p
+_ssl.i2o_ECPublicKey.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+
+_ssl.EC_POINT_new.restype = ctypes.c_void_p
+_ssl.EC_POINT_new.argtypes = [ctypes.c_void_p]
+
+_ssl.EC_POINT_free.restype = None
+_ssl.EC_POINT_free.argtypes = [ctypes.c_void_p]
+
+_ssl.EC_POINT_mul.restype = ctypes.c_int
+_ssl.EC_POINT_mul.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
+
 # this specifies the curve used with ECDSA.
 _NID_secp256k1 = 714 # from openssl/obj_mac.h
 
