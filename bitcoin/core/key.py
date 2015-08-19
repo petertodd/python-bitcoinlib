@@ -226,7 +226,7 @@ class CECKey:
         derlen = _ssl.i2d_ECDSA_SIG(norm_sig, 0)
         if derlen == 0:
             _ssl.ECDSA_SIG_free(norm_sig)
-            return false
+            return False
 
         norm_der = ctypes.create_string_buffer(derlen)
         _ssl.i2d_ECDSA_SIG(norm_sig, ctypes.byref(ctypes.pointer(norm_der)))
