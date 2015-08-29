@@ -355,7 +355,8 @@ class Proxy(BaseProxy):
         r = self._call('getinfo')
         if 'balance' in r:
             r['balance'] = int(r['balance'] * COIN)
-        r['paytxfee'] = int(r['paytxfee'] * COIN)
+        if 'paytxfee' in r:
+            r['paytxfee'] = int(r['paytxfee'] * COIN)
         return r
 
     def getmininginfo(self):
