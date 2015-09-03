@@ -217,7 +217,7 @@ class CECKey:
     def verify(self, hash, sig):
         """Verify a DER signature"""
         if not sig:
-          return false
+            return False
 
         # New versions of OpenSSL will reject non-canonical DER signatures. de/re-serialize first.
         norm_sig = ctypes.c_void_p(0)
@@ -226,7 +226,7 @@ class CECKey:
         derlen = _ssl.i2d_ECDSA_SIG(norm_sig, 0)
         if derlen == 0:
             _ssl.ECDSA_SIG_free(norm_sig)
-            return false
+            return False
 
         norm_der = ctypes.create_string_buffer(derlen)
         _ssl.i2d_ECDSA_SIG(norm_sig, ctypes.byref(ctypes.pointer(norm_der)))
