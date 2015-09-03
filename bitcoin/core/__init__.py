@@ -160,11 +160,11 @@ class COutPoint(ImmutableSerializable):
     def from_outpoint(cls, outpoint):
         """Create an immutable copy of an existing OutPoint
 
-        If output is already immutable (outpoint.__class__ is COutPoint) it is
+        If outpoint is already immutable (outpoint.__class__ is COutPoint) it is
         returned directly.
         """
-        if output.__class__ is COutPoint:
-            return output
+        if outpoint.__class__ is COutPoint:
+            return outpoint
 
         else:
             return cls(outpoint.hash, outpoint.n)
