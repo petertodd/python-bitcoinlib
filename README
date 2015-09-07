@@ -13,7 +13,7 @@ Requirements
 
     sudo apt-get install libssl-dev
 
-The RPC interface, bitcoin.rpc, is designed to work with Bitcoin Core v0.9.
+The RPC interface, bitcoin.rpc, is designed to work with Bitcoin Core v0.11.0
 Older versions mostly work but there do exist some incompatibilities.
 
 
