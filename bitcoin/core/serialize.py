@@ -337,7 +337,7 @@ def compact_from_uint256(v):
     return compact | nbytes << 24
 
 def uint256_to_str(u):
-    r = ""
+    r = b""
     for i in range(8):
         r += struct.pack('<I', u >> (i * 32) & 0xffff)
     return r
