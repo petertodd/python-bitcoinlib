@@ -534,11 +534,11 @@ class Proxy(BaseProxy):
         r = self._call('sendmany', fromaccount, json_payments, minconf, comment)
         return lx(r)
 
-    def sendtoaddress(self, addr, amount):
+    def sendtoaddress(self, addr, amount, subtractfeefromamount=False):
         """Sent amount to a given address"""
         addr = str(addr)
         amount = float(amount)/COIN
-        r = self._call('sendtoaddress', addr, amount)
+        r = self._call('sendtoaddress', addr, amount, subtractfeefromamount)
         return lx(r)
 
     def signrawtransaction(self, tx, *args):
