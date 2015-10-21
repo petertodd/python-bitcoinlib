@@ -527,18 +527,18 @@ class Proxy(BaseProxy):
             r = self._call('sendrawtransaction', hextx)
         return lx(r)
 
-    def sendmany(self, fromaccount, payments, minconf=1, comment=''):
+    def sendmany(self, fromaccount, payments, minconf=1, comment='', subtractfeefromamount=False):
         """Sent amount to a given address"""
         json_payments = {str(addr):float(amount)/COIN
                          for addr, amount in payments.items()}
-        r = self._call('sendmany', fromaccount, json_payments, minconf, comment)
+        r = self._call('sendmany', fromaccount, json_payments, minconf, comment, subtractfeefromamount)
         return lx(r)
 
-    def sendtoaddress(self, addr, amount):
+    def sendtoaddress(self, addr, amount, comment='', commentto='', subtractfeefromamount=False):
         """Sent amount to a given address"""
         addr = str(addr)
         amount = float(amount)/COIN
-        r = self._call('sendtoaddress', addr, amount)
+        r = self._call('sendtoaddress', addr, amount, comment, commentto, subtractfeefromamount)
         return lx(r)
 
     def signrawtransaction(self, tx, *args):
