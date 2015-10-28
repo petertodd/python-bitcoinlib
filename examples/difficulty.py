@@ -1,13 +1,13 @@
-"""simple example for interacting with the blockchain"""
+"""
+print difficult of blocks through time
+"""
 
 import bitcoin.rpc
 import datetime
 
 proxy = bitcoin.rpc.Proxy()
-#print(proxy.getnewaddress())
 
-def ds(utime):
-    #dateFormat = '%Y-%m-%d %H:%M:%S'
+def datestr(utime):
     dateFormat = '%Y-%m-%d'
     return datetime.datetime.fromtimestamp(int(utime)).strftime(dateFormat)
 
@@ -21,7 +21,4 @@ for i in range(start, start+n,skip):
     h = proxy.getblockhash(i)
     block = proxy.getblock(h)
 
-    print('%s %s'%(ds(block.nTime),block.difficulty))
-
-#print(dir(block))
-#block_bytes = block.serialize()
+    print('%s %s'%(datestr(block.nTime),block.difficulty))
