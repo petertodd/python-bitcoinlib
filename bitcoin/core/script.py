@@ -797,6 +797,74 @@ def FindAndDelete(script, sig):
     if not skip:
         r += script[last_sop_idx:]
     return CScript(r)
+def IsValidSignatureEncoding(sig):
+    """ 
+     A canonical signature exists of: <30> <total len> <02> <len R> <R> <02> <len S> <S> <hashtype>
+    Where R and S are not negative (their first byte has its highest bit not set), and not
+    excessively padded (do not start with a 0 byte, unless an otherwise negative number follows,
+    in which case a single 0 byte is necessary and even required).
+    
+    See https://bitcointalk.org/index.php?topic=8392.msg127623#msg127623
+    
+    This function is consensus-critical since BIP66.
+    Loosely correlates with IsValidSignatureEncoding() from script/interpreter.cpp
+    Format: 0x30 [total-length] 0x02 [R-length] [R] 0x02 [S-length] [S] [sighash]
+    total-length: 1-byte length descriptor of everything that follows,
+    excluding the sighash byte.
+    R-length: 1-byte length descriptor of the R value that follows.
+    R: arbitrary-length big-endian encoded R value. It must use the shortest
+    possible encoding for a positive integers (which means no null bytes at
+    the start, except a single one when the next byte has its highest bit set).
+    S-length: 1-byte length descriptor of the S value that follows.
+    S: arbitrary-length big-endian encoded S value. The same rules apply.
+    sighash: 1-byte value indicating what data is hashed (not part of the DER
+    signature)
+    """
+    # Minimum and maximum size constraints.
+    sig_len = len(sig)
+    if sig_len < 9 or sig_len > 73:
+        return False
+    
+    # A signature is of type 0x30 (compound).
+    if bord(sig[0]) != 0x30:
+        return False
+    
+    # Make sure the length covers the entire signature.
+    if bord(sig[1]) != sig_len - 3:
+        return False
+    
+    # Extract the length of the R element.
+    len_r = bord(sig[3])
+    
+    # Make sure the length of the S element is still inside the signature.
+    if len_r + 5 >= sig_len:
+        return False
+    
+    # Extract the length of the S element.
+    len_s = bord(sig[len_r + 5])
+    # Verify that the length of the signature matches the sum of the length
+    # of the elements.
+    if (len_r + len_s +7 ) != sig_len:
+        return False
+    
+    # Check whether the R element is an integer.
+    if bord(sig[2]) != 0x02:
+        return False;
+    
+    # Zero-length integers are not allowed for R/S.
+    if len_r == 0 or len_s == 0:
+        return False
+    
+    # Negative numbers are not allowed for R/S.
+    if bord(sig[4]) & 0x80 or bord(sig[len_r + 6]) & 0x80:
+        return False
+    
+    # Null bytes at the start of R are not allowed, unless R/S would
+    # otherwise be interpreted as a negative number.
+    if (len_r > 1 and bord(sig[4]) == 0x00 and not (bord(sig[5]) & 0x80)) or (len_s > 1 and bord(sig[len_r + 6]) == 0x00 and not (bord(sig[len_r + 7]) & 0x80)):
+        return False
+    
+    return True
 
 def IsLowDERSignature(sig):
     """
@@ -804,6 +872,8 @@ def IsLowDERSignature(sig):
     Verifies that the S value in a DER signature is the lowest possible value.
     Used by BIP62 malleability fixes.
     """
+    if not IsValidSignatureEncoding(sig):
+        return False
     length_r = sig[3]
     if isinstance(length_r, str):
         length_r = int(struct.unpack('B', length_r)[0])
