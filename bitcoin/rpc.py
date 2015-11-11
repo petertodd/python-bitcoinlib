@@ -296,6 +296,28 @@ class Proxy(BaseProxy):
 
         return CBitcoinSecret(r)
 
+    def fundrawtransaction(self, tx, include_watching=False):
+        """Add inputs to a transaction until it has enough in value to meet its out value.
+
+        include_watching - Also select inputs which are watch only
+
+        Returns dict:
+
+        {'tx':        Resulting tx,
+         'fee':       Fee the resulting transaction pays,
+         'changepos': Position of added change output, or -1,
+        }
+        """
+        hextx = hexlify(tx.serialize())
+        r = self._call('fundrawtransaction', hextx, include_watching)
+
+        r['tx'] = CTransaction.deserialize(unhexlify(r['hex']))
+        del r['hex']
+
+        r['fee'] = int(r['fee'] * COIN)
+
+        return r
+
     def getaccountaddress(self, account=None):
         """Return the current Bitcoin address for receiving payments to this
         account."""
