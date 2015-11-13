@@ -318,6 +318,16 @@ class Proxy(BaseProxy):
 
         return r
 
+    def generate(self, numblocks):
+        """Mine blocks immediately (before the RPC call returns)
+
+        numblocks - How many blocks are generated immediately.
+
+        Returns iterable of block hashes generated.
+        """
+        r = self._call('generate', numblocks)
+        return (lx(blk_hash) for blk_hash in r)
+
     def getaccountaddress(self, account=None):
         """Return the current Bitcoin address for receiving payments to this
         account."""
