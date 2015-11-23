@@ -12,8 +12,6 @@
 from __future__ import absolute_import, division, print_function
 
 import binascii
-import hashlib
-import socket
 import struct
 import sys
 import time

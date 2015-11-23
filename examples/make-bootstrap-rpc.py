@@ -19,7 +19,6 @@ if sys.version_info.major < 3:
     sys.exit(1)
 
 import bitcoin
-from bitcoin.core import CBlock
 import bitcoin.rpc
 
 import struct
