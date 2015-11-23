@@ -11,9 +11,60 @@
 
 import unittest
 
-from bitcoin.net import CAddress
+from bitcoin.net import CAddress, CAlert, CUnsignedAlert, CInv
 
-class Test_CAddress(unittest.TestCase):
+# Py3 compatibility
+import sys
+
+if sys.version > '3':
+    from io import BytesIO as _BytesIO
+else:
+    from cStringIO import StringIO as _BytesIO
+
+
+class TestUnsignedAlert(unittest.TestCase):
+    def test_serialization(self):
+        alert = CUnsignedAlert()
+        alert.setCancel = [1, 2, 3]
+        alert.strComment = b"Comment"
+        stream = _BytesIO()
+
+        alert.stream_serialize(stream)
+        serialized = _BytesIO(stream.getvalue())
+
+        deserialized = CUnsignedAlert.stream_deserialize(serialized)
+        self.assertEqual(deserialized, alert)
+
+
+class TestCAlert(unittest.TestCase):
+    def test_serialization(self):
+        alert = CAlert()
+        alert.setCancel = [1, 2, 3]
+        alert.strComment = b"Comment"
+        stream = _BytesIO()
+
+        alert.stream_serialize(stream)
+        serialized = _BytesIO(stream.getvalue())
+
+        deserialized = CAlert.stream_deserialize(serialized)
+        self.assertEqual(deserialized, alert)
+
+
+class TestCInv(unittest.TestCase):
+    def test_serialization(self):
+        inv = CInv()
+        inv.type = 123
+        inv.hash = b"0" * 32
+        stream = _BytesIO()
+
+        inv.stream_serialize(stream)
+        serialized = _BytesIO(stream.getvalue())
+
+        deserialized = CInv.stream_deserialize(serialized)
+        self.assertEqual(deserialized, inv)
+
+
+class TestCAddress(unittest.TestCase):
     def test_serializationSimple(self):
         c = CAddress()
         cSerialized = c.serialize()
@@ -29,12 +80,11 @@ class Test_CAddress(unittest.TestCase):
 
         cSerialized = c.serialize()
         cDeserialized = CAddress.deserialize(cSerialized)
-        
+
         self.assertEqual(c, cDeserialized)
-        
+
         cSerializedTwice = cDeserialized.serialize()
         self.assertEqual(cSerialized, cSerializedTwice)
-
 
     def test_serializationIPv6(self):
         c = CAddress()
@@ -44,12 +94,11 @@ class Test_CAddress(unittest.TestCase):
 
         cSerialized = c.serialize()
         cDeserialized = CAddress.deserialize(cSerialized)
-        
+
         self.assertEqual(c, cDeserialized)
-        
+
         cSerializedTwice = cDeserialized.serialize()
         self.assertEqual(cSerialized, cSerializedTwice)
-
 
     def test_serializationDiff(self):
         # Sanity check that the serialization code preserves differences
