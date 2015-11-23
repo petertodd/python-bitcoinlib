@@ -24,7 +24,6 @@ if sys.version > '3':
     long = int
     _bord = lambda x: x
 
-import copy
 import hashlib
 
 import bitcoin.core
@@ -57,18 +56,18 @@ class EvalScriptError(bitcoin.core.ValidationError):
                  altstack=None, vfExec=None, pbegincodehash=None, nOpCount=None):
         super(EvalScriptError, self).__init__('EvalScript: %s' % msg)
 
-        sop = sop
-        sop_data = sop_data
-        sop_pc = sop_pc
-        stack = stack
-        scriptIn = scriptIn
-        txTo = txTo
-        inIdx = inIdx
-        flags = flags
-        altstack = altstack
-        vfExec = vfExec
-        pbegincodehash = pbegincodehash
-        nOpCount = nOpCount
+        self.sop = sop
+        self.sop_data = sop_data
+        self.sop_pc = sop_pc
+        self.stack = stack
+        self.scriptIn = scriptIn
+        self.txTo = txTo
+        self.inIdx = inIdx
+        self.flags = flags
+        self.altstack = altstack
+        self.vfExec = vfExec
+        self.pbegincodehash = pbegincodehash
+        self.nOpCount = nOpCount
 
 class MaxOpCountError(EvalScriptError):
     def __init__(self, **kwargs):
