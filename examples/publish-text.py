@@ -181,13 +181,7 @@ else:
     logging.info('Total cost: %s BTC' % str_money_value(sum(amount for addr, amount in payments.items())))
 
 # Create unsigned tx for SignatureHash
-
-# By paying this rather than an OP_RETURN the tx shows up on bc.i, convenient
-# for determining propagation; inception for the lulz.
-#
-# FIXME: these 600 satoshi's aren't taken into account above...
-vout = [CTxOut(600, CScript().to_p2sh_scriptPubKey().to_p2sh_scriptPubKey())]
-#vout = [CTxOut(0, CScript([OP_RETURN]))]
+vout = [CTxOut(0, CScript([OP_RETURN]))]
 
 unsigned_vin = []
 for scriptSig, redeemScript in scripts:
