@@ -56,7 +56,6 @@ def MurmurHash3(nHashSeed, vDataToHash):
     # tail
     k1 = 0
     j = (len(vDataToHash) // 4) * 4
-    import sys
     bord = ord
     if sys.version > '3':
         # In Py3 indexing bytes returns numbers, not characters
@@ -123,6 +122,7 @@ class CBloomFilter(bitcoin.core.serialize.Serializable):
         return MurmurHash3(((nHashNum * 0xFBA4C795) + self.nTweak) & 0xFFFFFFFF, vDataToHash) % (len(self.vData) * 8)
 
     __bit_mask = bytearray([0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80])
+
     def insert(self, elem):
         """Insert an element in the filter.
 
@@ -164,18 +164,20 @@ class CBloomFilter(bitcoin.core.serialize.Serializable):
         raise NotImplementedError
 
     __struct = struct.Struct(b'<IIB')
+
     @classmethod
     def stream_deserialize(cls, f):
-        vData = bitcoin.core.serialize.BytesSerializer.stream_deserialize(f)
+        vData = bytearray(bitcoin.core.serialize.BytesSerializer.stream_deserialize(f))
         (nHashFuncs,
          nTweak,
-         nFlags) = self.__struct.unpack(_ser_read(f, self.__struct.size))
-        self = cls()
-        self.vData = vData
-        self.nHashFuncs = nHashFuncs
-        self.nTweak = nTweak
-        self.nFlags = nFlags
-        return self
+         nFlags) = CBloomFilter.__struct.unpack(bitcoin.core.ser_read(f, CBloomFilter.__struct.size))
+        # These arguments can be fake, the real values are set just after
+        deserialized = cls(1, 0.01, 0, CBloomFilter.UPDATE_ALL)
+        deserialized.vData = vData
+        deserialized.nHashFuncs = nHashFuncs
+        deserialized.nTweak = nTweak
+        deserialized.nFlags = nFlags
+        return deserialized
 
     def stream_serialize(self, f):
         if sys.version > '3':
