@@ -222,7 +222,7 @@ class CTxIn(ImmutableSerializable):
             return txin
 
         else:
-            return cls(COutPoint.from_txout(txin.prevout), txin.scriptSig, txin.nSequence)
+            return cls(COutPoint.from_outpoint(txin.prevout), txin.scriptSig, txin.nSequence)
 
 @__make_mutable
 class CMutableTxIn(CTxIn):
