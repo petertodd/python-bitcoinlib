@@ -24,7 +24,7 @@ signature = SignMessage(key, message)
 
 print(key, address)
 print("Address: %s" % address)
-print("Message: %s", message)
+print("Message: %s" % message)
 print("\nSignature: %s" % signature)
 print("\nVerified: %s" % VerifyMessage(address, message, signature))
 
