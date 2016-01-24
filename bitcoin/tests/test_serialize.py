@@ -11,7 +11,7 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import unittest
+import unittest, random
 
 from binascii import unhexlify
 
@@ -133,3 +133,14 @@ class Test_Compact(unittest.TestCase):
         self.assertEqual(compact_from_uint256(0x12345600), 0x04123456)
         self.assertEqual(compact_from_uint256(0x92340000), 0x05009234)
         self.assertEqual(compact_from_uint256(0x1234560000000000000000000000000000000000000000000000000000000000), 0x20123456)
+
+class Test_Uint256_Serialize(unittest.TestCase):
+    def test_fixed(self):
+        values = []
+        values.append(0)
+        values.append(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff)
+        for x in range(100):
+            values.append(random.getrandbits(256))
+        for n in values:
+            assert(uint256_from_str(uint256_to_str(n)) == n)
+
