@@ -344,13 +344,12 @@ def compact_from_uint256(v):
 def uint256_to_str(u):
     r = b""
     for i in range(8):
-        r += struct.pack('<I', u >> (i * 32) & 0xffff)
+        r += struct.pack('<I', u >> (i * 32) & 0xffffffff)
     return r
 
 def uint256_to_shortstr(u):
     s = "%064x" % (u,)
     return s[:16]
-
 
 __all__ = (
         'MAX_SIZE',
