@@ -17,6 +17,7 @@ setup(name='python-bitcoinlib',
       long_description=README,
       classifiers=[
           "Programming Language :: Python",
+          "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
       ],
       url='https://github.com/petertodd/python-bitcoinlib',
       keywords='bitcoin',
