@@ -371,5 +371,6 @@ __all__ = (
         'uint256_from_str',
         'uint256_from_compact',
         'compact_from_uint256',
+        'uint256_to_str',
         'uint256_to_shortstr',
 )
