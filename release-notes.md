@@ -1,6 +1,17 @@
 python-bitcoinlib release notes
 ===============================
 
+v0.5.1
+======
+
+Various small bugfixes; see git history.
+
+New features:
+
+* New RPC calls: fundrawtransaction, generate, getblockheader
+* OP_CHECKLOCKTIMEVERIFY opcode constant
+
+
 v0.5.0
 ======
 
@@ -23,6 +34,7 @@ New features:
 Notable bugfixes:
 
 * getinfo() now works where disablewallet=1
+
 
 v0.4.0
 ======
