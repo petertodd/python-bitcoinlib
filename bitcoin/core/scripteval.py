@@ -40,8 +40,27 @@ MAX_STACK_ITEMS = 1000
 
 SCRIPT_VERIFY_P2SH = object()
 SCRIPT_VERIFY_STRICTENC = object()
-SCRIPT_VERIFY_EVEN_S = object()
-SCRIPT_VERIFY_NOCACHE = object()
+SCRIPT_VERIFY_DERSIG = object()
+SCRIPT_VERIFY_LOW_S = object()
+SCRIPT_VERIFY_NULLDUMMY = object()
+SCRIPT_VERIFY_SIGPUSHONLY = object()
+SCRIPT_VERIFY_MINIMALDATA = object()
+SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS = object()
+SCRIPT_VERIFY_CLEANSTACK = object()
+SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY = object()
+
+SCRIPT_VERIFY_FLAGS_BY_NAME = {
+    'P2SH': SCRIPT_VERIFY_P2SH,
+    'STRICTENC': SCRIPT_VERIFY_STRICTENC,
+    'DERSIG': SCRIPT_VERIFY_DERSIG,
+    'LOW_S': SCRIPT_VERIFY_LOW_S,
+    'NULLDUMMY': SCRIPT_VERIFY_NULLDUMMY,
+    'SIGPUSHONLY': SCRIPT_VERIFY_SIGPUSHONLY,
+    'MINIMALDATA': SCRIPT_VERIFY_MINIMALDATA,
+    'DISCOURAGE_UPGRADABLE_NOPS': SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS,
+    'CLEANSTACK': SCRIPT_VERIFY_CLEANSTACK,
+    'CHECKLOCKTIMEVERIFY': SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY,
+}
 
 class EvalScriptError(bitcoin.core.ValidationError):
     """Base class for exceptions raised when a script fails during EvalScript()
@@ -133,7 +152,7 @@ def _CheckSig(sig, pubkey, script, txTo, inIdx, err_raiser):
     return key.verify(h, sig)
 
 
-def _CheckMultiSig(opcode, script, stack, txTo, inIdx, err_raiser, nOpCount):
+def _CheckMultiSig(opcode, script, stack, txTo, inIdx, flags, err_raiser, nOpCount):
     i = 1
     if len(stack) < i:
         err_raiser(MissingOpArgumentsError, opcode, stack, i)
@@ -190,14 +209,24 @@ def _CheckMultiSig(opcode, script, stack, txTo, inIdx, err_raiser, nOpCount):
             if opcode == OP_CHECKMULTISIGVERIFY:
                 err_raiser(VerifyOpFailedError, opcode)
 
-    while i > 0:
+    while i > 1:
         stack.pop()
         i -= 1
+
+    # Note how Bitcoin Core duplicates the len(stack) check, rather than
+    # letting pop() handle it; maybe that's wrong?
+    if len(stack) and SCRIPT_VERIFY_NULLDUMMY in flags:
+        if stack[-1] != b'':
+            raise err_raiser(ArgumentsInvalidError, opcode, "dummy value not OP_0")
+
+    stack.pop()
 
     if opcode == OP_CHECKMULTISIG:
         if success:
             stack.append(b"\x01")
         else:
+            # FIXME: this is incorrect, but not caught by existing
+            # test cases
             stack.append(b"\x00")
 
 
@@ -457,7 +486,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, flags=()):
 
             elif sop == OP_CHECKMULTISIG or sop == OP_CHECKMULTISIGVERIFY:
                 tmpScript = CScript(scriptIn[pbegincodehash:])
-                _CheckMultiSig(sop, tmpScript, stack, txTo, inIdx, err_raiser, nOpCount)
+                _CheckMultiSig(sop, tmpScript, stack, txTo, inIdx, flags, err_raiser, nOpCount)
 
             elif sop == OP_CHECKSIG or sop == OP_CHECKSIGVERIFY:
                 check_args(2)
@@ -572,8 +601,14 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, flags=()):
                 check_args(2)
                 del stack[-2]
 
-            elif sop == OP_NOP or (sop >= OP_NOP1 and sop <= OP_NOP10):
+            elif sop == OP_NOP:
                 pass
+
+            elif sop >= OP_NOP1 and sop <= OP_NOP10:
+                if SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS in flags:
+                    err_raiser(EvalScriptError, "%s reserved for soft-fork upgrades" % OPCODE_NAMES[sop])
+                else:
+                    pass
 
             elif sop == OP_OVER:
                 check_args(2)
@@ -735,20 +770,29 @@ def VerifyScript(scriptSig, scriptPubKey, txTo, inIdx, flags=()):
         if not scriptSig.is_push_only():
             raise VerifyScriptError("P2SH scriptSig not is_push_only()")
 
-        # stackCopy cannot be empty here, because if it was the
+        # restore stack
+        stack = stackCopy
+
+        # stack cannot be empty here, because if it was the
         # P2SH  HASH <> EQUAL  scriptPubKey would be evaluated with
         # an empty stack and the EvalScript above would return false.
-        assert len(stackCopy)
+        assert len(stack)
 
-        pubKey2 = CScript(stackCopy.pop())
+        pubKey2 = CScript(stack.pop())
 
-        EvalScript(stackCopy, pubKey2, txTo, inIdx, flags=flags)
+        EvalScript(stack, pubKey2, txTo, inIdx, flags=flags)
 
-        if not len(stackCopy):
+        if not len(stack):
             raise VerifyScriptError("P2SH inner scriptPubKey left an empty stack")
 
-        if not _CastToBool(stackCopy[-1]):
+        if not _CastToBool(stack[-1]):
             raise VerifyScriptError("P2SH inner scriptPubKey returned false")
+
+    if SCRIPT_VERIFY_CLEANSTACK in flags:
+        assert SCRIPT_VERIFY_P2SH in flags
+
+        if len(stack) != 1:
+            raise VerifyScriptError("scriptPubKey left extra items on stack")
 
 
 class VerifySignatureError(bitcoin.core.ValidationError):
@@ -782,8 +826,15 @@ __all__ = (
         'MAX_STACK_ITEMS',
         'SCRIPT_VERIFY_P2SH',
         'SCRIPT_VERIFY_STRICTENC',
-        'SCRIPT_VERIFY_EVEN_S',
-        'SCRIPT_VERIFY_NOCACHE',
+        'SCRIPT_VERIFY_DERSIG',
+        'SCRIPT_VERIFY_LOW_S',
+        'SCRIPT_VERIFY_NULLDUMMY',
+        'SCRIPT_VERIFY_SIGPUSHONLY',
+        'SCRIPT_VERIFY_MINIMALDATA',
+        'SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS',
+        'SCRIPT_VERIFY_CLEANSTACK',
+        'SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY',
+        'SCRIPT_VERIFY_FLAGS_BY_NAME',
         'EvalScriptError',
         'MaxOpCountError',
         'MissingOpArgumentsError',

@@ -772,11 +772,6 @@ class CScript(bytes):
         return n
 
 
-SCRIPT_VERIFY_P2SH = object()
-SCRIPT_VERIFY_STRICTENC = object()
-SCRIPT_VERIFY_EVEN_S = object()
-SCRIPT_VERIFY_NOCACHE = object()
-
 SIGHASH_ALL = 1
 SIGHASH_NONE = 2
 SIGHASH_SINGLE = 3
@@ -1051,10 +1046,6 @@ __all__ = (
         'CScriptInvalidError',
         'CScriptTruncatedPushDataError',
         'CScript',
-        'SCRIPT_VERIFY_P2SH',
-        'SCRIPT_VERIFY_STRICTENC',
-        'SCRIPT_VERIFY_EVEN_S',
-        'SCRIPT_VERIFY_NOCACHE',
         'SIGHASH_ALL',
         'SIGHASH_NONE',
         'SIGHASH_SINGLE',
