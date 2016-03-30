@@ -152,7 +152,7 @@ def _CheckSig(sig, pubkey, script, txTo, inIdx, err_raiser):
     return key.verify(h, sig)
 
 
-def _CheckMultiSig(opcode, script, stack, txTo, inIdx, err_raiser, nOpCount):
+def _CheckMultiSig(opcode, script, stack, txTo, inIdx, flags, err_raiser, nOpCount):
     i = 1
     if len(stack) < i:
         err_raiser(MissingOpArgumentsError, opcode, stack, i)
@@ -209,9 +209,17 @@ def _CheckMultiSig(opcode, script, stack, txTo, inIdx, err_raiser, nOpCount):
             if opcode == OP_CHECKMULTISIGVERIFY:
                 err_raiser(VerifyOpFailedError, opcode)
 
-    while i > 0:
+    while i > 1:
         stack.pop()
         i -= 1
+
+    # Note how Bitcoin Core duplicates the len(stack) check, rather than
+    # letting pop() handle it; maybe that's wrong?
+    if len(stack) and SCRIPT_VERIFY_NULLDUMMY in flags:
+        if stack[-1] != b'':
+            raise err_raiser(ArgumentsInvalidError, opcode, "dummy value not OP_0")
+
+    stack.pop()
 
     if opcode == OP_CHECKMULTISIG:
         if success:
@@ -478,7 +486,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, flags=()):
 
             elif sop == OP_CHECKMULTISIG or sop == OP_CHECKMULTISIGVERIFY:
                 tmpScript = CScript(scriptIn[pbegincodehash:])
-                _CheckMultiSig(sop, tmpScript, stack, txTo, inIdx, err_raiser, nOpCount)
+                _CheckMultiSig(sop, tmpScript, stack, txTo, inIdx, flags, err_raiser, nOpCount)
 
             elif sop == OP_CHECKSIG or sop == OP_CHECKSIGVERIFY:
                 check_args(2)
