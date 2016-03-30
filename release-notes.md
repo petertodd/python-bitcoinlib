@@ -1,6 +1,16 @@
 python-bitcoinlib release notes
 ===============================
 
+v0.6.0
+======
+
+Breaking API changes:
+
+* Removed SCRIPT_VERIFY constants ``bitcoin.core.script``, leaving just the
+  constants in ``bitcoin.core.scripteval``; being singletons the redundant
+  constants were broken anyway.
+
+
 v0.5.1
 ======
 
