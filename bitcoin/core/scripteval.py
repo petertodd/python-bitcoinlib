@@ -754,19 +754,22 @@ def VerifyScript(scriptSig, scriptPubKey, txTo, inIdx, flags=()):
         if not scriptSig.is_push_only():
             raise VerifyScriptError("P2SH scriptSig not is_push_only()")
 
-        # stackCopy cannot be empty here, because if it was the
+        # restore stack
+        stack = stackCopy
+
+        # stack cannot be empty here, because if it was the
         # P2SH  HASH <> EQUAL  scriptPubKey would be evaluated with
         # an empty stack and the EvalScript above would return false.
-        assert len(stackCopy)
+        assert len(stack)
 
-        pubKey2 = CScript(stackCopy.pop())
+        pubKey2 = CScript(stack.pop())
 
-        EvalScript(stackCopy, pubKey2, txTo, inIdx, flags=flags)
+        EvalScript(stack, pubKey2, txTo, inIdx, flags=flags)
 
-        if not len(stackCopy):
+        if not len(stack):
             raise VerifyScriptError("P2SH inner scriptPubKey left an empty stack")
 
-        if not _CastToBool(stackCopy[-1]):
+        if not _CastToBool(stack[-1]):
             raise VerifyScriptError("P2SH inner scriptPubKey returned false")
 
 
