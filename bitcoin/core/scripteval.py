@@ -591,8 +591,14 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, flags=()):
                 check_args(2)
                 del stack[-2]
 
-            elif sop == OP_NOP or (sop >= OP_NOP1 and sop <= OP_NOP10):
+            elif sop == OP_NOP:
                 pass
+
+            elif sop >= OP_NOP1 and sop <= OP_NOP10:
+                if SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS in flags:
+                    err_raiser(EvalScriptError, "%s reserved for soft-fork upgrades" % OPCODE_NAMES[sop])
+                else:
+                    pass
 
             elif sop == OP_OVER:
                 check_args(2)
