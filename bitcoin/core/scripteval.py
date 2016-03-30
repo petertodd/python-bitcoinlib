@@ -772,6 +772,12 @@ def VerifyScript(scriptSig, scriptPubKey, txTo, inIdx, flags=()):
         if not _CastToBool(stack[-1]):
             raise VerifyScriptError("P2SH inner scriptPubKey returned false")
 
+    if SCRIPT_VERIFY_CLEANSTACK in flags:
+        assert SCRIPT_VERIFY_P2SH in flags
+
+        if len(stack) != 1:
+            raise VerifyScriptError("scriptPubKey left extra items on stack")
+
 
 class VerifySignatureError(bitcoin.core.ValidationError):
     pass
