@@ -217,6 +217,8 @@ def _CheckMultiSig(opcode, script, stack, txTo, inIdx, err_raiser, nOpCount):
         if success:
             stack.append(b"\x01")
         else:
+            # FIXME: this is incorrect, but not caught by existing
+            # test cases
             stack.append(b"\x00")
 
 
