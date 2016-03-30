@@ -484,6 +484,8 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, flags=()):
                         if sop != OP_CHECKSIGVERIFY:
                             stack.append(b"\x01")
                     else:
+                        # FIXME: this is incorrect, but not caught by existing
+                        # test cases
                         stack.append(b"\x00")
 
             elif sop == OP_CODESEPARATOR:
@@ -520,7 +522,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, flags=()):
                 if v1 == v2:
                     stack.append(b"\x01")
                 else:
-                    stack.append(b"\x00")
+                    stack.append(b"")
 
             elif sop == OP_EQUALVERIFY:
                 check_args(2)
@@ -657,6 +659,8 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, flags=()):
                 if v:
                     stack.append(b"\x01")
                 else:
+                    # FIXME: this is incorrect, but not caught by existing
+                    # test cases
                     stack.append(b"\x00")
 
             else:
