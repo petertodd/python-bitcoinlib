@@ -10,6 +10,8 @@ Breaking API changes:
   constants in ``bitcoin.core.scripteval``; being singletons the redundant
   constants were broken anyway.
 
+* SCRIPT_VERIFY_EVEN_S renamed to SCRIPT_VERIFY_LOW_S to match Bitcoin Core's naming
+
 
 v0.5.1
 ======

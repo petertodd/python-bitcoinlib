@@ -40,7 +40,7 @@ MAX_STACK_ITEMS = 1000
 
 SCRIPT_VERIFY_P2SH = object()
 SCRIPT_VERIFY_STRICTENC = object()
-SCRIPT_VERIFY_EVEN_S = object()
+SCRIPT_VERIFY_LOW_S = object()
 SCRIPT_VERIFY_NOCACHE = object()
 
 class EvalScriptError(bitcoin.core.ValidationError):
@@ -782,7 +782,7 @@ __all__ = (
         'MAX_STACK_ITEMS',
         'SCRIPT_VERIFY_P2SH',
         'SCRIPT_VERIFY_STRICTENC',
-        'SCRIPT_VERIFY_EVEN_S',
+        'SCRIPT_VERIFY_LOW_S',
         'SCRIPT_VERIFY_NOCACHE',
         'EvalScriptError',
         'MaxOpCountError',
