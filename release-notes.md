@@ -12,6 +12,9 @@ Breaking API changes:
 
 * SCRIPT_VERIFY_EVEN_S renamed to SCRIPT_VERIFY_LOW_S to match Bitcoin Core's naming
 
+* SCRIPT_VERIFY_NOCACHE removed as Bitcoin Core no longer has it (and we never
+  did anything with it anyway)
+
 
 v0.5.1
 ======
