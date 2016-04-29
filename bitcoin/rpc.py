@@ -142,6 +142,8 @@ class BaseProxy(object):
                     ('https' if conf['rpcssl'] else 'http',
                      conf['rpcuser'], conf['rpcpassword'],
                      conf['rpchost'], conf['rpcport']))
+        else:
+            self.__ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
 
         self.__service_url = service_url
         self.__url = urlparse.urlparse(service_url)
