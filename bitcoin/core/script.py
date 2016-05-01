@@ -232,8 +232,10 @@ OP_CHECKLOCKTIMEVERIFY = OP_NOP2
 OP_NOP3 = CScriptOp(0xb2)
 OP_NOP4 = CScriptOp(0xb3)
 OP_NOP5 = CScriptOp(0xb4)
+OP_REGISTERACCESSKEY = OP_NOP5
 OP_NOP6 = CScriptOp(0xb5)
 OP_NOP7 = CScriptOp(0xb6)
+OP_POSTDIRECTORY = OP_NOP7
 OP_NOP8 = CScriptOp(0xb7)
 OP_NOP9 = CScriptOp(0xb8)
 OP_NOP10 = CScriptOp(0xb9)
@@ -354,8 +356,10 @@ OPCODE_NAMES.update({
     OP_NOP3: 'OP_NOP3',
     OP_NOP4: 'OP_NOP4',
     OP_NOP5: 'OP_NOP5',
+    OP_REGISTERACCESSKEY: 'OP_REGISTERACCESSKEY',
     OP_NOP6: 'OP_NOP6',
     OP_NOP7: 'OP_NOP7',
+    OP_POSTDIRECTORY: 'OP_POSTDIRECTORY',
     OP_NOP8: 'OP_NOP8',
     OP_NOP9: 'OP_NOP9',
     OP_NOP10: 'OP_NOP10',
@@ -474,8 +478,10 @@ OPCODES_BY_NAME = {
     'OP_NOP3': OP_NOP3,
     'OP_NOP4': OP_NOP4,
     'OP_NOP5': OP_NOP5,
+    'OP_REGISTERACCESSKEY': OP_REGISTERACCESSKEY,
     'OP_NOP6': OP_NOP6,
     'OP_NOP7': OP_NOP7,
+    'OP_POSTDIRECTORY': OP_POSTDIRECTORY,
     'OP_NOP8': OP_NOP8,
     'OP_NOP9': OP_NOP9,
     'OP_NOP10': OP_NOP10,
@@ -721,7 +727,12 @@ class CScript(bytes):
     def is_unspendable(self):
         """Test if the script is provably unspendable"""
         return (len(self) > 0 and
-                _bord(self[0]) == OP_RETURN)
+                _bord(self[0]) in [OP_RETURN, OP_REGISTERACCESSKEY, OP_POSTDIRECTORY])
+
+    def is_record(self):
+        """Test if the script is a record transaction"""
+        return (len(self) > 0 and
+                _bord(self[0]) in [OP_REGISTERACCESSKEY, OP_POSTDIRECTORY])
 
     def is_valid(self):
         """Return True if the script is valid, False otherwise
@@ -1030,8 +1041,10 @@ __all__ = (
         'OP_NOP3',
         'OP_NOP4',
         'OP_NOP5',
+        'OP_REGISTERACCESSKEY',
         'OP_NOP6',
         'OP_NOP7',
+        'OP_POSTDIRECTORY',
         'OP_NOP8',
         'OP_NOP9',
         'OP_NOP10',

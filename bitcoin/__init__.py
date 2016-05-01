@@ -50,6 +50,15 @@ class RegTestParams(bitcoin.core.CoreRegTestParams):
                        'SCRIPT_ADDR':196,
                        'SECRET_KEY' :239}
 
+class CTRedParams(bitcoin.core.CoreRegTestParams):
+    MESSAGE_START = b'\xef\xbe\xad\xde'
+    DEFAULT_PORT = 17761
+    RPC_PORT = 17762
+    DNS_SEEDS = ()
+    BASE58_PREFIXES = {'PUBKEY_ADDR':0x1c,
+                       'SCRIPT_ADDR':0x57,
+                       'SECRET_KEY' :0xbb}
+
 """Master global setting for what chain params we're using.
 
 However, don't set this directly, use SelectParams() instead so as to set the
@@ -73,5 +82,7 @@ def SelectParams(name):
         params = bitcoin.core.coreparams = TestNetParams()
     elif name == 'regtest':
         params = bitcoin.core.coreparams = RegTestParams()
+    elif name == 'ctrednet':
+        params = bitcoin.core.coreparams = CTRedParams()
     else:
         raise ValueError('Unknown chain %r' % name)

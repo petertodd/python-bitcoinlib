@@ -564,6 +564,13 @@ class CoreRegTestParams(CoreTestNetParams):
     SUBSIDY_HALVING_INTERVAL = 150
     PROOF_OF_WORK_LIMIT = 2**256-1 >> 1
 
+class CTRedNetParams(CoreMainParams):
+    MAX_MONEY = 210000000 * COIN
+    NAME = 'ctrednet'
+    GENESIS_BLOCK = CBlock.deserialize(x('0100000000000000000000000000000000000000000000000000000000000000000000004705376087b1557c5987eb7af3a75be1f0d4f7b82edfbe7d344c731f2cfb483380c61e57ffff071e39261c000101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4704ffff001d01043f5468652054696d65732032332f4170722f323031362046424920656e6473207374616e642d6f66662077697468204170706c65206f766572206950686f6e65ffffffff0100f2052a01000000434104eb0bd15ca4f9b55247ca49c0a9d1727e01990c6b4c311a32f31bf7844589a9c1e2396c19d0d2c4ff9f7e2f29db55906d1046321cfb05ae94a3fe4c0210392847ac00000000'))
+    SUBSIDY_HALVING_INTERVAL = 210000
+    PROOF_OF_WORK_LIMIT = 2**240-1 >> 1
+
 """Master global setting for what core chain params we're using"""
 coreparams = CoreMainParams()
 
@@ -580,6 +587,8 @@ def _SelectCoreParams(name):
         coreparams = CoreTestNetParams()
     elif name == 'regtest':
         coreparams = CoreRegTestParams()
+    elif name == 'ctrednet':
+        coreparams = CTRedNetParams()
     else:
         raise ValueError('Unknown chain %r' % name)
 

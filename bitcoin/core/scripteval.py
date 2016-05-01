@@ -628,6 +628,12 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, flags=()):
             elif sop == OP_RETURN:
                 err_raiser(EvalScriptError, "OP_RETURN called")
 
+            elif sop == OP_REGISTERACCESSKEY:
+                err_raiser(EvalScriptError, "OP_REGISTERACCESSKEY called")
+
+            elif sop == OP_POSTDIRECTORY:
+                err_raiser(EvalScriptError, "OP_POSTDIRECTORY called")
+
             elif sop == OP_RIPEMD160:
                 check_args(1)
 
