@@ -14,8 +14,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import unittest
 import os
 
-from bitcoin.core import b2x,x
-from bitcoin.core.script import *
+from ctcoin.core import b2x,x
+from ctcoin.core.script import *
 
 class Test_CScriptOp(unittest.TestCase):
     def test_pushdata(self):
