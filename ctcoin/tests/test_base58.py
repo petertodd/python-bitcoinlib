@@ -17,7 +17,7 @@ import unittest
 
 from binascii import unhexlify
 
-from bitcoin.base58 import *
+from ctcoin.base58 import *
 
 
 def load_test_vectors(name):

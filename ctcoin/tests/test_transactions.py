@@ -15,10 +15,10 @@ import json
 import unittest
 import os
 
-from bitcoin.core import *
-from bitcoin.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
+from ctcoin.core import *
+from ctcoin.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
 
-from bitcoin.tests.test_scripteval import parse_script
+from ctcoin.tests.test_scripteval import parse_script
 
 def load_test_vectors(name):
     with open(os.path.dirname(__file__) + '/data/' + name, 'r') as fd:

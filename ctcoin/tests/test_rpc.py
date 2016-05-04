@@ -13,7 +13,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import unittest
 
-from bitcoin.rpc import Proxy
+from ctcoin.rpc import Proxy
 
 class Test_RPC(unittest.TestCase):
     # Tests disabled, see discussion below.

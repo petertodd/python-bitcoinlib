@@ -15,7 +15,7 @@ import unittest, random
 
 from binascii import unhexlify
 
-from bitcoin.core.serialize import *
+from ctcoin.core.serialize import *
 
 class Test_Serializable(unittest.TestCase):
     def test_extra_data(self):

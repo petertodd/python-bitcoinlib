@@ -15,7 +15,7 @@ import json
 import unittest
 import os
 
-from bitcoin.core import *
+from ctcoin.core import *
 
 def load_test_vectors(name):
     with open(os.path.dirname(__file__) + '/data/' + name, 'r') as fd:

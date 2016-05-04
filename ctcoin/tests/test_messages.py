@@ -11,7 +11,7 @@
 
 import unittest
 
-from bitcoin.messages import msg_version, msg_verack, msg_addr, msg_alert, \
+from ctcoin.messages import msg_version, msg_verack, msg_addr, msg_alert, \
     msg_inv, msg_getdata, msg_getblocks, msg_getheaders, msg_headers, msg_tx, \
     msg_block, msg_getaddr, msg_ping, msg_pong, msg_mempool, MsgSerializable, \
     msg_notfound, msg_reject

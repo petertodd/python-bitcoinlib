@@ -42,10 +42,10 @@ try:
 except ImportError:
     import urlparse
 
-import bitcoin
-from bitcoin.core import COIN, lx, b2lx, CBlock, CBlockHeader, CTransaction, COutPoint, CTxOut
-from bitcoin.core.script import CScript
-from bitcoin.wallet import CBitcoinAddress, CBitcoinSecret
+import ctcoin
+from ctcoin.core import COIN, lx, b2lx, CBlock, CBlockHeader, CTransaction, COutPoint, CTxOut
+from ctcoin.core.script import CScript
+from ctcoin.wallet import CBitcoinAddress, CBitcoinSecret
 
 DEFAULT_USER_AGENT = "AuthServiceProxy/0.1"
 
@@ -107,7 +107,7 @@ class BaseProxy(object):
                     conf[k.strip()] = v.strip()
 
                 if service_port is None:
-                    service_port = bitcoin.params.RPC_PORT
+                    service_port = ctcoin.params.RPC_PORT
                 conf['rpcport'] = int(conf.get('rpcport', service_port))
                 conf['rpcssl'] = conf.get('rpcssl', '0')
                 conf['rpchost'] = conf.get('rpcconnect', 'localhost')
@@ -142,6 +142,8 @@ class BaseProxy(object):
                     ('https' if conf['rpcssl'] else 'http',
                      conf['rpcuser'], conf['rpcpassword'],
                      conf['rpchost'], conf['rpcport']))
+        else:
+            self.__ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
 
         self.__service_url = service_url
         self.__url = urlparse.urlparse(service_url)

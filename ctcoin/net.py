@@ -14,14 +14,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import struct
 import socket
 
-from bitcoin.core.serialize import (
+from ctcoin.core.serialize import (
         Serializable,
         VarStringSerializer,
         intVectorSerializer,
         ser_read,
         uint256VectorSerializer,
 )
-from bitcoin.core import b2lx
+from ctcoin.core import b2lx
 
 PROTO_VERSION = 60002
 CADDR_TIME_VERSION = 31402

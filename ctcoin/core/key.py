@@ -19,8 +19,8 @@ import ctypes
 import ctypes.util
 import hashlib
 import sys
-import bitcoin
-import bitcoin.signature
+import ctcoin
+import ctcoin.signature
 
 _bchr = chr
 _bord = ord
@@ -28,7 +28,7 @@ if sys.version > '3':
     _bchr = lambda x: bytes([x])
     _bord = lambda x: x
 
-import bitcoin.core.script
+import ctcoin.core.script
 
 _ssl = ctypes.cdll.LoadLibrary(ctypes.util.find_library('ssl') or 'libeay32')
 
@@ -269,7 +269,7 @@ class CECKey:
         mb_sig = ctypes.create_string_buffer(sig_size0.value)
         result = _ssl.ECDSA_sign(0, hash, len(hash), mb_sig, ctypes.byref(sig_size0), self.k)
         assert 1 == result
-        if bitcoin.core.script.IsLowDERSignature(mb_sig.raw[:sig_size0.value]):
+        if ctcoin.core.script.IsLowDERSignature(mb_sig.raw[:sig_size0.value]):
             return mb_sig.raw[:sig_size0.value]
         else:
             return self.signature_to_low_s(mb_sig.raw[:sig_size0.value])
@@ -286,12 +286,12 @@ class CECKey:
         result = _ssl.ECDSA_sign(0, hash, len(hash), mb_sig, ctypes.byref(sig_size0), self.k)
         assert 1 == result
 
-        if bitcoin.core.script.IsLowDERSignature(mb_sig.raw[:sig_size0.value]):
+        if ctcoin.core.script.IsLowDERSignature(mb_sig.raw[:sig_size0.value]):
             sig = mb_sig.raw[:sig_size0.value]
         else:
             sig = self.signature_to_low_s(mb_sig.raw[:sig_size0.value])
 
-        sig = bitcoin.signature.DERSignature.deserialize(sig)
+        sig = ctcoin.signature.DERSignature.deserialize(sig)
 
         r_val = sig.r
         s_val = sig.s
