@@ -109,51 +109,24 @@ class BaseProxy(object):
                 if service_port is None:
                     service_port = bitcoin.params.RPC_PORT
                 conf['rpcport'] = int(conf.get('rpcport', service_port))
-                conf['rpcssl'] = conf.get('rpcssl', '0')
                 conf['rpchost'] = conf.get('rpcconnect', 'localhost')
-
-                if conf['rpcssl'].lower() in ('0', 'false'):
-                    conf['rpcssl'] = False
-                elif conf['rpcssl'].lower() in ('1', 'true'):
-                    conf['rpcssl'] = True
-                else:
-                    raise ValueError('Unknown rpcssl value %r' % conf['rpcssl'])
-
-                if conf['rpcssl'] and 'rpcsslcertificatechainfile' in conf and 'rpcsslprivatekeyfile' in conf:
-                    self.__ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
-                    if os.path.exists(conf['rpcsslcertificatechainfile']):
-                        certificate = conf['rpcsslcertificatechainfile']
-                    elif os.path.exists(os.path.join(os.path.dirname(btc_conf_file), conf['rpcsslcertificatechainfile'])):
-                        certificate = os.path.join(os.path.dirname(btc_conf_file), conf['rpcsslcertificatechainfile'])
-                    else:
-                        raise ValueError('The value of rpcsslcertificatechainfile is not correctly specified in the configuration file: %s' % btc_conf_file)
-                    if os.path.exists(conf['rpcsslprivatekeyfile']):
-                        private_key = conf['rpcsslprivatekeyfile']
-                    elif os.path.exists(os.path.join(os.path.dirname(btc_conf_file), conf['rpcsslprivatekeyfile'])):
-                        private_key = os.path.join(os.path.dirname(btc_conf_file), conf['rpcsslprivatekeyfile'])
-                    else:
-                        raise ValueError('The value of rpcsslprivatekeyfile is not correctly specified in the configuration file: %s' % btc_conf_file)
-                    self.__ssl_context.load_cert_chain(certificate, private_key)
 
                 if 'rpcpassword' not in conf:
                     raise ValueError('The value of rpcpassword not specified in the configuration file: %s' % btc_conf_file)
 
                 service_url = ('%s://%s:%s@%s:%d' %
-                    ('https' if conf['rpcssl'] else 'http',
+                    ('http',
                      conf['rpcuser'], conf['rpcpassword'],
                      conf['rpchost'], conf['rpcport']))
 
         self.__service_url = service_url
         self.__url = urlparse.urlparse(service_url)
 
-        if self.__url.scheme not in ('https', 'http'):
+        if self.__url.scheme not in ('http',):
             raise ValueError('Unsupported URL scheme %r' % self.__url.scheme)
 
         if self.__url.port is None:
-            if self.__url.scheme == 'https':
-                port = httplib.HTTPS_PORT
-            else:
-                port = httplib.HTTP_PORT
+            port = httplib.HTTP_PORT
         else:
             port = self.__url.port
         self.__id_count = 0
@@ -161,13 +134,8 @@ class BaseProxy(object):
         authpair = authpair.encode('utf8')
         self.__auth_header = b"Basic " + base64.b64encode(authpair)
 
-        if self.__url.scheme == 'https':
-            self.__conn = httplib.HTTPSConnection(self.__url.hostname, port=port,
-                                                  context=self.__ssl_context,
-                                                  timeout=timeout)
-        else:
-            self.__conn = httplib.HTTPConnection(self.__url.hostname, port=port,
-                                                 timeout=timeout)
+        self.__conn = httplib.HTTPConnection(self.__url.hostname, port=port,
+                                             timeout=timeout)
 
 
     def _call(self, service_name, *args):

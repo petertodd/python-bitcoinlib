@@ -6,6 +6,10 @@ v0.6.0-SNAPSHOT (not yet released!)
 
 Breaking API changes:
 
+* RPC over SSL support removed to match Bitcoin Core's removal of RPC SSL
+  support in v0.12.0 If you need this, use an alternative such as a stunnel or
+  a SSH tunnel.
+
 * Removed SCRIPT_VERIFY constants ``bitcoin.core.script``, leaving just the
   constants in ``bitcoin.core.scripteval``; being singletons the redundant
   constants were broken anyway.
