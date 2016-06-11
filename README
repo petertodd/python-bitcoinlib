@@ -1,12 +1,12 @@
 python-bitcoinlib
 -----------------
+[![Build Status](https://travis-ci.org/petertodd/python-bitcoinlib.svg?branch=master)](https://travis-ci.org/petertodd/python-bitcoinlib)
 
 This Python2/3 library provides an easy interface to the bitcoin data
 structures and protocol. The approach is low-level and "ground up", with a
 focus on providing tools to manipulate the internals of how Bitcoin works.
 
 "The Swiss Army Knife of the Bitcoin protocol." - Wladimir J. van der Laan
-
 
 Requirements
 ------------

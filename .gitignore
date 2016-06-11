@@ -7,4 +7,5 @@ local*.cfg
 .tox/
 build/
 htmlcov/
+dist/
 python_bitcoinlib.egg-info/
