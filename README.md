@@ -46,14 +46,14 @@ corresponding Satoshi C++ code uses the same naming conventions: CTransaction,
 CBlockHeader, nValue etc. Otherwise Python naming conventions are followed.
 
 
-# Mutable vs. Immutable objects
+## Mutable vs. Immutable objects
 
 Like the Bitcoin Core codebase CTransaction is immutable and
 CMutableTransaction is mutable; unlike the Bitcoin Core codebase this
 distinction also applies to COutPoint, CTxIn, CTxOut, and CBlock.
 
 
-# Endianness Gotchas
+## Endianness Gotchas
 
 Rather confusingly Bitcoin Core shows transaction and block hashes as
 little-endian hex rather than the big-endian the rest of the world uses for
@@ -63,7 +63,7 @@ accomodate this. In addition see b2x() and b2lx() for conversion from bytes to
 big/little-endian hex.
 
 
-# Module import style
+## Module import style
 
 While not always good style, it's often convenient for quick scripts if import
 * can be used. To support that all the modules have __all__ defined
@@ -82,7 +82,7 @@ Also see dust-b-gone for a simple example of Bitcoin Core wallet interaction
 through the RPC interface: https://github.com/petertodd/dust-b-gone
 
 
-# Selecting the chain to use
+## Selecting the chain to use
 
 Do the following:
 
@@ -94,7 +94,7 @@ selected is a global variable that changes behavior everywhere, just like in
 the Satoshi codebase.
 
 
-# Unit tests
+## Unit tests
 
 Under bitcoin/tests using test data from Bitcoin Core. To run them:
 
@@ -119,7 +119,7 @@ skipped):
 
 HTML coverage reports can then be found in the htmlcov/ subdirectory.
 
-# Documentation
+## Documentation
 
 Sphinx documentation is in the "doc" subdirectory. Run "make help" from there
 to see how to build. You will need the Python "sphinx" package installed.
