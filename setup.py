@@ -6,7 +6,7 @@ import os
 from bitcoin import __version__
 
 here = os.path.abspath(os.path.dirname(__file__))
-with open(os.path.join(here, 'README')) as f:
+with open(os.path.join(here, 'README.md')) as f:
     README = f.read()
 
 requires = []
