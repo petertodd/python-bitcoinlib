@@ -1,4 +1,4 @@
-
+*.sw?
 *.pyc
 
 local*.cfg
@@ -8,3 +8,4 @@ local*.cfg
 build/
 htmlcov/
 python_bitcoinlib.egg-info/
+dist/

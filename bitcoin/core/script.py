@@ -30,6 +30,8 @@ import struct
 import bitcoin.core
 import bitcoin.core._bignum
 
+from .serialize import *
+
 MAX_SCRIPT_SIZE = 10000
 MAX_SCRIPT_ELEMENT_SIZE = 520
 MAX_SCRIPT_OPCODES = 201
@@ -773,6 +775,37 @@ class CScript(bytes):
             lastOpcode = opcode
         return n
 
+class CScriptWitness(ImmutableSerializable):
+    """An encoding of the data elements on the initial stack for (segregated
+        witness)
+    """
+    __slots__ = ['stack']
+
+    def __init__(self, stack=()):
+        object.__setattr__(self, 'stack', stack)
+
+    def __len__(self):
+        return len(self.stack)
+
+    def __iter__(self):
+        return iter(self.stack)
+
+    def __repr__(self):
+
+        return 'CScriptWitness(' + ','.join("x('%s')" % bitcoin.core.b2x(s) for s in self.stack) + ')'
+
+    @classmethod
+    def stream_deserialize(cls, f):
+        n = VarIntSerializer.stream_deserialize(f)
+        self.stack = []
+        for i in range(n):
+            self.stack.append(BytesSerializer.stream_deserialize(f))
+
+    def stream_serialize(self, f):
+        VarIntSerializer.stream_serialize(len(self.stack), f)
+        for s in self.stack:
+            BytesSerializer.stream_serialize(s, f)
+
 
 SIGHASH_ALL = 1
 SIGHASH_NONE = 2
@@ -894,6 +927,7 @@ def RawSignatureHash(script, txTo, inIdx, hashtype):
         txtmp.vin = []
         txtmp.vin.append(tmp)
 
+    txtmp.wit = ()
     s = txtmp.serialize()
     s += struct.pack(b"<I", hashtype)
 
@@ -1048,6 +1082,7 @@ __all__ = (
         'CScriptInvalidError',
         'CScriptTruncatedPushDataError',
         'CScript',
+        'CScriptWitness',
         'SIGHASH_ALL',
         'SIGHASH_NONE',
         'SIGHASH_SINGLE',

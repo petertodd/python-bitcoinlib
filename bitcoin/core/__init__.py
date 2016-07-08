@@ -16,7 +16,7 @@ import struct
 import sys
 import time
 
-from .script import CScript
+from .script import CScript, CScriptWitness
 
 from .serialize import *
 
@@ -304,11 +304,44 @@ class CMutableTxOut(CTxOut):
         """Create a fullly mutable copy of an existing TxOut"""
         return cls(txout.nValue, txout.scriptPubKey)
 
+
+class CTxInWitness(ImmutableSerializable):
+    """Witness data for a transaction input. """
+    __slots__ = ['scriptWitness']
+
+    def __init__(self, scriptWitness=CScriptWitness()):
+        object.__setattr__(self, 'scriptWitness', scriptWitness)
+
+    @classmethod
+    def stream_deserialize(cls, f):
+        scriptWitness = CScriptWitness.stream_deserialize(f)
+        return cls(scriptWitness)
+
+    def stream_serialize(self, f):
+        self.scriptWitness.stream_serialize(f)
+
+    def __repr__(self):
+        return "CTxInWitness(%s)" % (repr(self.scriptWitness))
+
+    @classmethod
+    def from_txinwitness(cls, txinwitness):
+        """Create an immutable copy of an existing TxInWitness
+
+        If txin is already immutable (txin.__class__ is CTxIn) it is returned
+        directly.
+        """
+        if txinwitness.__class__ is CTxInWitness:
+            return txinwitness
+
+        else:
+            return cls(txinwitness.scriptWitness)
+
+
 class CTransaction(ImmutableSerializable):
     """A transaction"""
-    __slots__ = ['nVersion', 'vin', 'vout', 'nLockTime']
+    __slots__ = ['nVersion', 'vin', 'vout', 'nLockTime', 'wit']
 
-    def __init__(self, vin=(), vout=(), nLockTime=0, nVersion=1):
+    def __init__(self, vin=(), vout=(), nLockTime=0, nVersion=1, witness=()):
         """Create a new transaction
 
         vin and vout are iterables of transaction inputs and outputs
@@ -322,26 +355,55 @@ class CTransaction(ImmutableSerializable):
         object.__setattr__(self, 'nVersion', nVersion)
         object.__setattr__(self, 'vin', tuple(CTxIn.from_txin(txin) for txin in vin))
         object.__setattr__(self, 'vout', tuple(CTxOut.from_txout(txout) for txout in vout))
+        object.__setattr__(self, 'wit',
+                tuple(CTxInWitness.from_txinwitness(witness) for txinwitness in
+                    witness))
 
     @classmethod
     def stream_deserialize(cls, f):
         nVersion = struct.unpack(b"<i", ser_read(f,4))[0]
-        vin = VectorSerializer.stream_deserialize(CTxIn, f)
-        vout = VectorSerializer.stream_deserialize(CTxOut, f)
-        nLockTime = struct.unpack(b"<I", ser_read(f,4))[0]
-        return cls(vin, vout, nLockTime, nVersion)
+        pos = f.tell()
+        markerbyte = struct.unpack(b'B', ser_read(f, 1))[0]
+        if markerbyte == 0:
+            flagbyte = struct.unpack(b'B', ser_read(f, 1))[0]
+            if flagbyte != 1:
+                raise DeserializationFormatError
+            vin = VectorSerializer.stream_deserialize(CTxIn, f)
+            vout = VectorSerializer.stream_deserialize(CTxOut, f)
+            wit = VectorSerializer.stream_deserialize(CTxInWitness, f)
+            nLockTime = struct.unpack(b"<I", ser_read(f,4))[0]
+            return cls(vin, vout, nLockTime, nVersion, wit)
+        else:
+            f.seek(pos) # put marker byte back, since we don't have peek
+            vin = VectorSerializer.stream_deserialize(CTxIn, f)
+            vout = VectorSerializer.stream_deserialize(CTxOut, f)
+            nLockTime = struct.unpack(b"<I", ser_read(f,4))[0]
+            return cls(vin, vout, nLockTime, nVersion)
+
 
     def stream_serialize(self, f):
-        f.write(struct.pack(b"<i", self.nVersion))
-        VectorSerializer.stream_serialize(CTxIn, self.vin, f)
-        VectorSerializer.stream_serialize(CTxOut, self.vout, f)
-        f.write(struct.pack(b"<I", self.nLockTime))
+        if self.wit:
+            if len(self.wit) != len(self.vin):
+                raise SerializationMissingWitnessError
+            f.write(struct.pack(b"<i", self.nVersion))
+            f.write(b'\x00') # Marker
+            f.write(b'\x01') # Flag
+            VectorSerializer.stream_serialize(CTxIn, self.vin, f)
+            VectorSerializer.stream_serialize(CTxOut, self.vout, f)
+            for w in self.wit: w.stream_serialize(f)
+            f.write(struct.pack(b"<I", self.nLockTime))
+        else:
+            f.write(struct.pack(b"<i", self.nVersion))
+            VectorSerializer.stream_serialize(CTxIn, self.vin, f)
+            VectorSerializer.stream_serialize(CTxOut, self.vout, f)
+            f.write(struct.pack(b"<I", self.nLockTime))
 
     def is_coinbase(self):
         return len(self.vin) == 1 and self.vin[0].prevout.is_null()
 
     def __repr__(self):
-        return "CTransaction(%r, %r, %i, %i)" % (self.vin, self.vout, self.nLockTime, self.nVersion)
+        return "CTransaction(%r, %r, %i, %i, %r)" % (self.vin, self.vout,
+                self.nLockTime, self.nVersion, self.wit)
 
     @classmethod
     def from_tx(cls, tx):
@@ -354,7 +416,22 @@ class CTransaction(ImmutableSerializable):
             return tx
 
         else:
-            return cls(tx.vin, tx.vout, tx.nLockTime, tx.nVersion)
+            return cls(tx.vin, tx.vout, tx.nLockTime, tx.nVersion, tx.wit)
+
+    def GetTxid(self):
+        """Get the transaction ID.  This differs from the transactions hash as
+            given by GetHash.  GetTxid excludes witness data, while GetHash
+            includes it. """
+        if self.wit:
+            wit = self.wit
+            self.wit = b''
+            txid = Hash(self.serialize())
+            self.wit = wit
+        else:
+            txid = Hash(self.serialize())
+        return txid
+
+
 
 
 @__make_mutable
@@ -362,7 +439,7 @@ class CMutableTransaction(CTransaction):
     """A mutable transaction"""
     __slots__ = []
 
-    def __init__(self, vin=None, vout=None, nLockTime=0, nVersion=1):
+    def __init__(self, vin=None, vout=None, nLockTime=0, nVersion=1, witness=CScriptWitness([])):
         if not (0 <= nLockTime <= 0xffffffff):
             raise ValueError('CTransaction: nLockTime must be in range 0x0 to 0xffffffff; got %x' % nLockTime)
         self.nLockTime = nLockTime
@@ -375,6 +452,7 @@ class CMutableTransaction(CTransaction):
             vout = []
         self.vout = vout
         self.nVersion = nVersion
+        self.wit = witness
 
     @classmethod
     def from_tx(cls, tx):
@@ -382,7 +460,7 @@ class CMutableTransaction(CTransaction):
         vin = [CMutableTxIn.from_txin(txin) for txin in tx.vin]
         vout = [CMutableTxOut.from_txout(txout) for txout in tx.vout]
 
-        return cls(vin, vout, tx.nLockTime, tx.nVersion)
+        return cls(vin, vout, tx.nLockTime, tx.nVersion, tx.wit)
 
 
 
@@ -478,7 +556,7 @@ class CBlock(CBlockHeader):
     @staticmethod
     def build_merkle_tree_from_txs(txs):
         """Build a full merkle tree from transactions"""
-        txids = [tx.GetHash() for tx in txs]
+        txids = [tx.GetTxid() for tx in txs]
         return CBlock.build_merkle_tree_from_txids(txids)
 
     def calc_merkle_root(self):
@@ -730,7 +808,7 @@ def CheckBlock(block, fCheckPoW = True, fCheckMerkleRoot = True, cur_time=None):
 
         CheckTransaction(tx)
 
-        txid = tx.GetHash()
+        txid = tx.GetTxid()
         if txid in unique_txids:
             raise CheckBlockError("CheckBlock() : duplicate transaction")
         unique_txids.add(txid)
