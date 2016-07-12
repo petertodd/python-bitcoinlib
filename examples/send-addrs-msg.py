@@ -41,12 +41,12 @@ s.connect( (server_ip,PORT) )
 s.send( version_pkt(client_ip, server_ip).to_bytes() )
 
 # Get Version reply
-print s.recv(1924)
+print(s.recv(1924))
 
 # Send Verack
 s.send( msg_verack().to_bytes() )
 # Get Verack
-print s.recv(1024)
+print(s.recv(1024))
 
 # Send Addrs
 s.send( addr_pkt(["252.11.1.2", "EEEE:7777:8888:AAAA::1"]).to_bytes() )
