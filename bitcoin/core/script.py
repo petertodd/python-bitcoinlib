@@ -621,7 +621,9 @@ class CScript(bytes):
         PUSHDATA encodings.
         """
         for (opcode, data, sop_idx) in self.raw_iter():
-            if data is not None:
+            if opcode == 0:
+                yield 0
+            elif data is not None:
                 yield data
             else:
                 opcode = CScriptOp(opcode)
