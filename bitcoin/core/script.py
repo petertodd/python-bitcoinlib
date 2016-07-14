@@ -24,6 +24,9 @@ if sys.version > '3':
     long = int
     _bchr = lambda x: bytes([x])
     _bord = lambda x: x
+    from io import BytesIO as _BytesIO
+else:
+    from cStringIO import StringIO as _BytesIO
 
 import struct
 
@@ -674,6 +677,24 @@ class CScript(bytes):
                 _bord(self[1]) == 0x14 and
                 _bord(self[22]) == OP_EQUAL)
 
+    def is_witness_scriptpubkey(self):
+        return 3 <= len(self) <= 42 and CScriptOp(self[0]).is_small_int()
+
+    def witness_version(self):
+        return next(iter(self))
+
+    def is_witness_v0_keyhash(self):
+        return len(self) == 22 and self[0:2] == b'\x00\x14'
+
+    def is_witness_v0_nested_keyhash(self):
+        return len(self) == 23 and self[0:3] == b'\x16\x00\x14'
+
+    def is_witness_v0_scripthash(self):
+        return len(self) == 34 and self[0:2] == b'\x00\x20'
+
+    def is_witness_v0_nested_scripthash(self):
+        return len(self) == 23 and self[0:2] == b'\xa9\x14' and self[-1] == b'\x87'
+
     def is_push_only(self):
         """Test if the script only contains pushdata ops
 
@@ -935,14 +956,63 @@ def RawSignatureHash(script, txTo, inIdx, hashtype):
 
     return (hash, None)
 
+SIGVERSION_BASE = 0
+SIGVERSION_WITNESS_V0 = 1
 
-def SignatureHash(script, txTo, inIdx, hashtype):
+def SignatureHash(script, txTo, inIdx, hashtype, amount=None, sigversion=SIGVERSION_BASE):
     """Calculate a signature hash
 
     'Cooked' version that checks if inIdx is out of bounds - this is *not*
     consensus-correct behavior, but is what you probably want for general
     wallet use.
     """
+
+    if sigversion == SIGVERSION_WITNESS_V0:
+        hashPrevouts = b'\x00'*32
+        hashSequence = b'\x00'*32
+        hashOutputs  = b'\x00'*32
+
+        if not (hashtype & SIGHASH_ANYONECANPAY):
+            serialize_prevouts = bytes()
+            for i in txTo.vin:
+                serialize_prevouts += i.prevout.serialize()
+            hashPrevouts = bitcoin.core.Hash(serialize_prevouts)
+
+        if (not (hashtype & SIGHASH_ANYONECANPAY) and (hashtype & 0x1f) != SIGHASH_SINGLE and (hashtype & 0x1f) != SIGHASH_NONE):
+            serialize_sequence = bytes()
+            for i in txTo.vin:
+                serialize_sequence += struct.pack("<I", i.nSequence)
+            hashSequence = bitcoin.core.Hash(serialize_sequence)
+
+        if ((hashtype & 0x1f) != SIGHASH_SINGLE and (hashtype & 0x1f) != SIGHASH_NONE):
+            serialize_outputs = bytes()
+            for o in txTo.vout:
+                serialize_outputs += o.serialize()
+            hashOutputs = bitcoin.core.Hash(serialize_outputs)
+        elif ((hashtype & 0x1f) == SIGHASH_SINGLE and inIdx < len(txTo.vout)):
+            serialize_outputs = txTo.vout[inIdx].serialize()
+            hashOutputs = bitcoin.core.Hash(serialize_outputs)
+
+        f = _BytesIO()
+        f.write(struct.pack("<i", txTo.nVersion))
+        f.write(hashPrevouts)
+        f.write(hashSequence)
+        txTo.vin[inIdx].prevout.stream_serialize(f)
+        BytesSerializer.stream_serialize(script, f)
+        f.write(struct.pack("<q", amount))
+        f.write(struct.pack("<I", txTo.vin[inIdx].nSequence))
+        f.write(hashOutputs)
+        f.write(struct.pack("<i", txTo.nLockTime))
+        f.write(struct.pack("<I", hashtype))
+
+        return bitcoin.core.Hash(f.getvalue())
+
+    if script.is_witness_scriptpubkey():
+        print("WARNING: You seem to be attempting to sign a scriptPubKey from an")
+        print("WARNING: output with segregated witness.  This is NOT the correct")
+        print("WARNING: thing to sign. You should pass SignatureHash the corresponding")
+        print("WARNING: P2WPKH or P2WSH script instead.")
+
     (h, err) = RawSignatureHash(script, txTo, inIdx, hashtype)
     if err is not None:
         raise ValueError(err)
@@ -1091,4 +1161,7 @@ __all__ = (
         'RawSignatureHash',
         'SignatureHash',
         'IsLowDERSignature',
+
+        'SIGVERSION_BASE',
+        'SIGVERSION_WITNESS_V0',
 )

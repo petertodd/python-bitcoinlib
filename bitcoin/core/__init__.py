@@ -439,7 +439,7 @@ class CMutableTransaction(CTransaction):
     """A mutable transaction"""
     __slots__ = []
 
-    def __init__(self, vin=None, vout=None, nLockTime=0, nVersion=1, witness=CScriptWitness([])):
+    def __init__(self, vin=None, vout=None, nLockTime=0, nVersion=1, witness=None):
         if not (0 <= nLockTime <= 0xffffffff):
             raise ValueError('CTransaction: nLockTime must be in range 0x0 to 0xffffffff; got %x' % nLockTime)
         self.nLockTime = nLockTime
