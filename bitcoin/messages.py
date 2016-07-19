@@ -35,9 +35,16 @@ from bitcoin.core.serialize import *
 from bitcoin.net import *
 import bitcoin
 
+MSG_WITNESS_FLAG = 1 << 30
+MSG_TYPE_MASK = 0xffffffff >> 2
+
 MSG_TX = 1
 MSG_BLOCK = 2
 MSG_FILTERED_BLOCK = 3
+MSG_CMPCT_BLOCK = 4
+MSG_WITNESS_BLOCK = MSG_BLOCK | MSG_WITNESS_FLAG,
+MSG_WITNESS_TX = MSG_TX | MSG_WITNESS_FLAG,
+MSG_FILTERED_WITNESS_BLOCK = MSG_FILTERED_BLOCK | MSG_WITNESS_FLAG,
 
 
 class MsgSerializable(Serializable):
@@ -499,6 +506,12 @@ __all__ = (
         'MSG_TX',
         'MSG_BLOCK',
         'MSG_FILTERED_BLOCK',
+        'MSG_CMPCT_BLOCK',
+        'MSG_TYPE_MASK',
+        'MSG_WITNESS_TX',
+        'MSG_WITNESS_BLOCK',
+        'MSG_WITNESS_FLAG',
+        'MSG_FILTERED_WITNESS_BLOCK',
         'MsgSerializable',
         'msg_version',
         'msg_verack',

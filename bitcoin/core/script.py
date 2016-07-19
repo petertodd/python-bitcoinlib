@@ -678,21 +678,28 @@ class CScript(bytes):
                 _bord(self[22]) == OP_EQUAL)
 
     def is_witness_scriptpubkey(self):
+        """Returns true if this is a scriptpubkey signaling segregated witness
+        data. """
         return 3 <= len(self) <= 42 and CScriptOp(self[0]).is_small_int()
 
     def witness_version(self):
+        """Returns the witness version on [0,16]. """
         return next(iter(self))
 
     def is_witness_v0_keyhash(self):
+        """Returns true if this is a scriptpubkey for V0 P2WPKH. """
         return len(self) == 22 and self[0:2] == b'\x00\x14'
 
     def is_witness_v0_nested_keyhash(self):
+        """Returns true if this is a scriptpubkey for V0 P2WPKH embedded in P2SH. """
         return len(self) == 23 and self[0:3] == b'\x16\x00\x14'
 
     def is_witness_v0_scripthash(self):
+        """Returns true if this is a scriptpubkey for V0 P2WSH. """
         return len(self) == 34 and self[0:2] == b'\x00\x20'
 
     def is_witness_v0_nested_scripthash(self):
+        """Returns true if this is a scriptpubkey for V0 P2WSH embedded in P2SH. """
         return len(self) == 23 and self[0:2] == b'\xa9\x14' and self[-1] == b'\x87'
 
     def is_push_only(self):
@@ -812,15 +819,16 @@ class CScriptWitness(ImmutableSerializable):
         return iter(self.stack)
 
     def __repr__(self):
-
         return 'CScriptWitness(' + ','.join("x('%s')" % bitcoin.core.b2x(s) for s in self.stack) + ')'
+
+    def is_null(self):
+        return len(self.stack) == 0
 
     @classmethod
     def stream_deserialize(cls, f):
         n = VarIntSerializer.stream_deserialize(f)
-        self.stack = []
-        for i in range(n):
-            self.stack.append(BytesSerializer.stream_deserialize(f))
+        stack = tuple(BytesSerializer.stream_deserialize(f) for i in range(n))
+        return cls(stack)
 
     def stream_serialize(self, f):
         VarIntSerializer.stream_serialize(len(self.stack), f)
@@ -948,7 +956,7 @@ def RawSignatureHash(script, txTo, inIdx, hashtype):
         txtmp.vin = []
         txtmp.vin.append(tmp)
 
-    txtmp.wit = ()
+    txtmp.wit = bitcoin.core.CTxWitness()
     s = txtmp.serialize()
     s += struct.pack(b"<I", hashtype)
 

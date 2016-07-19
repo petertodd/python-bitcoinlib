@@ -306,11 +306,14 @@ class CMutableTxOut(CTxOut):
 
 
 class CTxInWitness(ImmutableSerializable):
-    """Witness data for a transaction input. """
+    """Witness data for a single transaction input. """
     __slots__ = ['scriptWitness']
 
     def __init__(self, scriptWitness=CScriptWitness()):
         object.__setattr__(self, 'scriptWitness', scriptWitness)
+
+    def is_null(self):
+        return self.scriptWitness.is_null()
 
     @classmethod
     def stream_deserialize(cls, f):
@@ -336,12 +339,50 @@ class CTxInWitness(ImmutableSerializable):
         else:
             return cls(txinwitness.scriptWitness)
 
+class CTxWitness(ImmutableSerializable):
+    """Witness data for all inputs to a transaction."""
+    __slots__ = ['vtxinwit']
+
+    def __init__(self, vtxinwit=()):
+        object.__setattr__(self, 'vtxinwit', vtxinwit)
+
+    def is_null(self):
+        for n in range(len(self.vtxinwit)):
+            if not self.vtxinwit[n].is_null(): return False
+        return True
+
+    # FIXME this cannot be a @classmethod like the others because we need to
+    # know how many items to deserialize, which comes from len(vin)
+    def stream_deserialize(self, f):
+        vtxinwit = tuple(CTxInWitness.stream_deserialize(f) for dummy in
+                range(len(self.vtxinwit)))
+        return CTxWitness(vtxinwit)
+
+    def stream_serialize(self, f):
+        for i in range(len(self.vtxinwit)):
+            self.vtxinwit[i].stream_serialize(f)
+
+    def __repr__(self):
+        return "CTxWitness(%s)" % (','.join(repr(w) for w in self.vtxinwit))
+
+    @classmethod
+    def from_txwitness(cls, txwitness):
+        """Create an immutable copy of an existing TxWitness
+
+        If txwitness is already immutable (txwitness.__class__ is CTxWitness) it is returned
+        directly.
+        """
+        if txwitness.__class__ is CTxWitness:
+            return txwitness
+        else:
+            return cls(txwitness.vtxinwit)
+
 
 class CTransaction(ImmutableSerializable):
     """A transaction"""
     __slots__ = ['nVersion', 'vin', 'vout', 'nLockTime', 'wit']
 
-    def __init__(self, vin=(), vout=(), nLockTime=0, nVersion=1, witness=()):
+    def __init__(self, vin=(), vout=(), nLockTime=0, nVersion=1, witness=CTxWitness()):
         """Create a new transaction
 
         vin and vout are iterables of transaction inputs and outputs
@@ -351,13 +392,10 @@ class CTransaction(ImmutableSerializable):
         if not (0 <= nLockTime <= 0xffffffff):
             raise ValueError('CTransaction: nLockTime must be in range 0x0 to 0xffffffff; got %x' % nLockTime)
         object.__setattr__(self, 'nLockTime', nLockTime)
-
         object.__setattr__(self, 'nVersion', nVersion)
         object.__setattr__(self, 'vin', tuple(CTxIn.from_txin(txin) for txin in vin))
         object.__setattr__(self, 'vout', tuple(CTxOut.from_txout(txout) for txout in vout))
-        object.__setattr__(self, 'wit',
-                tuple(CTxInWitness.from_txinwitness(witness) for txinwitness in
-                    witness))
+        object.__setattr__(self, 'wit', CTxWitness.from_txwitness(witness))
 
     @classmethod
     def stream_deserialize(cls, f):
@@ -370,7 +408,8 @@ class CTransaction(ImmutableSerializable):
                 raise DeserializationFormatError
             vin = VectorSerializer.stream_deserialize(CTxIn, f)
             vout = VectorSerializer.stream_deserialize(CTxOut, f)
-            wit = VectorSerializer.stream_deserialize(CTxInWitness, f)
+            wit = CTxWitness(tuple(0 for dummy in range(len(vin))))
+            wit = wit.stream_deserialize(f)
             nLockTime = struct.unpack(b"<I", ser_read(f,4))[0]
             return cls(vin, vout, nLockTime, nVersion, wit)
         else:
@@ -382,15 +421,15 @@ class CTransaction(ImmutableSerializable):
 
 
     def stream_serialize(self, f):
-        if self.wit:
-            if len(self.wit) != len(self.vin):
+        if not self.wit.is_null():
+            if len(self.wit.vtxinwit) != len(self.vin):
                 raise SerializationMissingWitnessError
             f.write(struct.pack(b"<i", self.nVersion))
             f.write(b'\x00') # Marker
             f.write(b'\x01') # Flag
             VectorSerializer.stream_serialize(CTxIn, self.vin, f)
             VectorSerializer.stream_serialize(CTxOut, self.vout, f)
-            for w in self.wit: w.stream_serialize(f)
+            self.wit.stream_serialize(f)
             f.write(struct.pack(b"<I", self.nLockTime))
         else:
             f.write(struct.pack(b"<i", self.nVersion))
@@ -422,11 +461,9 @@ class CTransaction(ImmutableSerializable):
         """Get the transaction ID.  This differs from the transactions hash as
             given by GetHash.  GetTxid excludes witness data, while GetHash
             includes it. """
-        if self.wit:
-            wit = self.wit
-            self.wit = b''
-            txid = Hash(self.serialize())
-            self.wit = wit
+        if self.wit != CTxWitness():
+            txid = Hash(CTransaction(self.vin, self.vout, self.nLockTime,
+                self.nVersion).serialize())
         else:
             txid = Hash(self.serialize())
         return txid
@@ -452,6 +489,9 @@ class CMutableTransaction(CTransaction):
             vout = []
         self.vout = vout
         self.nVersion = nVersion
+
+        if witness is None:
+            witness = CTxWitness([CTxInWitness() for dummy in range(len(vin))])
         self.wit = witness
 
     @classmethod
