@@ -399,13 +399,19 @@ class CTransaction(ImmutableSerializable):
 
     @classmethod
     def stream_deserialize(cls, f):
+        """Deserialize a transaction.  This implementation corresponds to
+            Bitcoin's SerializeTransaction() and consensus behavior.  Note that
+            Bitcoin's DecodeHexTx() also has the option to attempt deserializing
+            as a non-witness transaction first, falling back to the consensus
+            behavior if it fails.  The difference lies in transactions which
+            have zero inputs: they are invalid but may be (de-)serialized anyway
+            for the purpose of signing them and adding inputs.  If the behavior
+            of DecodeHexTx() is needed it could be added, but not here.  """
         nVersion = struct.unpack(b"<i", ser_read(f,4))[0]
         pos = f.tell()
         markerbyte = struct.unpack(b'B', ser_read(f, 1))[0]
-        if markerbyte == 0:
-            flagbyte = struct.unpack(b'B', ser_read(f, 1))[0]
-            if flagbyte != 1:
-                raise DeserializationFormatError
+        flagbyte = struct.unpack(b'B', ser_read(f, 1))[0]
+        if markerbyte == 0 and flagbyte == 1:
             vin = VectorSerializer.stream_deserialize(CTxIn, f)
             vout = VectorSerializer.stream_deserialize(CTxOut, f)
             wit = CTxWitness(tuple(0 for dummy in range(len(vin))))
@@ -421,21 +427,18 @@ class CTransaction(ImmutableSerializable):
 
 
     def stream_serialize(self, f):
+        f.write(struct.pack(b"<i", self.nVersion))
         if not self.wit.is_null():
-            if len(self.wit.vtxinwit) != len(self.vin):
-                raise SerializationMissingWitnessError
-            f.write(struct.pack(b"<i", self.nVersion))
+            assert(len(self.wit.vtxinwit) <= len(self.vin))
             f.write(b'\x00') # Marker
             f.write(b'\x01') # Flag
             VectorSerializer.stream_serialize(CTxIn, self.vin, f)
             VectorSerializer.stream_serialize(CTxOut, self.vout, f)
             self.wit.stream_serialize(f)
-            f.write(struct.pack(b"<I", self.nLockTime))
         else:
-            f.write(struct.pack(b"<i", self.nVersion))
             VectorSerializer.stream_serialize(CTxIn, self.vin, f)
             VectorSerializer.stream_serialize(CTxOut, self.vout, f)
-            f.write(struct.pack(b"<I", self.nLockTime))
+        f.write(struct.pack(b"<I", self.nLockTime))
 
     def is_coinbase(self):
         return len(self.vin) == 1 and self.vin[0].prevout.is_null()

@@ -55,10 +55,6 @@ class SerializationTruncationError(SerializationError):
     Thrown by deserialize() and stream_deserialize()
     """
 
-class SerializationMissingWitnessError(SerializationError):
-    """Missing witness data when serializing a segregated witness transaction
-    """
-
 class DeserializationExtraDataError(SerializationError):
     """Deserialized data had extra data at the end
 
@@ -70,11 +66,6 @@ class DeserializationExtraDataError(SerializationError):
         super(DeserializationExtraDataError, self).__init__(msg)
         self.obj = obj
         self.padding = padding
-
-class DeserializationFormatError(SerializationError):
-    """Deserialized data does not have the correct marker or flag bytes for a
-        segwit serialization
-    """
 
 def ser_read(f, n):
     """Read from a stream safely
@@ -371,9 +362,7 @@ __all__ = (
         'Hash160',
         'SerializationError',
         'SerializationTruncationError',
-        'SerializationMissingWitnessError',
         'DeserializationExtraDataError',
-        'DeserializationFormatError',
         'ser_read',
         'Serializable',
         'ImmutableSerializable',
