@@ -958,7 +958,7 @@ def RawSignatureHash(script, txTo, inIdx, hashtype):
 
     txtmp.wit = bitcoin.core.CTxWitness()
     s = txtmp.serialize()
-    s += struct.pack(b"<I", hashtype)
+    s += struct.pack(b"<i", hashtype)
 
     hash = bitcoin.core.Hash(s)
 
@@ -1011,7 +1011,7 @@ def SignatureHash(script, txTo, inIdx, hashtype, amount=None, sigversion=SIGVERS
         f.write(struct.pack("<I", txTo.vin[inIdx].nSequence))
         f.write(hashOutputs)
         f.write(struct.pack("<i", txTo.nLockTime))
-        f.write(struct.pack("<I", hashtype))
+        f.write(struct.pack("<i", hashtype))
 
         return bitcoin.core.Hash(f.getvalue())
 
