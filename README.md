@@ -21,24 +21,24 @@ Everything consensus critical is found in the modules under bitcoin.core. This
 rule is followed pretty strictly, for instance chain parameters are split into
 consensus critical and non-consensus-critical.
 
-bitcoin.core            - Basic core definitions, datastructures, and
-                          (context-independent) validation
-bitcoin.core.key        - ECC pubkeys
-bitcoin.core.script     - Scripts and opcodes
-bitcoin.core.scripteval - Script evaluation/verification
-bitcoin.core.serialize  - Serialization
+    bitcoin.core            - Basic core definitions, datastructures, and
+                              (context-independent) validation
+    bitcoin.core.key        - ECC pubkeys
+    bitcoin.core.script     - Scripts and opcodes
+    bitcoin.core.scripteval - Script evaluation/verification
+    bitcoin.core.serialize  - Serialization
 
 In the future the bitcoin.core may use the Satoshi sourcecode directly as a
 library. Non-consensus critical modules include the following:
 
-bitcoin            - Chain selection
-bitcoin.base58     - Base58 encoding
-bitcoin.bloom      - Bloom filters (incomplete)
-bitcoin.net        - Network communication (in flux)
-bitcoin.messages   - Network messages (in flux)
-bitcoin.rpc        - Bitcoin Core RPC interface support
-bitcoin.wallet     - Wallet-related code, currently Bitcoin address and private
-                     key support
+    bitcoin          - Chain selection
+    bitcoin.base58   - Base58 encoding
+    bitcoin.bloom    - Bloom filters (incomplete)
+    bitcoin.net      - Network communication (in flux)
+    bitcoin.messages - Network messages (in flux)
+    bitcoin.rpc      - Bitcoin Core RPC interface support
+    bitcoin.wallet   - Wallet-related code, currently Bitcoin address and
+                       private key support
 
 Effort has been made to follow the Satoshi source relatively closely, for
 instance Python code and classes that duplicate the functionality of
