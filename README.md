@@ -65,8 +65,8 @@ big/little-endian hex.
 
 ## Module import style
 
-While not always good style, it's often convenient for quick scripts if import
-* can be used. To support that all the modules have __all__ defined
+While not always good style, it's often convenient for quick scripts if 
+import * can be used. To support that all the modules have \__all__ defined
 appropriately.
 
 
