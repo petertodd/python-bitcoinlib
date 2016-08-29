@@ -545,7 +545,7 @@ class Proxy(BaseProxy):
             r = self._call('sendrawtransaction', hextx)
         return lx(r)
 
-    def sendmany(self, fromaccount, payments, minconf=1, comment='', subtractfeefromamount=False):
+    def sendmany(self, fromaccount, payments, minconf=1, comment='', subtractfeefromamount=[]):
         """Sent amount to a given address"""
         json_payments = {str(addr):float(amount)/COIN
                          for addr, amount in payments.items()}
