@@ -1,6 +1,15 @@
 python-bitcoinlib release notes
 ===============================
 
+v0.7.0-SNAPSHOT (not yet released!)
+===================================
+
+Breaking API changes:
+
+* The 'cooked' CScript iterator now returns OP_0 for the empty binary string
+  rather than b''
+
+
 v0.6.1
 ======
 
