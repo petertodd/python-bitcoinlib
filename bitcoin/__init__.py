@@ -26,7 +26,8 @@ class MainParams(bitcoin.core.CoreMainParams):
                  ('bluematt.me', 'dnsseed.bluematt.me'),
                  ('dashjr.org', 'dnsseed.bitcoin.dashjr.org'),
                  ('bitcoinstats.com', 'seed.bitcoinstats.com'),
-                 ('xf2.org', 'bitseed.xf2.org'))
+                 ('xf2.org', 'bitseed.xf2.org'),
+                 ('bitcoin.jonasschnelli.ch', 'seed.bitcoin.jonasschnelli.ch'))
     BASE58_PREFIXES = {'PUBKEY_ADDR':0,
                        'SCRIPT_ADDR':5,
                        'SECRET_KEY' :128}
@@ -35,8 +36,10 @@ class TestNetParams(bitcoin.core.CoreTestNetParams):
     MESSAGE_START = b'\x0b\x11\x09\x07'
     DEFAULT_PORT = 18333
     RPC_PORT = 18332
-    DNS_SEEDS = (('bitcoin.petertodd.org', 'testnet-seed.bitcoin.petertodd.org'),
-                 ('bluematt.me', 'testnet-seed.bluematt.me'))
+    DNS_SEEDS = (('testnetbitcoin.jonasschnelli.ch', 'testnet-seed.bitcoin.jonasschnelli.ch'),
+                 ('petertodd.org', 'seed.tbtc.petertodd.org'),
+                 ('bluematt.me', 'testnet-seed.bluematt.me'),
+                 ('bitcoin.schildbach.de', 'testnet-seed.bitcoin.schildbach.de'))
     BASE58_PREFIXES = {'PUBKEY_ADDR':111,
                        'SCRIPT_ADDR':196,
                        'SECRET_KEY' :239}
