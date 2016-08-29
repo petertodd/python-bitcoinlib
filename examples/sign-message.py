@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+#
 # Copyright (C) 2013-2015 The python-bitcoinlib developers
 #
 # This file is part of python-bitcoinlib.
