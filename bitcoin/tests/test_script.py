@@ -95,7 +95,7 @@ class Test_CScript(unittest.TestCase):
         T('', [])
 
         # standard pushdata
-        T('00', [b''])
+        T('00', [OP_0])
         T('0100', [b'\x00'])
         T('4b' + 'ff'*0x4b, [b'\xff'*0x4b])
 
@@ -108,6 +108,7 @@ class Test_CScript(unittest.TestCase):
         T('4e04000000deadbeef', [x('deadbeef')], False)
 
         # numbers
+        T('00', [0x0])
         T('4f', [OP_1NEGATE])
         T('51', [0x1])
         T('52', [0x2])
@@ -240,7 +241,7 @@ class Test_CScript(unittest.TestCase):
           "CScript([1, x('7ac977d8373df875eceda362298e5d09d4b72b53'), OP_DROP])")
 
         T(CScript(x('0001ff515261ff')),
-          "CScript([x(''), x('ff'), 1, 2, OP_NOP, OP_INVALIDOPCODE])")
+          "CScript([0, x('ff'), 1, 2, OP_NOP, OP_INVALIDOPCODE])")
 
         # truncated scripts
         T(CScript(x('6101')),
