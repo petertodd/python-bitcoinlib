@@ -8,6 +8,8 @@ New features:
 
 * getblockheader RPC call now supports the verbose option; there's no other way
   to get the block height, among other things, from the RPC interface.
+* subtoaddress and sendmany RPC calls now support comment and
+  subtractfeefromamount arguments.
 
 
 v0.6.0
