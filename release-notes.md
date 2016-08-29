@@ -1,6 +1,15 @@
 python-bitcoinlib release notes
 ===============================
 
+v0.6.1
+======
+
+New features:
+
+* getblockheader RPC call now supports the verbose option; there's no other way
+  to get the block height, among other things, from the RPC interface.
+
+
 v0.6.0
 ======
 
