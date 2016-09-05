@@ -223,8 +223,8 @@ class Proxy(BaseProxy):
     Unlike ``RawProxy``, data is passed as ``bitcoin.core`` objects or packed
     bytes, rather than JSON or hex strings. Not all methods are implemented
     yet; you can use ``call`` to access missing ones in a forward-compatible
-    way. Assumes Bitcoin Core version >= 0.9; older versions mostly work, but
-    there are a few incompatibilities.
+    way. Assumes Bitcoin Core version >= v0.13.0; older versions mostly work,
+    but there are a few incompatibilities.
     """
 
     def __init__(self,
