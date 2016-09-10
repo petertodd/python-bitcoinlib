@@ -1,0 +1,5 @@
+python-bitcoinlib (0.6.1-1) unstable; urgency=low
+
+  * Initial release.
+
+ -- Peter Todd <pete@petertodd.org>  Sat, 10 Sep 2016 10:25:20 -0400

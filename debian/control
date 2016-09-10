@@ -1,0 +1,37 @@
+Source: python-bitcoinlib
+Section: python
+Maintainer: Peter Todd <pete@petertodd.org>
+Homepage: https://github.com/petertodd/python-bitcoinlib
+Priority: optional
+Build-Depends: debhelper (>= 9),
+               dh-python,
+               python-all,
+               python-setuptools,
+               python3-all,
+               python3-setuptools,
+X-Python-Version: >= 2.7
+X-Python3-Version: >= 3.4
+Standards-Version: 3.9.6
+Testsuite: autopkgtest-pkg-python
+Vcs-Git: git://github.com/petertodd/python-bitcoinlib.git
+Vcs-Browser: https://github.com/petertodd/python-bitcoinlib
+
+Package: python-bitcoinlib
+Architecture: all
+Depends: ${python:Depends}, ${misc:Depends}, libssl1.0.0
+Description: Interface to the Bitcoin protocol
+ This Python2/3 library provides an easy interface to the bitcoin data
+ structures and protocol. The approach is low-level and "ground up", with a
+ focus on providing tools to manipulate the internals of how Bitcoin works.
+ .
+ This package installs the library for Python 2.
+
+Package: python3-bitcoinlib
+Architecture: all
+Depends: ${python3:Depends}, ${misc:Depends}, libssl1.0.0
+Description: Interface to the Bitcoin protocol
+ This Python2/3 library provides an easy interface to the bitcoin data
+ structures and protocol. The approach is low-level and "ground up", with a
+ focus on providing tools to manipulate the internals of how Bitcoin works.
+ .
+ This package installs the library for Python 3.
