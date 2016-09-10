@@ -222,10 +222,13 @@ class Test_CBitcoinSecret(unittest.TestCase):
         self.assertTrue(key.pub.verify(hash, sig))
         self.assertTrue(IsLowDERSignature(sig))
 
-        # Check invalid hash returns false
+        # Check that invalid hash returns false
         self.assertFalse(key.pub.verify(b'\xFF'*32, sig))
-        # Check invalid signature returns false
-        self.assertFalse(key.pub.verify(hash, sig[0:-1] + b'\x00'))
+
+        # Check that invalid signature returns false.
+        #
+        # Note the one-in-four-billion chance of a false positive :)
+        self.assertFalse(key.pub.verify(hash, sig[0:-4] + b'\x00\x00\x00\x00'))
 
     def test_sign_invalid_hash(self):
         key = CBitcoinSecret('5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS')
