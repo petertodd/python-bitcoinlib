@@ -83,6 +83,11 @@ class BaseProxy(object):
                  btc_conf_file=None,
                  timeout=DEFAULT_HTTP_TIMEOUT):
 
+        # Create a dummy connection early on so if __init__() fails prior to
+        # __conn being created __del__() can detect the condition and handle it
+        # correctly.
+        self.__conn = None
+
         if service_url is None:
             # Figure out the path to the bitcoin.conf file
             if btc_conf_file is None:
@@ -181,7 +186,8 @@ class BaseProxy(object):
                           parse_float=decimal.Decimal)
 
     def __del__(self):
-        self.__conn.close()
+        if self.__conn is not None:
+            self.__conn.close()
 
 
 class RawProxy(BaseProxy):

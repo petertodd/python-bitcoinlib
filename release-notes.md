@@ -9,6 +9,10 @@ Breaking API changes:
 * The 'cooked' CScript iterator now returns OP_0 for the empty binary string
   rather than b''
 
+Bugfixes:
+
+* Fixed a spurious AttributeError when bitcoin.rpc.Proxy() fails.
+
 
 v0.6.1
 ======
