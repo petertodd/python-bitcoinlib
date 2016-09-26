@@ -66,20 +66,17 @@ big/little-endian hex.
 ## Module import style
 
 While not always good style, it's often convenient for quick scripts if
-import * can be used. To support that all the modules have \__all__ defined
+`import *` can be used. To support that all the modules have `__all__` defined
 appropriately.
 
 
 # Example Code
 
-See examples/ directory. For instance this example creates a transaction
+See `examples/` directory. For instance this example creates a transaction
 spending a pay-to-script-hash transaction output:
 
     $ PYTHONPATH=. examples/spend-pay-to-script-hash-txout.py
     <hex-encoded transaction>
-
-Also see dust-b-gone for a simple example of Bitcoin Core wallet interaction
-through the RPC interface: https://github.com/petertodd/dust-b-gone
 
 
 ## Selecting the chain to use
