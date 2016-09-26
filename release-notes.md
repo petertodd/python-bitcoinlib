@@ -12,6 +12,14 @@ Breaking API changes:
 * The alias `JSONRPCException = JSONRPCError` has been removed. This alias was
   added for compatibility with v0.4.0 of python-bitcoinlib.
 
+* Where appropriate, `RPC_INVALID_ADDRESS_OR_KEY` errors are now caught
+  properly, which means that rather than raising `IndexError`, RPC commands
+  such as `getblock` may raise `JSONRPCError` instead. For instance during
+  initial startup previously python-bitcoinlib would incorrectly raise
+  `IndexError` rather than letting the callee know that RPC was unusable. Along
+  those lines, `JSONRPCError` subclasses have been added for some (but not
+  all!) of the types of RPC errors Bitcoin Core returns.
+
 Bugfixes:
 
 * Fixed a spurious `AttributeError` when `bitcoin.rpc.Proxy()` fails.

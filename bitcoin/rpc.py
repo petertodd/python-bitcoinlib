@@ -60,13 +60,60 @@ if sys.version > '3':
 
 
 class JSONRPCError(Exception):
-    """JSON-RPC protocol error"""
+    """JSON-RPC protocol error base class
 
-    def __init__(self, rpc_error):
+    Subclasses of this class also exist for specific types of errors; the set
+    of all subclasses is by no means complete.
+    """
+
+    SUBCLS_BY_CODE = {}
+
+    @classmethod
+    def _register_subcls(cls, subcls):
+        cls.SUBCLS_BY_CODE[subcls.RPC_ERROR_CODE] = subcls
+        return subcls
+
+    def __new__(cls, rpc_error):
+        assert cls is JSONRPCError
+        cls = JSONRPCError.SUBCLS_BY_CODE.get(rpc_error['code'], cls)
+
+        self = Exception.__new__(cls)
+
         super(JSONRPCError, self).__init__(
             'msg: %r  code: %r' %
             (rpc_error['message'], rpc_error['code']))
         self.error = rpc_error
+
+        return self
+
+@JSONRPCError._register_subcls
+class ForbiddenBySafeModeError(JSONRPCError):
+    RPC_ERROR_CODE = -2
+
+@JSONRPCError._register_subcls
+class InvalidAddressOrKeyError(JSONRPCError):
+    RPC_ERROR_CODE = -5
+
+@JSONRPCError._register_subcls
+class InvalidParameterError(JSONRPCError):
+    RPC_ERROR_CODE = -8
+
+@JSONRPCError._register_subcls
+class VerifyError(JSONRPCError):
+    RPC_ERROR_CODE = -25
+
+@JSONRPCError._register_subcls
+class VerifyRejectedError(JSONRPCError):
+    RPC_ERROR_CODE = -26
+
+@JSONRPCError._register_subcls
+class VerifyAlreadyInChainError(JSONRPCError):
+    RPC_ERROR_CODE = -27
+
+@JSONRPCError._register_subcls
+class InWarmupError(JSONRPCError):
+    RPC_ERROR_CODE = -28
+
 
 class BaseProxy(object):
     """Base JSON-RPC proxy class. Contains only private methods; do not use
@@ -335,7 +382,7 @@ class Proxy(BaseProxy):
                     (self.__class__.__name__, block_hash.__class__))
         try:
             r = self._call('getblockheader', block_hash, verbose)
-        except JSONRPCError as ex:
+        except InvalidAddressOrKeyError as ex:
             raise IndexError('%s.getblockheader(): %s (%d)' %
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
 
@@ -364,7 +411,7 @@ class Proxy(BaseProxy):
                     (self.__class__.__name__, block_hash.__class__))
         try:
             r = self._call('getblock', block_hash, False)
-        except JSONRPCError as ex:
+        except InvalidAddressOrKeyError as ex:
             raise IndexError('%s.getblock(): %s (%d)' %
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
         return CBlock.deserialize(unhexlify(r))
@@ -380,7 +427,7 @@ class Proxy(BaseProxy):
         """
         try:
             return lx(self._call('getblockhash', height))
-        except JSONRPCError as ex:
+        except InvalidParameterError as ex:
             raise IndexError('%s.getblockhash(): %s (%d)' %
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
 
@@ -442,7 +489,7 @@ class Proxy(BaseProxy):
         """
         try:
             r = self._call('getrawtransaction', b2lx(txid), 1 if verbose else 0)
-        except JSONRPCError as ex:
+        except InvalidAddressOrKeyError as ex:
             raise IndexError('%s.getrawtransaction(): %s (%d)' %
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
         if verbose:
@@ -485,7 +532,7 @@ class Proxy(BaseProxy):
         """
         try:
             r = self._call('gettransaction', b2lx(txid))
-        except JSONRPCError as ex:
+        except InvalidAddressOrKeyError as ex:
             raise IndexError('%s.getrawtransaction(): %s (%d)' %
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
         return r
@@ -622,6 +669,13 @@ class Proxy(BaseProxy):
 
 __all__ = (
     'JSONRPCError',
+    'ForbiddenBySafeModeError',
+    'InvalidAddressOrKeyError',
+    'InvalidParameterError',
+    'VerifyError',
+    'VerifyRejectedError',
+    'VerifyAlreadyInChainError',
+    'InWarmupError',
     'RawProxy',
     'Proxy',
 )
