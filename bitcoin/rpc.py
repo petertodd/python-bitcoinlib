@@ -63,15 +63,10 @@ class JSONRPCError(Exception):
     """JSON-RPC protocol error"""
 
     def __init__(self, rpc_error):
-        super(JSONRPCException, self).__init__(
+        super(JSONRPCError, self).__init__(
             'msg: %r  code: %r' %
             (rpc_error['message'], rpc_error['code']))
         self.error = rpc_error
-
-
-# 0.4.0 compatibility
-JSONRPCException = JSONRPCError
-
 
 class BaseProxy(object):
     """Base JSON-RPC proxy class. Contains only private methods; do not use
@@ -627,7 +622,6 @@ class Proxy(BaseProxy):
 
 __all__ = (
     'JSONRPCError',
-    'JSONRPCException',
     'RawProxy',
     'Proxy',
 )
