@@ -7,14 +7,14 @@ v0.7.0-SNAPSHOT (not yet released!)
 Breaking API changes:
 
 * The 'cooked' CScript iterator now returns `OP_0` for the empty binary string
-  rather than b''
+  rather than `b''`
 
 * The alias `JSONRPCException = JSONRPCError` has been removed. This alias was
   added for compatibility with v0.4.0 of python-bitcoinlib.
 
 Bugfixes:
 
-* Fixed a spurious AttributeError when bitcoin.rpc.Proxy() fails.
+* Fixed a spurious `AttributeError` when `bitcoin.rpc.Proxy()` fails.
 
 
 v0.6.1
