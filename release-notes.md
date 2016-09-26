@@ -1,8 +1,8 @@
 python-bitcoinlib release notes
 ===============================
 
-v0.7.0-SNAPSHOT (not yet released!)
-===================================
+v0.7.0
+======
 
 Breaking API changes:
 
