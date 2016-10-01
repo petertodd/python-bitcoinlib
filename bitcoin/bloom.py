@@ -38,8 +38,8 @@ def MurmurHash3(nHashSeed, vDataToHash):
 
     # body
     i = 0
-    while i < len(vDataToHash) - len(vDataToHash) % 4 \
-          and len(vDataToHash) - i >= 4:
+    while (i < len(vDataToHash) - len(vDataToHash) % 4
+           and len(vDataToHash) - i >= 4):
 
         k1 = struct.unpack(b"<L", vDataToHash[i:i+4])[0]
 
