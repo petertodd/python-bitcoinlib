@@ -236,6 +236,11 @@ class BytesSerializer(Serializer):
 
 class VectorSerializer(Serializer):
     """Base class for serializers of object vectors"""
+
+    # FIXME: stream_(de)serialize don't match the signatures of the base class
+    # due to the inner_cls parameter. This probably isn't optimal API design
+    # and should be rethought at some point.
+
     @classmethod
     def stream_serialize(cls, inner_cls, objs, f):
         VarIntSerializer.stream_serialize(len(objs), f)
