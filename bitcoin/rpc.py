@@ -654,6 +654,17 @@ class Proxy(BaseProxy):
             r['pubkey'] = unhexlify(r['pubkey'])
         return r
 
+    def unlockwallet(self, password, timeout=60):
+    	"""Stores the wallet decryption key in memory for 'timeout' seconds.
+
+        password - The wallet passphrase.
+
+        timeout - The time to keep the decryption key in seconds.
+        (default=60)
+        """
+        r = self._call('walletpassphrase', password, timeout)
+        return r
+
     def _addnode(self, node, arg):
         r = self._call('addnode', node, arg)
         return r
