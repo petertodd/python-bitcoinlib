@@ -655,7 +655,7 @@ class Proxy(BaseProxy):
         return r
 
     def unlockwallet(self, password, timeout=60):
-    	"""Stores the wallet decryption key in memory for 'timeout' seconds.
+        """Stores the wallet decryption key in memory for 'timeout' seconds.
 
         password - The wallet passphrase.
 
