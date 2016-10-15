@@ -386,6 +386,26 @@ class msg_block(MsgSerializable):
         return "msg_block(block=%s)" % (repr(self.block))
 
 
+class msg_merkleblock(MsgSerializable):
+    command = b"merkleblock"
+
+    def __init__(self, protover=PROTO_VERSION):
+        super(msg_merkleblock, self).__init__(protover)
+        self.block = CMerkleBlock()
+
+    @classmethod
+    def msg_deser(cls, f, protover=PROTO_VERSION):
+        c = cls()
+        c.block = CMerkleBlock.stream_deserialize(f)
+        return c
+
+    def msg_ser(self, f):
+        self.block.stream_serialize(f)
+
+    def __repr__(self):
+        return "msg_merkleblock(header=%s)" % (repr(self.block.get_header()))
+
+
 class msg_getaddr(MsgSerializable):
     command = b"getaddr"
 
@@ -511,6 +531,7 @@ __all__ = (
         'msg_headers',
         'msg_tx',
         'msg_block',
+        'msg_merkleblock',
         'msg_getaddr',
         'msg_ping',
         'msg_pong',
