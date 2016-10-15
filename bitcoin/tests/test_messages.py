@@ -13,8 +13,8 @@ import unittest
 
 from bitcoin.messages import msg_version, msg_verack, msg_addr, msg_alert, \
     msg_inv, msg_getdata, msg_getblocks, msg_getheaders, msg_headers, msg_tx, \
-    msg_block, msg_merkleblock, msg_getaddr, msg_ping, msg_pong, msg_mempool, MsgSerializable, \
-    msg_notfound, msg_reject
+    msg_block, msg_merkleblock, msg_getaddr, msg_ping, msg_pong, msg_mempool, msg_filterload, \
+    MsgSerializable, msg_notfound, msg_reject
 
 import sys
 if sys.version > '3':
@@ -120,6 +120,11 @@ class Test_msg_reject(MessageTestCase):
 class Test_msg_mempool(MessageTestCase):
     def test_serialization(self):
         super(Test_msg_mempool, self).serialization_test(msg_mempool)
+
+
+class Test_msg_filterload(MessageTestCase):
+    def test_serialization(self):
+        super(Test_msg_filterload, self).serialization_test(msg_filterload)
 
 
 class Test_messages(unittest.TestCase):
