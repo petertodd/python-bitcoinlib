@@ -609,14 +609,17 @@ class Proxy(BaseProxy):
         return lx(r)
 
     def sendmany(self, fromaccount, payments, minconf=1, comment='', subtractfeefromamount=[]):
-        """Sent amount to a given address"""
+        """Send amount to given addresses.
+
+        payments - dict with {address: amount}
+        """
         json_payments = {str(addr):float(amount)/COIN
                          for addr, amount in payments.items()}
         r = self._call('sendmany', fromaccount, json_payments, minconf, comment, subtractfeefromamount)
         return lx(r)
 
     def sendtoaddress(self, addr, amount, comment='', commentto='', subtractfeefromamount=False):
-        """Sent amount to a given address"""
+        """Send amount to a given address"""
         addr = str(addr)
         amount = float(amount)/COIN
         r = self._call('sendtoaddress', addr, amount, comment, commentto, subtractfeefromamount)
