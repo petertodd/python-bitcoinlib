@@ -680,7 +680,7 @@ class CScript(bytes):
     def is_witness_scriptpubkey(self):
         """Returns true if this is a scriptpubkey signaling segregated witness
         data. """
-        return 3 <= len(self) <= 42 and CScriptOp(self[0]).is_small_int()
+        return 3 <= len(self) <= 42 and CScriptOp(struct.unpack('<b',self[0])[0]).is_small_int()
 
     def witness_version(self):
         """Returns the witness version on [0,16]. """
