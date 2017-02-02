@@ -200,7 +200,7 @@ class BaseProxy(object):
     def _call(self, service_name, *args):
         self.__id_count += 1
 
-        if self.ep and EPOLL:
+        if EPOLL and self.ep:
             for (fd, ev) in self.ep.poll(0):
                 if ev & EPOLLHUP or (ev & EPOLLIN and \
                         b'' == self.__conn.sock.recv(1, MSG_DONTWAIT|MSG_PEEK)):
@@ -216,7 +216,7 @@ class BaseProxy(object):
                              'User-Agent': DEFAULT_USER_AGENT,
                              'Authorization': self.__auth_header,
                              'Content-type': 'application/json'})
-        if not self.ep and EPOLL:
+        if EPOLL and not self.ep:
             self.ep = select.epoll()
             self.ep.register(self.__conn.sock, select.EPOLLIN|select.EPOLLHUP)
 
@@ -232,7 +232,7 @@ class BaseProxy(object):
 
     def _batch(self, rpc_call_list):
         postdata = json.dumps(list(rpc_call_list))
-        if self.ep and EPOLL:
+        if EPOLL and self.ep:
             for (fd, ev) in self.ep.poll(0):
                 if ev & EPOLLHUP or (ev & EPOLLIN and \
                         b'' == self.__conn.sock.recv(1, MSG_DONTWAIT|MSG_PEEK)):
@@ -244,7 +244,7 @@ class BaseProxy(object):
                              'User-Agent': DEFAULT_USER_AGENT,
                              'Authorization': self.__auth_header,
                              'Content-type': 'application/json'})
-        if not self.ep and EPOLL:
+        if EPOLL and not self.ep:
             self.ep = select.epoll()
             self.ep.register(self.__conn.sock, select.EPOLLIN|select.EPOLLHUP)
 
