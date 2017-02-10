@@ -13,11 +13,7 @@
 
 """Low-level example of how to spend a standard pay-to-pubkey-hash (P2PKH) txout"""
 
-import sys
-if sys.version_info.major < 3:
-    sys.stderr.write('Sorry, Python 3.x required by this example.\n')
-    sys.exit(1)
-
+import struct
 import hashlib
 
 from bitcoin import SelectParams
@@ -64,7 +60,7 @@ sighash = SignatureHash(txin_scriptPubKey, tx, 0, SIGHASH_ALL)
 
 # Now sign it. We have to append the type of signature we want to the end, in
 # this case the usual SIGHASH_ALL.
-sig = seckey.sign(sighash) + bytes([SIGHASH_ALL])
+sig = seckey.sign(sighash) + struct.pack(b"B", SIGHASH_ALL)
 
 # Set the scriptSig of our transaction input appropriately.
 txin.scriptSig = CScript([sig, seckey.pub])
