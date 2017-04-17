@@ -444,6 +444,14 @@ class Proxy(BaseProxy):
         """Return a JSON object containing mining-related information"""
         return self._call('getmininginfo')
 
+    def getblockchaininfo(self):
+        """Return a JSON object containing various state info regarding blockchain processing."""
+        return self._call('getblockchaininfo')
+
+    def getmempoolinfo(self):
+        """Returns a JSON object containing details on the active state of the TX memory pool."""
+        return self._call('getmempoolinfo')
+
     def getnewaddress(self, account=None):
         """Return a new Bitcoin address for receiving payments.
 
