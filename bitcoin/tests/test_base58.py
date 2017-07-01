@@ -40,7 +40,8 @@ class Test_minikey(unittest.TestCase):
 
     valid_minikeys = [
         ('S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy', '5JPy8Zg7z4P7RSLsiqcqyeAF1935zjNUdMxcDeVrtU1oarrgnB7'),
-        ('SVY4eSFCF4tMtMohEkpXkoN9FHxDV7', '5JSyovgwfVcuFZBAp8LAta2tMsmscxXv3FvzvJWeKBfycLAmjuZ')
+        ('SVY4eSFCF4tMtMohEkpXkoN9FHxDV7', '5JSyovgwfVcuFZBAp8LAta2tMsmscxXv3FvzvJWeKBfycLAmjuZ'),
+        ('S6c56bnXQiBjk9mqSYEa30', '5KM4V1haDBMEcgzPuAWdHSBAVAEJNp4he2meirV3JNvZz9aWBNH')
     ]
     invalid_minikeys = [
         ('', 'Minikey length 0 is not 22 or 30'),
