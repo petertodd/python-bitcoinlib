@@ -13,7 +13,6 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from hashlib import sha256
 from bitcoin import base58
 
 def parser():
