@@ -16,19 +16,50 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from bitcoin.wallet import CBitcoinSecret, P2PKHBitcoinAddress
 from bitcoin.signmessage import BitcoinMessage, VerifyMessage, SignMessage
 
-key = CBitcoinSecret("L4vB5fomsK8L95wQ7GFzvErYGht49JsCPJyJMHpB4xGM6xgi2jvG")
-address = P2PKHBitcoinAddress.from_pubkey(key.pub)  # "1F26pNMrywyZJdr22jErtKcjF8R3Ttt55G"
-message = "Hey I just met you, and this is crazy, but I'll verify my address, maybe ..."
+def sign_message(key, msg):
+    secret = CBitcoinSecret(key)
+    message = BitcoinMessage(msg)
+    return SignMessage(secret, message)
 
-message = BitcoinMessage(message)
+def print_default(signature, key=None, msg=None):
+    print(signature.decode('ascii'))
 
-signature = SignMessage(key, message)
+def print_verbose(signature, key, msg):
+    secret = CBitcoinSecret(key)
+    address = P2PKHBitcoinAddress.from_pubkey(secret.pub)
+    message = BitcoinMessage(msg)
+    print('Address: %s' % address)
+    print('Message: %s' % msg)
+    print('Signature: %s' % signature)
+    print('Verified: %s' % VerifyMessage(address, message, signature))
+    print('\nTo verify using bitcoin core:')
+    print('\n`bitcoin-cli verifymessage %s \'%s\' \'%s\'`\n' % (address, signature.decode('ascii'), msg))
 
-print(key, address)
-print("Address: %s" % address)
-print("Message: %s" % message)
-print("\nSignature: %s" % signature)
-print("\nVerified: %s" % VerifyMessage(address, message, signature))
+def parser():
+    import argparse
+    parser = argparse.ArgumentParser(
+        description='Sign a message with a private key.',
+        epilog='Security warning: arguments may be visible to other users on the same host.')
+    parser.add_argument(
+        '-v', '--verbose', dest='print_result',
+        action='store_const', const=print_verbose, default=print_default,
+        help='verbose output')
+    parser.add_argument(
+        '-k', '--key',
+        required=True,
+        help='private key in base58 encoding')
+    parser.add_argument(
+        '-m', '--msg',
+        required=True,
+        help='message to sign')
+    return parser
 
-print("\nTo verify using bitcoin core;")
-print("`bitcoin-cli verifymessage %s \"%s\" \"%s\"`" % (address, signature.decode('ascii'), message))
+if __name__ == '__main__':
+    args = parser().parse_args()
+    try:
+        signature = sign_message(args.key, args.msg)
+    except Exception as error:
+        print('%s: %s' % (error.__class__.__name__, str(error)))
+        exit(1)
+    else:
+        args.print_result(signature, args.key, args.msg)
