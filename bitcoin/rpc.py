@@ -350,7 +350,7 @@ class Proxy(BaseProxy):
         r = self._call('getaccountaddress', account)
         return CBitcoinAddress(r)
 
-    def getbalance(self, account='*', minconf=1):
+    def getbalance(self, account='*', minconf=1, include_watchonly=False):
         """Get the balance
 
         account - The selected account. Defaults to "*" for entire wallet. It
@@ -358,8 +358,11 @@ class Proxy(BaseProxy):
 
         minconf - Only include transactions confirmed at least this many times.
         (default=1)
+
+        include_watchonly - Also include balance in watch-only addresses (see 'importaddress')
+        (default=False)
         """
-        r = self._call('getbalance', account, minconf)
+        r = self._call('getbalance', account, minconf, include_watchonly)
         return int(r*COIN)
 
     def getbestblockhash(self):
