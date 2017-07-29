@@ -23,7 +23,6 @@ if sys.version > '3':
     _bord = lambda x: x
 
 import binascii
-from hashlib import sha256
 
 import bitcoin.core
 
@@ -92,30 +91,6 @@ def decode(s):
         else: break
     return b'\x00' * pad + res
 
-class InvalidMinikeyError(Base58Error):
-    """Raised for invalid minikeys"""
-    pass
-
-def decode_minikey(minikey):
-    """Decode minikey in str or bytes to standard base58 bytes
-
-    Minikeys are an old key format, for details see
-    https://en.bitcoin.it/wiki/Mini_private_key_format.
-    """
-    if isinstance(minikey, str):
-        minikey = minikey.encode('ascii')
-    length = len(minikey)
-    if length not in [22, 30]:
-        raise InvalidMinikeyError('Minikey length %d is not 22 or 30' % length)
-    h = sha256(minikey)
-    h_cs = h.copy()
-    h_cs.update(b'?')
-    checksum = _bord(h_cs.digest()[0])
-    if checksum != 0:
-        raise InvalidMinikeyError('Minikey checksum %s is not 0' % checksum)
-    versioned = b'\x80' + h.digest()
-    checked = versioned + sha256(sha256(versioned).digest()).digest()[:4]
-    return encode(checked)
 
 class Base58ChecksumError(Base58Error):
     """Raised on Base58 checksum errors"""
@@ -176,8 +151,6 @@ __all__ = (
         'InvalidBase58Error',
         'encode',
         'decode',
-        'InvalidMinikeyError',
-        'decode_minikey',
         'Base58ChecksumError',
         'CBase58Data',
 )
