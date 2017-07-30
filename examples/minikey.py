@@ -13,7 +13,7 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from bitcoin import base58
+from bitcoin.minikey import decode_minikey
 
 def parser():
     import argparse
@@ -28,9 +28,8 @@ def parser():
 if __name__ == '__main__':
     args = parser().parse_args()
     try:
-        base58_key = base58.decode_minikey(args.minikey)
+        secret_key = str(decode_minikey(args.minikey))
+        print(secret_key)
     except Exception as error:
         print('%s: %s' % (error.__class__.__name__, str(error)))
         exit(1)
-    else:
-        print(base58_key)
