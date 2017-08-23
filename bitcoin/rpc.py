@@ -158,13 +158,19 @@ class BaseProxy(object):
                 conf['rpcport'] = int(conf.get('rpcport', service_port))
                 conf['rpchost'] = conf.get('rpcconnect', 'localhost')
 
-                if 'rpcpassword' not in conf:
-                    raise ValueError('The value of rpcpassword not specified in the configuration file: %s' % btc_conf_file)
+                service_url = ('%s://%s:%d' %
+                    ('http', conf['rpchost'], conf['rpcport']))
 
-                service_url = ('%s://%s:%s@%s:%d' %
-                    ('http',
-                     conf['rpcuser'], conf['rpcpassword'],
-                     conf['rpchost'], conf['rpcport']))
+                cookie_file = os.path.dirname(btc_conf_file)
+                cookie_file = os.path.join(cookie_file, ".cookie")
+                with open(cookie_file, 'r') as fd:
+                    authpair = fd.read()
+
+                if 'rpcpassword' in conf:
+                    authpair = "%s:%s" % (conf['rpcuser'], conf['rpcpassword'])
+
+                if authpair is None:
+                    raise ValueError('The value of rpcpassword not specified in the configuration file: %s' % btc_conf_file)
 
         self.__service_url = service_url
         self.__url = urlparse.urlparse(service_url)
@@ -177,7 +183,6 @@ class BaseProxy(object):
         else:
             port = self.__url.port
         self.__id_count = 0
-        authpair = "%s:%s" % (self.__url.username, self.__url.password)
         authpair = authpair.encode('utf8')
         self.__auth_header = b"Basic " + base64.b64encode(authpair)
 
