@@ -313,7 +313,7 @@ class CMutableTxOut(CTxOut):
 
 
 class CTxInWitness(ImmutableSerializable):
-    """Witness data for a single transaction input. """
+    """Witness data for a single transaction input"""
     __slots__ = ['scriptWitness']
 
     def __init__(self, scriptWitness=CScriptWitness()):
@@ -347,7 +347,7 @@ class CTxInWitness(ImmutableSerializable):
             return cls(txinwitness.scriptWitness)
 
 class CTxWitness(ImmutableSerializable):
-    """Witness data for all inputs to a transaction."""
+    """Witness data for all inputs to a transaction"""
     __slots__ = ['vtxinwit']
 
     def __init__(self, vtxinwit=()):
@@ -406,14 +406,18 @@ class CTransaction(ImmutableSerializable):
 
     @classmethod
     def stream_deserialize(cls, f):
-        """Deserialize a transaction.  This implementation corresponds to
-            Bitcoin's SerializeTransaction() and consensus behavior.  Note that
-            Bitcoin's DecodeHexTx() also has the option to attempt deserializing
-            as a non-witness transaction first, falling back to the consensus
-            behavior if it fails.  The difference lies in transactions which
-            have zero inputs: they are invalid but may be (de-)serialized anyway
-            for the purpose of signing them and adding inputs.  If the behavior
-            of DecodeHexTx() is needed it could be added, but not here.  """
+        """Deserialize transaction
+
+        This implementation corresponds to Bitcoin's SerializeTransaction() and
+        consensus behavior. Note that Bitcoin's DecodeHexTx() also has the
+        option to attempt deserializing as a non-witness transaction first,
+        falling back to the consensus behavior if it fails. The difference lies
+        in transactions which have zero inputs: they are invalid but may be
+        (de)serialized anyway for the purpose of signing them and adding
+        inputs. If the behavior of DecodeHexTx() is needed it could be added,
+        but not here.
+        """
+        # FIXME can't assume f is seekable
         nVersion = struct.unpack(b"<i", ser_read(f,4))[0]
         pos = f.tell()
         markerbyte = struct.unpack(b'B', ser_read(f, 1))[0]
@@ -650,7 +654,10 @@ class CBlock(CBlockHeader):
         return self.build_witness_merkle_tree_from_txs(self.vtx)[-1]
 
     def get_witness_commitment_index(self):
-        """Return None or an index"""
+        """Find txout # of witness commitment in coinbase
+
+        Return None or an index
+        """
         if not len(self.vtx):
             raise ValueError('Block contains no transactions')
         commit_pos = None
