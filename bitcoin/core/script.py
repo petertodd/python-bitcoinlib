@@ -1015,11 +1015,7 @@ def SignatureHash(script, txTo, inIdx, hashtype, amount=None, sigversion=SIGVERS
 
         return bitcoin.core.Hash(f.getvalue())
 
-    if script.is_witness_scriptpubkey():
-        print("WARNING: You seem to be attempting to sign a scriptPubKey from an")
-        print("WARNING: output with segregated witness.  This is NOT the correct")
-        print("WARNING: thing to sign. You should pass SignatureHash the corresponding")
-        print("WARNING: P2WPKH or P2WSH script instead.")
+    assert not script.is_witness_scriptpubkey()
 
     (h, err) = RawSignatureHash(script, txTo, inIdx, hashtype)
     if err is not None:
