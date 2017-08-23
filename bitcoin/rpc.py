@@ -161,16 +161,19 @@ class BaseProxy(object):
                 service_url = ('%s://%s:%d' %
                     ('http', conf['rpchost'], conf['rpcport']))
 
-                cookie_file = os.path.dirname(btc_conf_file)
-                cookie_file = os.path.join(cookie_file, ".cookie")
-                with open(cookie_file, 'r') as fd:
-                    authpair = fd.read()
+                cookie_dir = os.path.dirname(btc_conf_file)
+                if bitcoin.params.NAME != "mainnet":
+                    cookie_dir = os.path.join(cookie_dir, bitcoin.params.NAME)
+                cookie_file = os.path.join(cookie_dir, ".cookie")
+                try:
+                    with open(cookie_file, 'r') as fd:
+                        authpair = fd.read()
+                except IOError as err:
+                    if 'rpcpassword' in conf:
+                        authpair = "%s:%s" % (conf['rpcuser'], conf['rpcpassword'])
 
-                if 'rpcpassword' in conf:
-                    authpair = "%s:%s" % (conf['rpcuser'], conf['rpcpassword'])
-
-                if authpair is None:
-                    raise ValueError('The value of rpcpassword not specified in the configuration file: %s' % btc_conf_file)
+                    else:
+                        raise ValueError('Cookie file unusable (%s) and rpcpassword not specified in the configuration file: %r' % (err, btc_conf_file))
 
         self.__service_url = service_url
         self.__url = urlparse.urlparse(service_url)
