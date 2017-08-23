@@ -87,23 +87,23 @@ class Serializable(object):
 
     __slots__ = []
 
-    def stream_serialize(self, f):
+    def stream_serialize(self, f, **kwargs):
         """Serialize to a stream"""
         raise NotImplementedError
 
     @classmethod
-    def stream_deserialize(cls, f):
+    def stream_deserialize(cls, f, **kwargs):
         """Deserialize from a stream"""
         raise NotImplementedError
 
-    def serialize(self):
+    def serialize(self, params={}):
         """Serialize, returning bytes"""
         f = _BytesIO()
-        self.stream_serialize(f)
+        self.stream_serialize(f, **params)
         return f.getvalue()
 
     @classmethod
-    def deserialize(cls, buf, allow_padding=False):
+    def deserialize(cls, buf, allow_padding=False, params={}):
         """Deserialize bytes, returning an instance
 
         allow_padding - Allow buf to include extra padding. (default False)
@@ -112,7 +112,7 @@ class Serializable(object):
         deserialization DeserializationExtraDataError will be raised.
         """
         fd = _BytesIO(buf)
-        r = cls.stream_deserialize(fd)
+        r = cls.stream_deserialize(fd, **params)
         if not allow_padding:
             padding = fd.read()
             if len(padding) != 0:
@@ -242,17 +242,17 @@ class VectorSerializer(Serializer):
     # and should be rethought at some point.
 
     @classmethod
-    def stream_serialize(cls, inner_cls, objs, f):
+    def stream_serialize(cls, inner_cls, objs, f, inner_params={}):
         VarIntSerializer.stream_serialize(len(objs), f)
         for obj in objs:
-            inner_cls.stream_serialize(obj, f)
+            inner_cls.stream_serialize(obj, f, **inner_params)
 
     @classmethod
-    def stream_deserialize(cls, inner_cls, f):
+    def stream_deserialize(cls, inner_cls, f, inner_params={}):
         n = VarIntSerializer.stream_deserialize(f)
         r = []
         for i in range(n):
-            r.append(inner_cls.stream_deserialize(f))
+            r.append(inner_cls.stream_deserialize(f, **inner_params))
         return r
 
 
