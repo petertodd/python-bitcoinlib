@@ -539,6 +539,123 @@ class CBlock(CBlockHeader):
             object.__setattr__(self, '_cached_GetHash', _cached_GetHash)
             return _cached_GetHash
 
+class CMerkleBlock(CBlockHeader):
+    """
+    The merkle block returned to spv clients when a filter is set on the remote peer.
+    """
+
+    __slots__ = ['nTX', 'vHashes', 'vFlags']
+
+    def __init__(self, nVersion=3, hashPrevBlock=b'\x00'*32, hashMerkleRoot=b'\x00'*32, nTime=0, nBits=0, nNonce=0, nTX=0, vHashes=(), vFlags=()):
+        """Create a new block"""
+        super(CMerkleBlock, self).__init__(nVersion, hashPrevBlock, hashMerkleRoot, nTime, nBits, nNonce)
+
+        object.__setattr__(self, 'nTX', nTX)
+        object.__setattr__(self, 'vHashes', vHashes)
+        object.__setattr__(self, 'vFlags', vFlags)
+
+    @classmethod
+    def stream_deserialize(cls, f):
+
+        def bits(f, n):
+            ret = []
+            bytes = (ord(b) for b in f.read(n))
+            for b in bytes:
+                for i in xrange(8):
+                    ret.append((b >> i) & 1)
+            return ret
+
+        self = super(CMerkleBlock, cls).stream_deserialize(f)
+
+        nTX = struct.unpack('<L', ser_read(f, 4))[0]
+        nHashes = VarIntSerializer.stream_deserialize(f)
+        vHashes = []
+        for i in range(nHashes):
+            vHashes.append(ser_read(f, 32))
+        nFlags = VarIntSerializer.stream_deserialize(f)
+        vFlags = bits(f, nFlags)
+        object.__setattr__(self, 'nTX', nTX)
+        object.__setattr__(self, 'vHashes', vHashes)
+        object.__setattr__(self, 'vFlags', vFlags)
+
+        return self
+
+    def stream_serialize(self, f):
+        super(CMerkleBlock, self).stream_serialize(f)
+        f.write(struct.pack('<L', self.nTX))
+        VarIntSerializer.stream_serialize(len(self.vHashes), f)
+        for hash in self.vHashes:
+            f.write(hash)
+        VarIntSerializer.stream_serialize(int(len(self.vFlags)/8), f)
+        bin_string = ""
+        for bit in self.vFlags:
+            bin_string += str(bit)
+            if len(bin_string) == 8:
+                f.write(struct.pack('B', int(bin_string[::-1], 2)))
+                bin_string = ""
+
+    def get_matched_txs(self):
+        """
+        Return a list of transaction hashes that matched the filter. These txs
+        have been validated against the merkle tree structure and are definitely
+        in the block. However, the block hash still needs to be checked against
+        the best chain.
+        """
+        def getTreeWidth(transaction_count, height):
+            return (transaction_count + (1 << height) - 1) >> height
+
+        matched_hashes = []
+
+        def recursive_extract_hashes(height, pos):
+            parent_of_match = bool(self.vFlags.pop(0))
+            if height == 0 or not parent_of_match:
+                hash = self.vHashes.pop(0)
+                if height == 0 and parent_of_match:
+                    matched_hashes.append(hash)
+                return hash
+            else:
+                left = recursive_extract_hashes(height - 1, pos * 2)
+                if pos * 2 + 1 < getTreeWidth(self.nTX, height-1):
+                    right = recursive_extract_hashes(height - 1, pos * 2 + 1)
+                    if left == right:
+                        raise Exception("Invalid Merkle Tree")
+                else:
+                    right = left
+                return sha256(sha256(left+right).digest()).digest()
+
+        height = 0
+        while getTreeWidth(self.nTX, height) > 1:
+            height += 1
+
+        calculated_root = recursive_extract_hashes(height, 0)
+        if calculated_root == self.get_header().hashMerkleRoot:
+            return matched_hashes
+        else:
+            return None
+
+    def get_header(self):
+        """Return the block header
+        Returned header is a new object.
+        """
+        return CBlockHeader(nVersion=self.nVersion,
+                            hashPrevBlock=self.hashPrevBlock,
+                            hashMerkleRoot=self.hashMerkleRoot,
+                            nTime=self.nTime,
+                            nBits=self.nBits,
+                            nNonce=self.nNonce)
+
+    def GetHash(self):
+        """Return the block hash
+        Note that this is the hash of the header, not the entire serialized
+        block.
+        """
+        try:
+            return self._cached_GetHash
+        except AttributeError:
+            _cached_GetHash = self.get_header().GetHash()
+            object.__setattr__(self, '_cached_GetHash', _cached_GetHash)
+            return _cached_GetHash
+
 class CoreChainParams(object):
     """Define consensus-critical parameters of a given instance of the Bitcoin system"""
     MAX_MONEY = None
@@ -766,6 +883,7 @@ __all__ = (
         'CMutableTransaction',
         'CBlockHeader',
         'CBlock',
+        'CMerkleBlock',
         'CoreChainParams',
         'CoreMainParams',
         'CoreTestNetParams',

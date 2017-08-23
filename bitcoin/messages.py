@@ -33,6 +33,7 @@ else:
 from bitcoin.core import *
 from bitcoin.core.serialize import *
 from bitcoin.net import *
+from bitcoin.bloom import CBloomFilter
 import bitcoin
 
 MSG_TX = 1
@@ -386,6 +387,26 @@ class msg_block(MsgSerializable):
         return "msg_block(block=%s)" % (repr(self.block))
 
 
+class msg_merkleblock(MsgSerializable):
+    command = b"merkleblock"
+
+    def __init__(self, protover=PROTO_VERSION):
+        super(msg_merkleblock, self).__init__(protover)
+        self.block = CMerkleBlock()
+
+    @classmethod
+    def msg_deser(cls, f, protover=PROTO_VERSION):
+        c = cls()
+        c.block = CMerkleBlock.stream_deserialize(f)
+        return c
+
+    def msg_ser(self, f):
+        self.block.stream_serialize(f)
+
+    def __repr__(self):
+        return "msg_merkleblock(header=%s)" % (repr(self.block.get_header()))
+
+
 class msg_getaddr(MsgSerializable):
     command = b"getaddr"
 
@@ -485,6 +506,28 @@ class msg_mempool(MsgSerializable):
     def __repr__(self):
         return "msg_mempool()"
 
+
+class msg_filterload(MsgSerializable):
+    command = b"filterload"
+
+    def __init__(self, protover=PROTO_VERSION, filter=None):
+        super(msg_filterload, self).__init__(protover)
+        self.protover = protover
+        self.filter = filter
+
+    @classmethod
+    def msg_deser(cls, f, protover=PROTO_VERSION):
+        c = cls()
+        c.filter = CBloomFilter.stream_deserialize(f)
+        return c
+
+    def msg_ser(self, f):
+        self.filter.stream_serialize(f)
+
+    def __repr__(self):
+        return "msg_filterload(vData=%i nHashFunctions=%i nTweak=%i nFlags=%i" % (self.filter.vData, self.filter.nHashFunctions, self.filter.nTweak, self.filter.nFlags)
+
+
 msg_classes = [msg_version, msg_verack, msg_addr, msg_alert, msg_inv,
                msg_getdata, msg_notfound, msg_getblocks, msg_getheaders,
                msg_headers, msg_tx, msg_block, msg_getaddr, msg_ping,
@@ -511,10 +554,12 @@ __all__ = (
         'msg_headers',
         'msg_tx',
         'msg_block',
+        'msg_merkleblock',
         'msg_getaddr',
         'msg_ping',
         'msg_pong',
         'msg_mempool',
+        'msg_filterload',
         'msg_classes',
         'messagemap',
 )
