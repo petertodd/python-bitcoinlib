@@ -1,8 +1,29 @@
-python-bitcoinlib release notes
-===============================
+# python-bitcoinlib release notes
 
-v0.7.0
-======
+## v0.8.0
+
+Major breaking API change!
+
+While this interim release doesn't by itself include segwit support, it does
+change the name of the `CTransaction/CMutableTransaction` method `GetHash()` to
+`GetTxid()` to prepare for a future segwit-enabled release.  Incorrect calls to
+`GetHash()` will now raise a `AttributeError` exception with an explanation.
+
+Since this release doesn't yet include segwit support, you will need to set the
+Bitcoin Core `-rpcserialversion=0` option, either as a command line argument,
+or in your `bitcoin.conf` file. Otherwise the RPC interface will return
+segwit-serialized transactions that this release's RPC support doesn't
+understand.
+
+Other changes:
+
+* Cookie file RPC authentication is now supported.
+* `msg_header` now correctly uses `CBlockHeader` rather than `CBlock`.
+* RPC `getbalance` now supports `include_watchonly`
+* RPC `unlockwallet` is now supported
+
+
+## v0.7.0
 
 Breaking API changes:
 
@@ -25,8 +46,7 @@ Bugfixes:
 * Fixed a spurious `AttributeError` when `bitcoin.rpc.Proxy()` fails.
 
 
-v0.6.1
-======
+## v0.6.1
 
 New features:
 
@@ -36,8 +56,7 @@ New features:
   subtractfeefromamount arguments.
 
 
-v0.6.0
-======
+## v0.6.0
 
 Breaking API changes:
 
@@ -55,8 +74,7 @@ Breaking API changes:
   did anything with it anyway)
 
 
-v0.5.1
-======
+## v0.5.1
 
 Various small bugfixes; see git history.
 
@@ -66,8 +84,7 @@ New features:
 * OP_CHECKLOCKTIMEVERIFY opcode constant
 
 
-v0.5.0
-======
+## v0.5.0
 
 Major fix: Fixed OpenSSL related crashes on OSX and Arch Linux. Big thanks to
 everyone who helped fix this!
@@ -90,8 +107,7 @@ Notable bugfixes:
 * getinfo() now works where disablewallet=1
 
 
-v0.4.0
-======
+## v0.4.0
 
 Major fix: OpenSSL 1.0.1k rejects non-canonical DER signatures, which Bitcoin
 Core does not, so we now canonicalize signatures prior to passing them to
@@ -117,8 +133,7 @@ New features:
 * Added support for IPv6 addr messages
 
 
-v0.3.0
-======
+## v0.3.0
 
 Major change: cleaned up what symbols are exported by modules. \_\_all\_\_ is now
 used extensively, which may break some applications that were not importing the
@@ -134,8 +149,7 @@ Other notable changes:
 * Various code cleanups and minor bug fixes.
 
 
-v0.2.1
-======
+## v0.2.1
 
 * Improve bitcoin address handling. P2SH and P2PKH addresses now get their own
   classes - P2SHBitcoinAddress and P2PKHBitcoinAddress respectively - and P2PKH
@@ -146,8 +160,7 @@ v0.2.1
 * License is now LGPL v3 or later.
 
 
-v0.2.0
-======
+## v0.2.0
 
 Major change: CTransaction, CBlock, etc. now come in immutable (default) and
 mutable forms. In most cases mutable and immutable can be used interchangeably;

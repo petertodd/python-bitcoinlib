@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2015 The python-bitcoinlib developers
+# Copyright (C) 2012-2017 The python-bitcoinlib developers
 #
 # This file is part of python-bitcoinlib.
 #
@@ -486,10 +486,14 @@ class CTransaction(ImmutableSerializable):
             txid = Hash(self.serialize())
         return txid
 
+# preserve GetHash so our AttributeError-raising stub works
+def __make_CMutableTransaction_mutable(cls):
+    get_hash_fn = cls.GetHash
+    cls = __make_mutable(cls)
+    cls.GetHash = get_hash_fn
+    return cls
 
-
-
-@__make_mutable
+@__make_CMutableTransaction_mutable
 class CMutableTransaction(CTransaction):
     """A mutable transaction"""
     __slots__ = []
@@ -519,8 +523,6 @@ class CMutableTransaction(CTransaction):
         vout = [CMutableTxOut.from_txout(txout) for txout in tx.vout]
 
         return cls(vin, vout, tx.nLockTime, tx.nVersion, tx.wit)
-
-
 
 
 class CBlockHeader(ImmutableSerializable):
