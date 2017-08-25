@@ -1,10 +1,10 @@
 # python-bitcoinlib release notes
 
-## v0.8.0-PENDING
+## v0.8.0
 
 Major breaking API change!
 
-While this interm release changes doesn't by itself include segwit support, it
+While this interim release changes doesn't by itself include segwit support, it
 does change the name of the `CTransaction/CMutableTransaction` method
 `GetHash()` to `GetTxid()` to prepare for a future segwit-enabled release.
 Incorrect calls to `GetHash()` will now raise a `AttributeError` exception with
@@ -15,6 +15,13 @@ Bitcoin Core `-rpcserialversion=0` option, either as a command line argument,
 or in your `bitcoin.conf` file. Otherwise the RPC interface will return
 segwit-serialized transactions that this release's RPC support doesn't
 understand.
+
+Other changes:
+
+* Cookie file RPC authentication is now supported.
+* `msg_header` now correctly uses `CBlockHeader` rather than `CBlock`.
+* RPC `getbalance` now supports `include_watchonly`
+* RPC `unlockwallet` is now supported
 
 
 ## v0.7.0
