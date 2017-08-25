@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2015 The python-bitcoinlib developers
+# Copyright (C) 2012-2017 The python-bitcoinlib developers
 #
 # This file is part of python-bitcoinlib.
 #
@@ -356,8 +356,21 @@ class CTransaction(ImmutableSerializable):
         else:
             return cls(tx.vin, tx.vout, tx.nLockTime, tx.nVersion)
 
+    def GetTxid(self):
+        return super(CTransaction, self).GetHash()
 
-@__make_mutable
+    def GetHash(self):
+        raise AttributeError("CTransaction.GetHash() has been removed; use GetTxid() instead")
+
+
+# preserve GetHash so our AttributeError-raising stub works
+def __make_CMutableTransaction_mutable(cls):
+    get_hash_fn = cls.GetHash
+    cls = __make_mutable(cls)
+    cls.GetHash = get_hash_fn
+    return cls
+
+@__make_CMutableTransaction_mutable
 class CMutableTransaction(CTransaction):
     """A mutable transaction"""
     __slots__ = []
@@ -384,7 +397,11 @@ class CMutableTransaction(CTransaction):
 
         return cls(vin, vout, tx.nLockTime, tx.nVersion)
 
+    def GetTxid(self):
+        return Serializable.GetHash(self)
 
+    def GetHash(self):
+        raise AttributeError("CMutableTransaction.GetHash() has been removed; use GetTxid() instead")
 
 
 class CBlockHeader(ImmutableSerializable):
@@ -478,7 +495,7 @@ class CBlock(CBlockHeader):
     @staticmethod
     def build_merkle_tree_from_txs(txs):
         """Build a full merkle tree from transactions"""
-        txids = [tx.GetHash() for tx in txs]
+        txids = [tx.GetTxid() for tx in txs]
         return CBlock.build_merkle_tree_from_txids(txids)
 
     def calc_merkle_root(self):
@@ -730,7 +747,7 @@ def CheckBlock(block, fCheckPoW = True, fCheckMerkleRoot = True, cur_time=None):
 
         CheckTransaction(tx)
 
-        txid = tx.GetHash()
+        txid = tx.GetTxid()
         if txid in unique_txids:
             raise CheckBlockError("CheckBlock() : duplicate transaction")
         unique_txids.add(txid)

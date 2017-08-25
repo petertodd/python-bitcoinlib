@@ -1,5 +1,22 @@
 # python-bitcoinlib release notes
 
+## v0.8.0-PENDING
+
+Major breaking API change!
+
+While this interm release changes doesn't by itself include segwit support, it
+does change the name of the `CTransaction/CMutableTransaction` method
+`GetHash()` to `GetTxid()` to prepare for a future segwit-enabled release.
+Incorrect calls to `GetHash()` will now raise a `AttributeError` exception with
+an explanation.
+
+Since this release doesn't yet include segwit support, you will need to set the
+Bitcoin Core `-rpcserialversion=0` option, either as a command line argument,
+or in your `bitcoin.conf` file. Otherwise the RPC interface will return
+segwit-serialized transactions that this release's RPC support doesn't
+understand.
+
+
 ## v0.7.0
 
 Breaking API changes:

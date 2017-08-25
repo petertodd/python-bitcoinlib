@@ -1,4 +1,4 @@
-# Copyright (C) 2013-2014 The python-bitcoinlib developers
+# Copyright (C) 2013-2017 The python-bitcoinlib developers
 #
 # This file is part of python-bitcoinlib.
 #
@@ -89,7 +89,7 @@ class Test_EvalScript(unittest.TestCase):
         txCredit = CTransaction([CTxIn(COutPoint(), CScript([OP_0, OP_0]), nSequence=0xFFFFFFFF)],
                                 [CTxOut(0, scriptPubKey)],
                                 nLockTime=0)
-        txSpend = CTransaction([CTxIn(COutPoint(txCredit.GetHash(), 0), scriptSig, nSequence=0xFFFFFFFF)],
+        txSpend = CTransaction([CTxIn(COutPoint(txCredit.GetTxid(), 0), scriptSig, nSequence=0xFFFFFFFF)],
                                [CTxOut(0, CScript())],
                                nLockTime=0)
         return (txCredit, txSpend)

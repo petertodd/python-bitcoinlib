@@ -104,6 +104,15 @@ class Test_CMutableTxIn(unittest.TestCase):
         self.assertNotEqual(h1, txin.GetHash())
 
 class Test_CTransaction(unittest.TestCase):
+    def test_GetHash_removed(self):
+        tx = CTransaction()
+        with self.assertRaises(AttributeError):
+            tx.GetHash()
+
+        tx = CMutableTransaction()
+        with self.assertRaises(AttributeError):
+            tx.GetHash()
+
     def test_is_coinbase(self):
         tx = CMutableTransaction()
         self.assertFalse(tx.is_coinbase())

@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2014 The python-bitcoinlib developers
+# Copyright (C) 2012-2017 The python-bitcoinlib developers
 #
 # This file is part of python-bitcoinlib.
 #
@@ -816,7 +816,7 @@ def VerifySignature(txFrom, txTo, inIdx):
         raise VerifySignatureError("txin prevout.n >= len(txFrom.vout)")
     txout = txFrom.vout[txin.prevout.n]
 
-    if txin.prevout.hash != txFrom.GetHash():
+    if txin.prevout.hash != txFrom.GetTxid():
         raise VerifySignatureError("prevout hash does not match txFrom")
 
     VerifyScript(txin.scriptSig, txout.scriptPubKey, txTo, inIdx)
