@@ -4,11 +4,10 @@
 
 Major breaking API change!
 
-While this interim release changes doesn't by itself include segwit support, it
-does change the name of the `CTransaction/CMutableTransaction` method
-`GetHash()` to `GetTxid()` to prepare for a future segwit-enabled release.
-Incorrect calls to `GetHash()` will now raise a `AttributeError` exception with
-an explanation.
+While this interim release doesn't by itself include segwit support, it does
+change the name of the `CTransaction/CMutableTransaction` method `GetHash()` to
+`GetTxid()` to prepare for a future segwit-enabled release.  Incorrect calls to
+`GetHash()` will now raise a `AttributeError` exception with an explanation.
 
 Since this release doesn't yet include segwit support, you will need to set the
 Bitcoin Core `-rpcserialversion=0` option, either as a command line argument,
