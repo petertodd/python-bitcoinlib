@@ -486,14 +486,7 @@ class CTransaction(ImmutableSerializable):
             txid = Hash(self.serialize())
         return txid
 
-# preserve GetHash so our AttributeError-raising stub works
-def __make_CMutableTransaction_mutable(cls):
-    get_hash_fn = cls.GetHash
-    cls = __make_mutable(cls)
-    cls.GetHash = get_hash_fn
-    return cls
-
-@__make_CMutableTransaction_mutable
+@__make_mutable
 class CMutableTransaction(CTransaction):
     """A mutable transaction"""
     __slots__ = []
