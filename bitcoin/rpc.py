@@ -594,7 +594,13 @@ class Proxy(BaseProxy):
             del unspent['txid']
             del unspent['vout']
 
-            unspent['address'] = CBitcoinAddress(unspent['address'])
+            # address isn't always available as Bitcoin Core allows scripts w/o
+            # an address type to be imported into the wallet, e.g. non-p2sh
+            # segwit
+            try:
+                unspent['address'] = CBitcoinAddress(unspent['address'])
+            except KeyError:
+                pass
             unspent['scriptPubKey'] = CScript(unhexlify(unspent['scriptPubKey']))
             unspent['amount'] = int(unspent['amount'] * COIN)
             r2.append(unspent)
