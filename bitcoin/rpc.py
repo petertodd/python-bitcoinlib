@@ -129,7 +129,8 @@ class BaseProxy(object):
         # __conn being created __del__() can detect the condition and handle it
         # correctly.
         self.__conn = None
-
+        
+        authpair = None
         if service_url is None:
             # Figure out the path to the bitcoin.conf file
             if btc_conf_file is None:
@@ -140,27 +141,32 @@ class BaseProxy(object):
                 else:
                     btc_conf_file = os.path.expanduser('~/.bitcoin')
                 btc_conf_file = os.path.join(btc_conf_file, 'bitcoin.conf')
-
-            # Extract contents of bitcoin.conf to build service_url
-            with open(btc_conf_file, 'r') as fd:
-                # Bitcoin Core accepts empty rpcuser, not specified in btc_conf_file
-                conf = {'rpcuser': ""}
-                for line in fd.readlines():
-                    if '#' in line:
-                        line = line[:line.index('#')]
-                    if '=' not in line:
-                        continue
-                    k, v = line.split('=', 1)
-                    conf[k.strip()] = v.strip()
-
-                if service_port is None:
-                    service_port = bitcoin.params.RPC_PORT
-                conf['rpcport'] = int(conf.get('rpcport', service_port))
-                conf['rpchost'] = conf.get('rpcconnect', 'localhost')
-
-                service_url = ('%s://%s:%d' %
-                    ('http', conf['rpchost'], conf['rpcport']))
-
+            if service_port is None:
+                service_port = bitcoin.params.RPC_PORT
+            
+            # Attempt to extract contents from bitcoin.conf or a cookie file
+            # Bitcoin Core accepts an empty rpcuser
+            conf = {'rpcuser': ""}
+            try:
+                with open(btc_conf_file, 'r') as fd:
+                    for line in fd.readlines():
+                        if '#' in line:
+                            line = line[:line.index('#')]
+                        if '=' not in line:
+                            continue
+                        k, v = line.split('=', 1)
+                        conf[k.strip()] = v.strip()
+            except IOError:
+                pass
+            
+            conf['rpcport'] = int(conf.get('rpcport', service_port))
+            conf['rpchost'] = conf.get('rpcconnect', 'localhost')
+            service_url = ('%s://%s:%d' %
+                ('http', conf['rpchost'], conf['rpcport']))
+            
+            if 'rpcpassword' in conf:
+                authpair = "%s:%s" % (conf['rpcuser'], conf['rpcpassword'])
+            else:
                 cookie_dir = os.path.dirname(btc_conf_file)
                 if bitcoin.params.NAME != "mainnet":
                     cookie_dir = os.path.join(cookie_dir, bitcoin.params.NAME)
@@ -169,12 +175,8 @@ class BaseProxy(object):
                     with open(cookie_file, 'r') as fd:
                         authpair = fd.read()
                 except IOError as err:
-                    if 'rpcpassword' in conf:
-                        authpair = "%s:%s" % (conf['rpcuser'], conf['rpcpassword'])
-
-                    else:
-                        raise ValueError('Cookie file unusable (%s) and rpcpassword not specified in the configuration file: %r' % (err, btc_conf_file))
-
+                    raise ValueError('Cookie file unusable (%s) and rpcpassword not specified in the configuration file: %r' % (err, btc_conf_file))
+        
         self.__service_url = service_url
         self.__url = urlparse.urlparse(service_url)
 
@@ -186,6 +188,8 @@ class BaseProxy(object):
         else:
             port = self.__url.port
         self.__id_count = 0
+        if authpair is None:
+            authpair = "%s:%s" % (self.__url.username, self.__url.password)
         authpair = authpair.encode('utf8')
         self.__auth_header = b"Basic " + base64.b64encode(authpair)
 
