@@ -233,6 +233,10 @@ class BaseProxy(object):
         return json.loads(http_response.read().decode('utf8'),
                           parse_float=decimal.Decimal)
 
+    def close(self):
+        if self.__conn is not None:
+            self.__conn.close()
+
     def __del__(self):
         if self.__conn is not None:
             self.__conn.close()
