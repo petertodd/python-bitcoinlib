@@ -192,7 +192,6 @@ class BaseProxy(object):
         self.__conn = httplib.HTTPConnection(self.__url.hostname, port=port,
                                              timeout=timeout)
 
-
     def _call(self, service_name, *args):
         self.__id_count += 1
 
@@ -214,7 +213,6 @@ class BaseProxy(object):
                 'code': -343, 'message': 'missing JSON-RPC result'})
         else:
             return response['result']
-
 
     def _batch(self, rpc_call_list):
         postdata = json.dumps(list(rpc_call_list))
