@@ -175,6 +175,9 @@ class BaseProxy(object):
 
                     else:
                         raise ValueError('Cookie file unusable (%s) and rpcpassword not specified in the configuration file: %r' % (err, btc_conf_file))
+        else:
+            url = urlparse.urlparse(service_url)
+            authpair = "%s:%s" % (url.username, url.password)
 
         self.__service_url = service_url
         self.__url = urlparse.urlparse(service_url)
