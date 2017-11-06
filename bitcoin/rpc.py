@@ -197,7 +197,6 @@ class BaseProxy(object):
         self.__conn = httplib.HTTPConnection(self.__url.hostname, port=port,
                                              timeout=timeout)
 
-
     def _call(self, service_name, *args):
         self.__id_count += 1
 
@@ -226,7 +225,6 @@ class BaseProxy(object):
         else:
             return response['result']
 
-
     def _batch(self, rpc_call_list):
         postdata = json.dumps(list(rpc_call_list))
 
@@ -250,6 +248,10 @@ class BaseProxy(object):
 
         return json.loads(http_response.read().decode('utf8'),
                           parse_float=decimal.Decimal)
+
+    def close(self):
+        if self.__conn is not None:
+            self.__conn.close()
 
     def __del__(self):
         if self.__conn is not None:
