@@ -129,6 +129,7 @@ class BaseProxy(object):
         # __conn being created __del__() can detect the condition and handle it
         # correctly.
         self.__conn = None
+        authpair = None
 
         if service_url is None:
             # Figure out the path to the bitcoin.conf file
@@ -186,8 +187,12 @@ class BaseProxy(object):
         else:
             port = self.__url.port
         self.__id_count = 0
-        authpair = authpair.encode('utf8')
-        self.__auth_header = b"Basic " + base64.b64encode(authpair)
+
+        if authpair is None:
+            self.__auth_header = None
+        else:
+            authpair = authpair.encode('utf8')
+            self.__auth_header = b"Basic " + base64.b64encode(authpair)
 
         self.__conn = httplib.HTTPConnection(self.__url.hostname, port=port,
                                              timeout=timeout)
@@ -200,11 +205,17 @@ class BaseProxy(object):
                                'method': service_name,
                                'params': args,
                                'id': self.__id_count})
-        self.__conn.request('POST', self.__url.path, postdata,
-                            {'Host': self.__url.hostname,
-                             'User-Agent': DEFAULT_USER_AGENT,
-                             'Authorization': self.__auth_header,
-                             'Content-type': 'application/json'})
+
+        headers = {
+            'Host': self.__url.hostname,
+            'User-Agent': DEFAULT_USER_AGENT,
+            'Content-type': 'application/json',
+        }
+
+        if self.__auth_header is not None:
+            headers['Authorization'] = self.__auth_header
+
+        self.__conn.request('POST', self.__url.path, postdata, headers)
 
         response = self._get_response()
         if response['error'] is not None:
@@ -218,12 +229,17 @@ class BaseProxy(object):
 
     def _batch(self, rpc_call_list):
         postdata = json.dumps(list(rpc_call_list))
-        self.__conn.request('POST', self.__url.path, postdata,
-                            {'Host': self.__url.hostname,
-                             'User-Agent': DEFAULT_USER_AGENT,
-                             'Authorization': self.__auth_header,
-                             'Content-type': 'application/json'})
 
+        headers = {
+            'Host': self.__url.hostname,
+            'User-Agent': DEFAULT_USER_AGENT,
+            'Content-type': 'application/json',
+        }
+
+        if self.__auth_header is not None:
+            headers['Authorization'] = self.__auth_header
+
+        self.__conn.request('POST', self.__url.path, postdata, headers)
         return self._get_response()
 
     def _get_response(self):
