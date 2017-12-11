@@ -1,5 +1,13 @@
 # python-bitcoinlib release notes
 
+## v0.9.0
+
+Now supports segwit, which breaks the API in minor ways from v0.8.0. This
+version introduces lots of new API functionality related to this, such as the
+new `CScriptWitness`, `CTxInWitness`, `CTxWitness`, new sigwit-specific logic
+in `SignatureHash()` etc.
+
+
 ## v0.8.0
 
 Major breaking API change!
