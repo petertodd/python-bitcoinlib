@@ -1,1 +1,2 @@
 include LICENSE README.md
+graft bitcoin/tests/data/
