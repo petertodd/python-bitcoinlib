@@ -131,6 +131,7 @@ class msg_version(MsgSerializable):
         self.strSubVer = (b'/python-bitcoinlib:' +
                           bitcoin.__version__.encode('ascii') + b'/')
         self.nStartingHeight = -1
+        self.fRelay = True
 
     @classmethod
     def msg_deser(cls, f, protover=PROTO_VERSION):
@@ -154,6 +155,10 @@ class msg_version(MsgSerializable):
             c.nNonce = None
             c.strSubVer = None
             c.nStartingHeight = None
+        if c.nVersion >= 70001:
+            c.fRelay = struct.unpack(b"<B", ser_read(f,1))[0]
+        else:
+            c.fRelay = None
         return c
  
     def msg_ser(self, f):
@@ -165,9 +170,10 @@ class msg_version(MsgSerializable):
         f.write(struct.pack(b"<Q", self.nNonce))
         VarStringSerializer.stream_serialize(self.strSubVer, f)
         f.write(struct.pack(b"<i", self.nStartingHeight))
+        f.write(struct.pack(b"<B", self.fRelay))
 
     def __repr__(self):
-        return "msg_version(nVersion=%i nServices=%i nTime=%s addrTo=%s addrFrom=%s nNonce=0x%016X strSubVer=%s nStartingHeight=%i)" % (self.nVersion, self.nServices, time.ctime(self.nTime), repr(self.addrTo), repr(self.addrFrom), self.nNonce, self.strSubVer, self.nStartingHeight)
+        return "msg_version(nVersion=%i nServices=%i nTime=%s addrTo=%s addrFrom=%s nNonce=0x%016X strSubVer=%s nStartingHeight=%i fRelay=%r)" % (self.nVersion, self.nServices, time.ctime(self.nTime), repr(self.addrTo), repr(self.addrFrom), self.nNonce, self.strSubVer, self.nStartingHeight, self.fRelay)
 
 
 class msg_verack(MsgSerializable):
