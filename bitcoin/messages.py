@@ -158,7 +158,7 @@ class msg_version(MsgSerializable):
         if c.nVersion >= 70001:
             c.fRelay = struct.unpack(b"<B", ser_read(f,1))[0]
         else:
-            c.fRelay = None
+            c.fRelay = True
         return c
  
     def msg_ser(self, f):
