@@ -761,7 +761,7 @@ class CoreRegTestParams(CoreTestNetParams):
 """Master global setting for what core chain params we're using"""
 coreparams = CoreMainParams()
 
-def _SelectCoreParams(name):
+def _SelectCoreParams(name, generic_params_object=None):
     """Select the core chain parameters to use
 
     Don't use this directly, use bitcoin.SelectParams() instead so both
@@ -774,6 +774,8 @@ def _SelectCoreParams(name):
         coreparams = CoreTestNetParams()
     elif name == 'regtest':
         coreparams = CoreRegTestParams()
+    elif generic_params_object:
+        coreparams = generic_params_object
     else:
         raise ValueError('Unknown chain %r' % name)
 
