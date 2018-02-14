@@ -61,7 +61,7 @@ bitcoin.core.params correctly too.
 #params = bitcoin.core.coreparams = MainParams()
 params = MainParams()
 
-def SelectParams(name):
+def SelectParams(name, generic_params_object=None):
     """Select the chain parameters to use
 
     name is one of 'mainnet', 'testnet', or 'regtest'
@@ -69,12 +69,22 @@ def SelectParams(name):
     Default chain is 'mainnet'
     """
     global params
-    bitcoin.core._SelectCoreParams(name)
+    bitcoin.core._SelectCoreParams(name, generic_params_object)
     if name == 'mainnet':
         params = bitcoin.core.coreparams = MainParams()
     elif name == 'testnet':
         params = bitcoin.core.coreparams = TestNetParams()
     elif name == 'regtest':
         params = bitcoin.core.coreparams = RegTestParams()
+    elif generic_params_object:
+        params = bitcoin.core.coreparams = generic_params_object
     else:
         raise ValueError('Unknown chain %r' % name)
+
+
+class GenericParams(bitcoin.core.CoreChainParams):
+    MESSAGE_START = b''
+    DEFAULT_PORT = None
+    RPC_PORT = None
+    DNS_SEEDS = ()
+    BASE58_PREFIXES = {}
