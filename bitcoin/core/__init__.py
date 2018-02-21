@@ -409,7 +409,7 @@ class CTransaction(ImmutableSerializable):
         """Create a coinbase transaction
 
         blockHeight is the new blockheight. reward is the sum of all rewards that
-        will be collected by the miner, in satoshis. outscript is the output script.
+        will be collected by the miner, in bitcoins. outscript is the output script.
         """
         return CTransaction(
             vin = [CTxIn(scriptSig=CScript([blockHeight.to_bytes(4,'little'), x('01')]))],
