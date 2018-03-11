@@ -162,7 +162,7 @@ class BaseProxy(object):
                 service_url = ('%s://%s:%d' %
                     ('http', conf['rpchost'], conf['rpcport']))
 
-                cookie_dir = os.path.dirname(btc_conf_file)
+                cookie_dir = conf.get('datadir', os.path.dirname(btc_conf_file))
                 if bitcoin.params.NAME != "mainnet":
                     cookie_dir = os.path.join(cookie_dir, bitcoin.params.NAME)
                 cookie_file = os.path.join(cookie_dir, ".cookie")
