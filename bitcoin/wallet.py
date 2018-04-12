@@ -250,7 +250,7 @@ class CBitcoinSecret(bitcoin.base58.CBase58Data, CKey):
             raise CBitcoinSecretError('Not a base58-encoded secret key: got nVersion=%d; expected nVersion=%d' % \
                                       (self.nVersion, bitcoin.params.BASE58_PREFIXES['SECRET_KEY']))
 
-        CKey.__init__(self, self[0:32], len(self) > 32 and _bord(self[32]) == 1)
+        CKey.__init__(self, self[0:32], len(self) > 32)
 
 
 __all__ = (
