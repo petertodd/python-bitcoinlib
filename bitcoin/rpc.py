@@ -1,5 +1,5 @@
 # Copyright (C) 2007 Jan-Klaas Kollhof
-# Copyright (C) 2011-2015 The python-bitcoinlib developers
+# Copyright (C) 2011-2018 The python-bitcoinlib developers
 #
 # This file is part of python-bitcoinlib.
 #
@@ -300,7 +300,7 @@ class Proxy(BaseProxy):
     Unlike ``RawProxy``, data is passed as ``bitcoin.core`` objects or packed
     bytes, rather than JSON or hex strings. Not all methods are implemented
     yet; you can use ``call`` to access missing ones in a forward-compatible
-    way. Assumes Bitcoin Core version >= v0.15.0; older versions mostly work,
+    way. Assumes Bitcoin Core version >= v0.16.0; older versions mostly work,
     but there are a few incompatibilities.
     """
 

@@ -47,7 +47,7 @@ class TestNetParams(bitcoin.core.CoreTestNetParams):
 class RegTestParams(bitcoin.core.CoreRegTestParams):
     MESSAGE_START = b'\xfa\xbf\xb5\xda'
     DEFAULT_PORT = 18444
-    RPC_PORT = 18332
+    RPC_PORT = 18443
     DNS_SEEDS = ()
     BASE58_PREFIXES = {'PUBKEY_ADDR':111,
                        'SCRIPT_ADDR':196,
