@@ -1,5 +1,17 @@
 # python-bitcoinlib release notes
 
+## v0.10.0
+
+Minor breaking change: RPC port for regtest updated to the new v0.16.0 default.
+
+Other changes:
+
+* Now looks for `.cookie` files in the datadir, if specified.
+* Authentication in a RPC `service_url` is now parsed.
+* Implemented bip-0037 version message.
+* `contrib/verify-commits/` removed for now due to breakage.
+
+
 ## v0.9.0
 
 Now supports segwit, which breaks the API in minor ways from v0.8.0. This

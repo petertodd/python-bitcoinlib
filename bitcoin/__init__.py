@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2017 The python-bitcoinlib developers
+# Copyright (C) 2012-2018 The python-bitcoinlib developers
 #
 # This file is part of python-bitcoinlib.
 #
@@ -16,7 +16,7 @@ import bitcoin.core
 # Note that setup.py can break if __init__.py imports any external
 # dependencies, as these might not be installed when setup.py runs. In this
 # case __version__ could be moved to a separate version.py and imported here.
-__version__ = '0.9.1dev'
+__version__ = '0.10.0'
 
 class MainParams(bitcoin.core.CoreMainParams):
     MESSAGE_START = b'\xf9\xbe\xb4\xd9'
