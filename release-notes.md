@@ -1,5 +1,11 @@
 # python-bitcoinlib release notes
 
+## v0.10.1
+
+Identical in every way to v0.10.0, but re-uploaded under a new version to fix a
+PyPi issue.
+
+
 ## v0.10.0
 
 Minor breaking change: RPC port for regtest updated to the new v0.16.0 default.
