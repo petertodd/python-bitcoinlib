@@ -298,7 +298,7 @@ class VarStringSerializer(Serializer):
     def stream_serialize(cls, s, f):
         l = len(s)
         VarIntSerializer.stream_serialize(l, f)
-        f.write(s)
+        f.write(s.encode())
 
     @classmethod
     def stream_deserialize(cls, f):
