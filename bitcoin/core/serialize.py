@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2014 The python-bitcoinlib developers
+# Copyright (C) 2012-2018 The python-bitcoinlib developers
 #
 # This file is part of python-bitcoinlib.
 #
@@ -293,7 +293,7 @@ class intVectorSerializer(Serializer):
 
 
 class VarStringSerializer(Serializer):
-    """Serialize variable length strings"""
+    """Serialize variable length byte strings"""
     @classmethod
     def stream_serialize(cls, s, f):
         l = len(s)
