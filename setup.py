@@ -15,6 +15,7 @@ setup(name='python-bitcoinlib',
       version=__version__,
       description='The Swiss Army Knife of the Bitcoin protocol.',
       long_description=README,
+      long_description_content_type='text/markdown',
       classifiers=[
           "Programming Language :: Python",
           "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
