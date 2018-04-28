@@ -404,6 +404,20 @@ class CTransaction(ImmutableSerializable):
         object.__setattr__(self, 'vout', tuple(CTxOut.from_txout(txout) for txout in vout))
         object.__setattr__(self, 'wit', CTxWitness.from_txwitness(witness))
 
+    @staticmethod
+    def createCoinbaseTransaction(blockHeight, reward, outscript):
+        """Create a coinbase transaction
+
+        blockHeight is the new blockheight. reward is the sum of all rewards that
+        will be collected by the miner, in bitcoins. outscript is the output script.
+        """
+        byteLength = int(blockHeight).bit_length()/8
+        byteLength += (byteLength % 1 != 0) # round up
+        return CTransaction(
+            vin = [CTxIn(scriptSig=CScript([blockHeight.to_bytes(int(byteLength),'little'), x('01')]))],
+            vout = [CTxOut(reward, outscript)]
+        )
+
     @classmethod
     def stream_deserialize(cls, f):
         """Deserialize transaction
