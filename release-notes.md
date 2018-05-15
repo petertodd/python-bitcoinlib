@@ -1,4 +1,9 @@
-# python-bitcoinlib release notes
+# python-altcoinlib release notes
+
+## v0.9.1
+
+Support for Bitcoin-based networks via `GenericParams`.
+
 
 ## v0.9.0
 

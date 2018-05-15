@@ -1,4 +1,7 @@
-# python-bitcoinlib
+# python-altcoinlib
+
+Fork of [python-bitcoinlib](https://github.com/petertodd/python-bitcoinlib) with
+support for Bitcoin-based networks.
 
 This Python2/3 library provides an easy interface to the bitcoin data
 structures and protocol. The approach is low-level and "ground up", with a
