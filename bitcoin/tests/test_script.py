@@ -256,6 +256,14 @@ class Test_CScript(unittest.TestCase):
         T(CScript(x('614c0200')),
           "CScript([OP_NOP, x('00')...<ERROR: PUSHDATA1: truncated data>])")
 
+    def test_is_p2pkh(self):
+        def T(serialized, b):
+            script = CScript(x(serialized))
+            self.assertEqual(script.is_p2pkh(), b)
+
+        # standard P2PKH
+        T('76a914f7b239536e70da1491d88dd1180cdeb0c6fe399088ac', True)
+
     def test_is_p2sh(self):
         def T(serialized, b):
             script = CScript(x(serialized))

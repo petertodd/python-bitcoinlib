@@ -667,6 +667,13 @@ class CScript(bytes):
 
         return "CScript([%s])" % ', '.join(ops)
 
+    def is_p2pkh(self):
+        """Returns true if this is a scriptpubkey for P2PKH. """
+        return (_bord(self[0]) == OP_DUP and
+                _bord(self[1]) == OP_HASH160 and
+                _bord(self[-2]) == OP_EQUALVERIFY and
+                _bord(self[-1]) == OP_CHECKSIG)
+
     def is_p2sh(self):
         """Test if the script is a p2sh scriptPubKey
 
