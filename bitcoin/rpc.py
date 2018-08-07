@@ -562,7 +562,7 @@ class Proxy(BaseProxy):
         r = self._call('getreceivedbyaddress', str(addr), minconf)
         return int(r * COIN)
 
-    def gettransaction(self, txid):
+    def gettransaction(self, txid, includewatchonly=False):
         """Get detailed information about in-wallet transaction txid
 
         Raises IndexError if transaction not found in the wallet.
@@ -570,7 +570,7 @@ class Proxy(BaseProxy):
         FIXME: Returned data types are not yet converted.
         """
         try:
-            r = self._call('gettransaction', b2lx(txid))
+            r = self._call('gettransaction', b2lx(txid), includewatchonly)
         except InvalidAddressOrKeyError as ex:
             raise IndexError('%s.getrawtransaction(): %s (%d)' %
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
