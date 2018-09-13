@@ -123,7 +123,8 @@ class BaseProxy(object):
                  service_url=None,
                  service_port=None,
                  btc_conf_file=None,
-                 timeout=DEFAULT_HTTP_TIMEOUT):
+                 timeout=DEFAULT_HTTP_TIMEOUT,
+                 connection=None):
 
         # Create a dummy connection early on so if __init__() fails prior to
         # __conn being created __del__() can detect the condition and handle it
@@ -204,8 +205,11 @@ class BaseProxy(object):
             authpair = authpair.encode('utf8')
             self.__auth_header = b"Basic " + base64.b64encode(authpair)
 
-        self.__conn = httplib.HTTPConnection(self.__url.hostname, port=port,
-                                             timeout=timeout)
+        if connection:
+            self.__conn = connection
+        else:
+            self.__conn = httplib.HTTPConnection(self.__url.hostname, port=port,
+                                                 timeout=timeout)
 
     def _call(self, service_name, *args):
         self.__id_count += 1
