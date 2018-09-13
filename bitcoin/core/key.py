@@ -32,6 +32,12 @@ import bitcoin.core.script
 
 _ssl = ctypes.cdll.LoadLibrary(ctypes.util.find_library('ssl') or 'libeay32')
 
+_libsecp256k1_path = ctypes.util.find_library('secp256k1')
+_libsecp256k1_enable_signing = False
+_libsecp256k1_context = None
+_libsecp256k1 = None
+
+
 class OpenSSLException(EnvironmentError):
     pass
 
@@ -185,11 +191,48 @@ _ssl.i2o_ECPublicKey.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
 _ssl.o2i_ECPublicKey.restype = ctypes.c_void_p
 _ssl.o2i_ECPublicKey.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_long]
 
+_ssl.BN_num_bits.restype = ctypes.c_int
+_ssl.BN_num_bits.argtypes = [ctypes.c_void_p]
+_ssl.EC_KEY_get0_private_key.restype = ctypes.c_void_p
+
 # this specifies the curve used with ECDSA.
 _NID_secp256k1 = 714 # from openssl/obj_mac.h
 
 # test that OpenSSL supports secp256k1
 _ssl.EC_KEY_new_by_curve_name(_NID_secp256k1)
+
+SECP256K1_FLAGS_TYPE_CONTEXT = (1 << 0)
+SECP256K1_FLAGS_BIT_CONTEXT_SIGN = (1 << 9)
+SECP256K1_CONTEXT_SIGN = \
+    (SECP256K1_FLAGS_TYPE_CONTEXT | SECP256K1_FLAGS_BIT_CONTEXT_SIGN)
+
+
+def is_libsec256k1_available():
+    return _libsecp256k1_path is not None
+
+
+def use_libsecp256k1_for_signing(do_use):
+    global _libsecp256k1
+    global _libsecp256k1_context
+    global _libsecp256k1_enable_signing
+
+    if not do_use:
+        _libsecp256k1_enable_signing = False
+        return
+
+    if not is_libsec256k1_available():
+        raise ImportError("unable to locate libsecp256k1")
+
+    if _libsecp256k1_context is None:
+        _libsecp256k1 = ctypes.cdll.LoadLibrary(_libsecp256k1_path)
+        _libsecp256k1.secp256k1_context_create.restype = ctypes.c_void_p
+        _libsecp256k1.secp256k1_context_create.errcheck = _check_res_void_p
+        _libsecp256k1_context = _libsecp256k1.secp256k1_context_create(SECP256K1_CONTEXT_SIGN)
+        assert(_libsecp256k1_context is not None)
+
+    _libsecp256k1_enable_signing = True
+
+
 
 # From openssl/ecdsa.h
 class ECDSA_SIG_st(ctypes.Structure):
@@ -258,11 +301,38 @@ class CECKey:
         r = self.get_raw_ecdh_key(other_pubkey)
         return kdf(r)
 
+    def get_raw_privkey(self):
+        bn = _ssl.EC_KEY_get0_private_key(self.k)
+        bn = ctypes.c_void_p(bn)
+        size = (_ssl.BN_num_bits(bn) + 7) / 8
+        mb = ctypes.create_string_buffer(int(size))
+        _ssl.BN_bn2bin(bn, mb)
+        return mb.raw.rjust(32, b'\x00')
+
+    def _sign_with_libsecp256k1(self, hash):
+        raw_sig = ctypes.create_string_buffer(64)
+        result = _libsecp256k1.secp256k1_ecdsa_sign(
+            _libsecp256k1_context, raw_sig, hash, self.get_raw_privkey(), None, None)
+        assert 1 == result
+        sig_size0 = ctypes.c_size_t()
+        sig_size0.value = 75
+        mb_sig = ctypes.create_string_buffer(sig_size0.value)
+        result = _libsecp256k1.secp256k1_ecdsa_signature_serialize_der(
+            _libsecp256k1_context, mb_sig, ctypes.byref(sig_size0), raw_sig)
+        assert 1 == result
+        # libsecp256k1 creates signatures already in lower-S form, no further
+        # conversion needed.
+        return mb_sig.raw[:sig_size0.value]
+
+
     def sign(self, hash): # pylint: disable=redefined-builtin
         if not isinstance(hash, bytes):
             raise TypeError('Hash must be bytes instance; got %r' % hash.__class__)
         if len(hash) != 32:
             raise ValueError('Hash must be exactly 32 bytes long')
+
+        if _libsecp256k1_enable_signing:
+            return self._sign_with_libsecp256k1(hash)
 
         sig_size0 = ctypes.c_uint32()
         sig_size0.value = _ssl.ECDSA_size(self.k)
