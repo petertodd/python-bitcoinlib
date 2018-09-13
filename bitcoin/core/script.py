@@ -678,9 +678,23 @@ class CScript(bytes):
                 _bord(self[22]) == OP_EQUAL)
 
     def is_witness_scriptpubkey(self):
-        """Returns true if this is a scriptpubkey signaling segregated witness
-        data. """
-        return 3 <= len(self) <= 42 and CScriptOp(struct.unpack('<b',self[0:1])[0]).is_small_int()
+        """Returns true if this is a scriptpubkey signaling segregated witness data.
+
+        A witness program is any valid CScript that consists of a 1-byte push opcode
+        followed by a data push between 2 and 40 bytes.
+        """
+        size = len(self)
+        if size < 4 or size > 42:
+            return False
+
+        head = struct.unpack('<bb', self[:2])
+        if not CScriptOp(head[0]).is_small_int():
+            return False
+
+        if head[1] + 2 != size:
+            return False
+
+        return True
 
     def witness_version(self):
         """Returns the witness version on [0,16]. """
