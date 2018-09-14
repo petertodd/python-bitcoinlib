@@ -22,11 +22,14 @@ class Test_CBitcoinAddress(unittest.TestCase):
     def test_create_from_string(self):
         """Create CBitcoinAddress's from strings"""
 
-        def T(str_addr, expected_bytes, expected_nVersion, expected_class):
+        def T(str_addr, expected_bytes, expected_version, expected_class):
             addr = CBitcoinAddress(str_addr)
             self.assertEqual(addr.to_bytes(), expected_bytes)
-            self.assertEqual(addr.nVersion, expected_nVersion)
             self.assertEqual(addr.__class__, expected_class)
+            if isinstance(addr, CBase58BitcoinAddress):
+                self.assertEqual(addr.nVersion, expected_version)
+            elif isinstance(addr, CBech32BitcoinAddress):
+                self.assertEqual(addr.witver, expected_version)
 
         T('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
           x('62e907b15cbf27d5425399ebf6f0fb50ebb88f18'), 0,
@@ -35,6 +38,14 @@ class Test_CBitcoinAddress(unittest.TestCase):
         T('37k7toV1Nv4DfmQbmZ8KuZDQCYK9x5KpzP',
           x('4266fc6f2c2861d7fe229b279a79803afca7ba34'), 5,
           P2SHBitcoinAddress)
+
+        T('BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4',
+          x('751e76e8199196d454941c45d1b3a323f1433bd6'), 0,
+          P2WPKHBitcoinAddress)
+
+        T('bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9',
+          x('c7a1f1a4d6b4c1802a59631966a18359de779e8a6a65973735a3ccdfdabc407d'), 0,
+          P2WSHBitcoinAddress)
 
     def test_wrong_nVersion(self):
         """Creating a CBitcoinAddress from a unknown nVersion fails"""

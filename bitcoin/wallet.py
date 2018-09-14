@@ -81,7 +81,7 @@ class CBech32BitcoinAddress(bitcoin.bech32.CBech32Data, CBitcoinAddress):
         elif len(self) == 20:
             self.__class__ = P2WPKHBitcoinAddress
         else:
-           raise CBitcoinAddressError('witness program does not match any known segwit address format')
+            raise CBitcoinAddressError('witness program does not match any known segwit address format')
 
         return self
 
@@ -384,6 +384,8 @@ __all__ = (
         'CBech32BitcoinAddress',
         'P2SHBitcoinAddress',
         'P2PKHBitcoinAddress',
+        'P2WSHBitcoinAddress',
+        'P2WPKHBitcoinAddress',
         'CKey',
         'CBitcoinSecretError',
         'CBitcoinSecret',
