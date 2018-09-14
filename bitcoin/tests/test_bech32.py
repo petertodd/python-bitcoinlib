@@ -29,6 +29,7 @@ from binascii import unhexlify
 
 from bitcoin.core.script import CScript, OP_0, OP_1, OP_16
 from bitcoin.bech32 import *
+from bitcoin.segwit_addr import encode, decode
 
 
 def load_test_vectors(name):

@@ -73,3 +73,9 @@ class CBech32Data(bytes):
 
     def __repr__(self):
         return '%s(%r)' % (self.__class__.__name__, str(self))
+
+__all__ = (
+    'Bech32Error',
+    'Bech32ChecksumError',
+    'CBech32Data',
+)

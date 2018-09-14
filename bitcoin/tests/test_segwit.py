@@ -36,8 +36,8 @@ class Test_Segwit(unittest.TestCase):
         scriptpubkey  = CScript(x('00141d0f172a0ecb48aee1be1f2687d2963ae33f71a1'))
         value         = int(6*COIN)
 
-        address = CBitcoinAddress.from_scriptPubKey(scriptpubkey)
-        self.assertEqual(SignatureHash(address.to_scriptPubKey(), CTransaction.deserialize(unsigned_tx),
+        address = CBech32BitcoinAddress.from_scriptPubKey(scriptpubkey)
+        self.assertEqual(SignatureHash(address.to_redeemScript(), CTransaction.deserialize(unsigned_tx),
                 1, SIGHASH_ALL, value, SIGVERSION_WITNESS_V0),
             x('c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670'))
 
@@ -47,8 +47,8 @@ class Test_Segwit(unittest.TestCase):
         redeemscript  = CScript(x('001479091972186c449eb1ded22b78e40d009bdf0089'))
         value         = int(10*COIN)
 
-        address = CBitcoinAddress.from_scriptPubKey(redeemscript)
-        self.assertEqual(SignatureHash(address.to_scriptPubKey(), CTransaction.deserialize(unsigned_tx),
+        address = CBase58BitcoinAddress.from_scriptPubKey(redeemscript)
+        self.assertEqual(SignatureHash(address.to_redeemScript(), CTransaction.deserialize(unsigned_tx),
                 0, SIGHASH_ALL, value, SIGVERSION_WITNESS_V0),
             x('64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6'))
 
