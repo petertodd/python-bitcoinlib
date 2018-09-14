@@ -17,11 +17,14 @@ scriptPubKeys; currently there is no actual wallet support implemented.
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import array
 import sys
 
 _bord = ord
+_tobytes = lambda x: array.array('B', x).tostring()
 if sys.version > '3':
     _bord = lambda x: x
+    _tobytes = bytes
 
 import bitcoin
 import bitcoin.base58
@@ -72,9 +75,11 @@ class CBech32BitcoinAddress(bitcoin.bech32.CBech32Data, CBitcoinAddress):
     @classmethod
     def from_bytes(cls, witver, witprog):
 
-        assert(witver == 0)
-
-        self = super(CBech32BitcoinAddress, cls).from_bytes(witver, witprog)
+        assert witver == 0
+        self = super(CBech32BitcoinAddress, cls).from_bytes(
+            witver,
+            _tobytes(witprog)
+        )
 
         if len(self) == 32:
             self.__class__ = P2WSHBitcoinAddress
