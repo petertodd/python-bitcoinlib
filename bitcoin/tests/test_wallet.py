@@ -68,6 +68,12 @@ class Test_CBitcoinAddress(unittest.TestCase):
           P2SHBitcoinAddress)
         T('76a914000000000000000000000000000000000000000088ac', '1111111111111111111114oLvT2',
           P2PKHBitcoinAddress)
+        T('0014751e76e8199196d454941c45d1b3a323f1433bd6',
+          'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4',
+          P2WPKHBitcoinAddress)
+        T('0020c7a1f1a4d6b4c1802a59631966a18359de779e8a6a65973735a3ccdfdabc407d',
+          'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9',
+          P2WSHBitcoinAddress)
 
     def test_from_nonstd_scriptPubKey(self):
         """CBitcoinAddress.from_scriptPubKey() with non-standard scriptPubKeys"""
@@ -111,6 +117,23 @@ class Test_CBitcoinAddress(unittest.TestCase):
         with self.assertRaises(CBitcoinAddressError):
             CBitcoinAddress.from_scriptPubKey(scriptPubKey)
 
+    def test_to_redeemScript(self):
+        def T(str_addr, expected_scriptPubKey_hexbytes):
+            addr = CBitcoinAddress(str_addr)
+
+            actual_scriptPubKey = addr.to_redeemScript()
+            self.assertEqual(b2x(actual_scriptPubKey),
+                             expected_scriptPubKey_hexbytes)
+
+        T('31h1vYVSYuKP6AhS86fbRdMw9XHieotbST',
+          'a914000000000000000000000000000000000000000087')
+
+        T('1111111111111111111114oLvT2',
+          '76a914000000000000000000000000000000000000000088ac')
+
+        T('bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4',
+          '76a914751e76e8199196d454941c45d1b3a323f1433bd688ac')
+
     def test_to_scriptPubKey(self):
         """CBitcoinAddress.to_scriptPubKey() works"""
         def T(str_addr, expected_scriptPubKey_hexbytes):
@@ -125,10 +148,17 @@ class Test_CBitcoinAddress(unittest.TestCase):
         T('1111111111111111111114oLvT2',
           '76a914000000000000000000000000000000000000000088ac')
 
+
 class Test_P2SHBitcoinAddress(unittest.TestCase):
     def test_from_redeemScript(self):
-        addr = P2SHBitcoinAddress.from_redeemScript(CScript())
-        self.assertEqual(str(addr), '3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy')
+        def T(script, expected_str_address):
+            addr = P2SHBitcoinAddress.from_redeemScript(script)
+            self.assertEqual(str(addr), expected_str_address)
+
+        T(CScript(), '3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy')
+        T(CScript(x('76a914751e76e8199196d454941c45d1b3a323f1433bd688ac')),
+          '3LRW7jeCvQCRdPF8S3yUCfRAx4eqXFmdcr')
+
 
 class Test_P2PKHBitcoinAddress(unittest.TestCase):
     def test_from_non_canonical_scriptPubKey(self):
