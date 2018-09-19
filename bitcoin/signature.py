@@ -43,6 +43,7 @@ class DERSignature(ImmutableSerializable):
 
     def stream_serialize(self, f):
         f.write(b"\x30")
+        f.write(bytes([ len(r) + len(s) + 4 ]))
         f.write(b"\x02")
         BytesSerializer.stream_serialize(self.r, f)
         f.write(b"\x30")
