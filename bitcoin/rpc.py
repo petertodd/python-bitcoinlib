@@ -562,6 +562,9 @@ class Proxy(BaseProxy):
         r = self._call('getreceivedbyaddress', str(addr), minconf)
         return int(r * COIN)
 
+    def getblockchaininfo(self):
+        return self._call('getblockchaininfo')
+
     def gettransaction(self, txid, includewatchonly=False):
         """Get detailed information about in-wallet transaction txid
 
