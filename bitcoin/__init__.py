@@ -54,7 +54,7 @@ class RegTestParams(bitcoin.core.CoreRegTestParams):
     BASE58_PREFIXES = {'PUBKEY_ADDR':111,
                        'SCRIPT_ADDR':196,
                        'SECRET_KEY' :239}
-    BECH32_HRP = 'tb'
+    BECH32_HRP = 'bcrt'
 
 """Master global setting for what chain params we're using.
 
