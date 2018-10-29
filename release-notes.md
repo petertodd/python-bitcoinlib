@@ -22,7 +22,7 @@ Other changes:
 
 Now supports segwit, which breaks the API in minor ways from v0.8.0. This
 version introduces lots of new API functionality related to this, such as the
-new `CScriptWitness`, `CTxInWitness`, `CTxWitness`, new sigwit-specific logic
+new `CScriptWitness`, `CTxInWitness`, `CTxWitness`, new segwit-specific logic
 in `SignatureHash()` etc.
 
 
