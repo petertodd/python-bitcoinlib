@@ -19,6 +19,7 @@ import ctypes
 import ctypes.util
 import hashlib
 import sys
+from os import urandom
 import bitcoin
 import bitcoin.signature
 
@@ -227,8 +228,15 @@ def use_libsecp256k1_for_signing(do_use):
         _libsecp256k1 = ctypes.cdll.LoadLibrary(_libsecp256k1_path)
         _libsecp256k1.secp256k1_context_create.restype = ctypes.c_void_p
         _libsecp256k1.secp256k1_context_create.errcheck = _check_res_void_p
+        _libsecp256k1.secp256k1_context_randomize.restype = ctypes.c_int
+        _libsecp256k1.secp256k1_context_randomize.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
         _libsecp256k1_context = _libsecp256k1.secp256k1_context_create(SECP256K1_CONTEXT_SIGN)
         assert(_libsecp256k1_context is not None)
+        seed = urandom(32)
+        result = _libsecp256k1.secp256k1_context_randomize(_libsecp256k1_context, seed)
+        assert 1 == result
+
+
 
     _libsecp256k1_enable_signing = True
 
