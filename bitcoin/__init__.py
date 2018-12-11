@@ -53,6 +53,16 @@ class RegTestParams(bitcoin.core.CoreRegTestParams):
                        'SCRIPT_ADDR':196,
                        'SECRET_KEY' :239}
 
+## Crudely making this multi-coin aware!
+class RegTestDashParams(bitcoin.core.CoreRegTestParams):
+    #MESSAGE_START = b'\xfa\xbf\xb5\xda'
+    #DEFAULT_PORT = 18444
+    RPC_PORT = 19998
+    #DNS_SEEDS = ()
+    BASE58_PREFIXES = {'PUBKEY_ADDR':140,
+                       'SCRIPT_ADDR':19,
+                       'SECRET_KEY' :239}
+
 """Master global setting for what chain params we're using.
 
 However, don't set this directly, use SelectParams() instead so as to set the
@@ -64,17 +74,27 @@ params = MainParams()
 def SelectParams(name):
     """Select the chain parameters to use
 
-    name is one of 'mainnet', 'testnet', or 'regtest'
+    name is one of 'mainnet', 'testnet', 'regtest' or 'regtest-DASH'
 
     Default chain is 'mainnet'
     """
     global params
-    bitcoin.core._SelectCoreParams(name)
+
+
+    ## We are abusing 'name' to mean both network+COIN. There is
+    ## probably a much better way to do this!
+    core_name = name
+    if name == 'regtest-DASH':
+        core_name = 'regtest'
+    
+    bitcoin.core._SelectCoreParams(core_name)
     if name == 'mainnet':
         params = bitcoin.core.coreparams = MainParams()
     elif name == 'testnet':
         params = bitcoin.core.coreparams = TestNetParams()
     elif name == 'regtest':
         params = bitcoin.core.coreparams = RegTestParams()
+    elif name == 'regtest-DASH':
+        params = bitcoin.core.coreparams = RegTestDashParams()
     else:
         raise ValueError('Unknown chain %r' % name)
