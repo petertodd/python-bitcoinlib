@@ -449,6 +449,9 @@ class Proxy(BaseProxy):
             raise TypeError('%s.getblock(): block_hash must be bytes; got %r instance' %
                     (self.__class__.__name__, block_hash.__class__))
         try:
+            # With this change ( https://github.com/bitcoin/bitcoin/commit/96c850c20913b191cff9f66fedbb68812b1a41ea#diff-a0c8f511d90e83aa9b5857e819ced344 ),
+            # bitcoin core's rpc takes 0/1/2 instead of true/false as the 2nd argument which specifies verbosity, since v0.15.0.
+            # The change above is backward-compatible so far; the old "false" is taken as the new "0".
             r = self._call('getblock', block_hash, False)
         except InvalidAddressOrKeyError as ex:
             raise IndexError('%s.getblock(): %s (%d)' %
