@@ -562,6 +562,12 @@ class Proxy(BaseProxy):
         r = self._call('getreceivedbyaddress', str(addr), minconf)
         return int(r * COIN)
 
+    def getaddressesbyaccount(self, account):
+        return self._call('getaddressesbyaccount', account)
+
+    def decoderawtransaction(self, raw):
+        return self._call('decoderawtransaction', raw)
+
     def getblockchaininfo(self):
         return self._call('getblockchaininfo')
 
