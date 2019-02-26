@@ -53,7 +53,18 @@ class RegTestParams(bitcoin.core.CoreRegTestParams):
                        'SCRIPT_ADDR':196,
                        'SECRET_KEY' :239}
 
-## Crudely making this multi-coin aware!
+# DASH - https://github.com/dashpay/dash/blob/master/src/chainparams.cpp
+#      - https://github.com/dashpay/dash/blob/master/src/base58.h
+class MainDashParams(bitcoin.core.CoreMainParams):
+    RPC_PORT = 9998
+    BASE58_PREFIXES = {'PUBKEY_ADDR':76,
+                       'SCRIPT_ADDR':16,
+                       'SECRET_KEY' :204}
+class TestNetDashParams(bitcoin.core.CoreTestNetParams):
+    RPC_PORT = 19998
+    BASE58_PREFIXES = {'PUBKEY_ADDR':140,
+                       'SCRIPT_ADDR':19,
+                       'SECRET_KEY' :239}
 class RegTestDashParams(bitcoin.core.CoreRegTestParams):
     #MESSAGE_START = b'\xfa\xbf\xb5\xda'
     #DEFAULT_PORT = 18444
@@ -62,6 +73,47 @@ class RegTestDashParams(bitcoin.core.CoreRegTestParams):
     BASE58_PREFIXES = {'PUBKEY_ADDR':140,
                        'SCRIPT_ADDR':19,
                        'SECRET_KEY' :239}
+
+# Litecoin - https://github.com/litecoin-project/litecoin/blob/master/src/chainparams.cpp
+class MainLitecoinParams(bitcoin.core.CoreMainParams):
+    RPC_PORT = 9332
+    BASE58_PREFIXES = {'PUBKEY_ADDR':48,  # 0x30 - L addresses
+                       'SCRIPT_ADDR':50,  # 0x32 - new M addresses
+#                       'SCRIPT_ADDR':5,   # 0x05 - 3 addresses (deprecated)
+                       'SECRET_KEY' :176} 
+class TestNetLitecoinParams(bitcoin.core.CoreTestNetParams):
+    RPC_PORT = 19332
+    BASE58_PREFIXES = {'PUBKEY_ADDR':111,
+                       'SCRIPT_ADDR': 58,
+#                       'SCRIPT_ADDR':196,
+                       'SECRET_KEY' :239}
+class RegTestLitecoinParams(bitcoin.core.CoreRegTestParams):
+    RPC_PORT = 19332
+    BASE58_PREFIXES = {'PUBKEY_ADDR':111,  # 0x6f - m or n addresses
+                       'SCRIPT_ADDR': 58,  # 0x3a - new Q addresses
+#                       'SCRIPT_ADDR':196,  # 0xC4 - 2 addresses (deprecated)
+                       'SECRET_KEY' :239} 
+
+#
+# See:
+#   https://github.com/libbitcoin/libbitcoin-system/wiki/Altcoin-Version-Mappings
+#
+ClientParams = {}
+
+ClientParams["BTC"  ] = {}
+ClientParams["BTC" ]["mainnet"] =    MainParams;
+ClientParams["BTC" ]["testnet"] = TestNetParams;
+ClientParams["BTC" ]["regtest"] = RegTestParams;
+
+ClientParams["DASH" ] = {}
+ClientParams["DASH"]["mainnet"] =    MainDashParams;
+ClientParams["DASH"]["testnet"] = TestNetDashParams;
+ClientParams["DASH"]["regtest"] = RegTestDashParams;
+
+ClientParams["LTC"  ] = {}
+ClientParams["LTC" ]["mainnet"] =    MainLitecoinParams;
+ClientParams["LTC" ]["testnet"] = TestNetLitecoinParams;
+ClientParams["LTC" ]["regtest"] = RegTestLitecoinParams;
 
 """Master global setting for what chain params we're using.
 
@@ -81,20 +133,18 @@ def SelectParams(name):
     global params
 
 
-    ## We are abusing 'name' to mean both network+COIN. There is
-    ## probably a much better way to do this!
-    core_name = name
-    if name == 'regtest-DASH':
-        core_name = 'regtest'
-    
-    bitcoin.core._SelectCoreParams(core_name)
-    if name == 'mainnet':
-        params = bitcoin.core.coreparams = MainParams()
-    elif name == 'testnet':
-        params = bitcoin.core.coreparams = TestNetParams()
-    elif name == 'regtest':
-        params = bitcoin.core.coreparams = RegTestParams()
-    elif name == 'regtest-DASH':
-        params = bitcoin.core.coreparams = RegTestDashParams()
+    # Split the name into coin name and network name.
+    parts = name.split('-');
+    if len(parts)==1:
+        network = parts[0]
+        coin = "BTC"
     else:
-        raise ValueError('Unknown chain %r' % name)
+        network = parts[0]
+        coin = parts[1]
+
+    bitcoin.core._SelectCoreParams(network)
+    try:
+        params = ClientParams[coin][network]
+    except:
+        raise ValueError('Unknown chain %r and coin %r' % (network, coin))
+
