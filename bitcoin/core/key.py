@@ -211,16 +211,16 @@ class CECKey:
         self.k = None
 
     def set_secretbytes(self, secret):
-        priv_key = _ssl.BN_bin2bn(secret, 32, _ssl.BN_new())
+        priv_key = _ssl.BN_bin2bn(secret, 32, None)
         group = _ssl.EC_KEY_get0_group(self.k)
         pub_key = _ssl.EC_POINT_new(group)
         ctx = _ssl.BN_CTX_new()
         if not _ssl.EC_POINT_mul(group, pub_key, priv_key, None, None, ctx):
             raise ValueError("Could not derive public key from the supplied secret.")
-        _ssl.EC_POINT_mul(group, pub_key, priv_key, None, None, ctx)
         _ssl.EC_KEY_set_private_key(self.k, priv_key)
         _ssl.EC_KEY_set_public_key(self.k, pub_key)
         _ssl.EC_POINT_free(pub_key)
+        _ssl.BN_free(priv_key)
         _ssl.BN_CTX_free(ctx)
         return self.k
 
