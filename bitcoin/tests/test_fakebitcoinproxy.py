@@ -35,7 +35,7 @@ from bitcoin.wallet import (
     P2PKHBitcoinAddress,
 )
 
-from fakebitcoinproxy import (
+from bitcoin.tests.fakebitcoinproxy import (
     FakeBitcoinProxy,
     make_txout,
     make_blocks_from_blockhashes,
