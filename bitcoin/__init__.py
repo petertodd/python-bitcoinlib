@@ -53,6 +53,15 @@ class RegTestParams(bitcoin.core.CoreRegTestParams):
                        'SCRIPT_ADDR':196,
                        'SECRET_KEY' :239}
 
+class SimNetParams(bitcoin.core.CoreSimNetParams):
+    MESSAGE_START = b'\xfa\xbf\xb5\xda'
+    DEFAULT_PORT = 18555
+    RPC_PORT = 18554
+    DNS_SEEDS = ()
+    BASE58_PREFIXES = {'PUBKEY_ADDR':63,
+                       'SCRIPT_ADDR':123,
+                       'SECRET_KEY' :100}
+
 """Master global setting for what chain params we're using.
 
 However, don't set this directly, use SelectParams() instead so as to set the
@@ -76,5 +85,7 @@ def SelectParams(name):
         params = bitcoin.core.coreparams = TestNetParams()
     elif name == 'regtest':
         params = bitcoin.core.coreparams = RegTestParams()
+    elif name == 'simnet':
+        params = bitcoin.core.coreparams = SimNetParams()
     else:
         raise ValueError('Unknown chain %r' % name)
