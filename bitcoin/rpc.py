@@ -296,7 +296,10 @@ class RawProxy(BaseProxy):
 
     def __getattr__(self, name):
         if name.startswith('__') and name.endswith('__'):
-            # Python internal stuff
+            # Prevent RPC calls for non-existing python internal attribute
+            # access. If someone tries to get an internal attribute
+            # of RawProxy instance, and the instance does not have this
+            # attribute, we do not want the bogus RPC call to happen.
             raise AttributeError
 
         # Create a callable to do the actual call
