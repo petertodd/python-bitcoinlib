@@ -381,13 +381,29 @@ class Proxy(BaseProxy):
         return r
 
     def generate(self, numblocks):
-        """Mine blocks immediately (before the RPC call returns)
+        """
+        DEPRECATED (will be removed in bitcoin-core v0.19)
+        
+        Mine blocks immediately (before the RPC call returns)
 
         numblocks - How many blocks are generated immediately.
 
         Returns iterable of block hashes generated.
         """
         r = self._call('generate', numblocks)
+        return (lx(blk_hash) for blk_hash in r)
+    
+    def generatetoaddress(self, numblocks, addr):
+        """Mine blocks immediately (before the RPC call returns) and
+        allocate block reward to passed address. Replaces deprecated 
+        "generate(self,numblocks)" method.
+
+        numblocks - How many blocks are generated immediately.
+        addr     - Address to receive block reward (CBitcoinAddress instance)
+
+        Returns iterable of block hashes generated.
+        """
+        r = self._call('generatetoaddress', numblocks, str(addr))
         return (lx(blk_hash) for blk_hash in r)
 
     def getaccountaddress(self, account=None):
