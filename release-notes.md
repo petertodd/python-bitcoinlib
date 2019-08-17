@@ -1,5 +1,15 @@
 # python-bitcoinlib release notes
 
+## v0.10.2
+
+Note: this will be the last release of python-bitcoinlib with Python 2.7
+compatibility.
+
+* New RPC `generatetoaddress(self,numblocks,addr)`.
+* Fixed Python 2.7 incompatibility.
+* Various OpenSSL fixes, including a memory leak.
+
+
 ## v0.10.1
 
 Identical in every way to v0.10.0, but re-uploaded under a new version to fix a
