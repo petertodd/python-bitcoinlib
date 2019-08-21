@@ -231,8 +231,13 @@ class BaseProxy(object):
         self.__conn.request('POST', self.__url.path, postdata, headers)
 
         response = self._get_response()
-        if response['error'] is not None:
-            raise JSONRPCError(response['error'])
+        err = response.get('error')
+        if err is not None:
+            if isinstance(err, dict):
+                raise JSONRPCError(
+                    {'code': err.get('code', -345),
+                     'message': err.get('message', 'error message not specified')})
+            raise JSONRPCError({'code': -344, 'message': str(err)})
         elif 'result' not in response:
             raise JSONRPCError({
                 'code': -343, 'message': 'missing JSON-RPC result'})
@@ -260,8 +265,15 @@ class BaseProxy(object):
             raise JSONRPCError({
                 'code': -342, 'message': 'missing HTTP response from server'})
 
-        return json.loads(http_response.read().decode('utf8'),
-                          parse_float=decimal.Decimal)
+        rdata = http_response.read().decode('utf8')
+        try:
+            return json.loads(rdata, parse_float=decimal.Decimal)
+        except Exception:
+            raise JSONRPCError({
+                'code': -342,
+                'message': ('non-JSON HTTP response with \'%i %s\' from server: \'%.20s%s\''
+                            % (http_response.status, http_response.reason,
+                               rdata, '...' if len(rdata) > 20 else ''))})
 
     def close(self):
         if self.__conn is not None:
