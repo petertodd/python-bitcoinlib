@@ -705,7 +705,7 @@ class CScript(bytes):
         return len(self) == 22 and self[0:2] == b'\x00\x14'
 
     def is_witness_v0_nested_keyhash(self):
-        """Returns true if this is a scriptpubkey for V0 P2WPKH embedded in P2SH. """
+        """Returns true if this is a scriptSig for V0 P2WPKH embedded in P2SH. """
         return len(self) == 23 and self[0:3] == b'\x16\x00\x14'
 
     def is_witness_v0_scripthash(self):
@@ -713,8 +713,8 @@ class CScript(bytes):
         return len(self) == 34 and self[0:2] == b'\x00\x20'
 
     def is_witness_v0_nested_scripthash(self):
-        """Returns true if this is a scriptpubkey for V0 P2WSH embedded in P2SH. """
-        return len(self) == 23 and self[0:2] == b'\xa9\x14' and self[-1] == b'\x87'
+        """Returns true if this is a scriptSig for V0 P2WSH embedded in P2SH. """
+        return len(self) == 35 and self[0:3] == b'\x22\x00\x20'
 
     def is_push_only(self):
         """Test if the script only contains pushdata ops
