@@ -17,27 +17,106 @@ scriptPubKeys; currently there is no actual wallet support implemented.
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import array
 import sys
 
 _bord = ord
+_tobytes = lambda x: array.array('B', x).tostring()
 if sys.version > '3':
     _bord = lambda x: x
+    _tobytes = bytes
 
 import bitcoin
 import bitcoin.base58
+import bitcoin.bech32
 import bitcoin.core
 import bitcoin.core.key
 import bitcoin.core.script as script
 
-class CBitcoinAddressError(bitcoin.base58.Base58Error):
+
+class CBitcoinAddress(object):
+
+    def __new__(cls, s):
+        try:
+            return CBech32BitcoinAddress(s)
+        except bitcoin.bech32.Bech32Error:
+            pass
+
+        try:
+            return CBase58BitcoinAddress(s)
+        except bitcoin.base58.Base58Error:
+            pass
+
+        raise CBitcoinAddressError('Unrecognized encoding for bitcoin address')
+
+    @classmethod
+    def from_scriptPubKey(cls, scriptPubKey):
+        """Convert a scriptPubKey to a subclass of CBitcoinAddress"""
+        try:
+            return CBech32BitcoinAddress.from_scriptPubKey(scriptPubKey)
+        except CBitcoinAddressError:
+            pass
+
+        try:
+            return CBase58BitcoinAddress.from_scriptPubKey(scriptPubKey)
+        except CBitcoinAddressError:
+            pass
+
+        raise CBitcoinAddressError('scriptPubKey is not in a recognized address format')
+
+
+class CBitcoinAddressError(Exception):
     """Raised when an invalid Bitcoin address is encountered"""
 
-class CBitcoinAddress(bitcoin.base58.CBase58Data):
-    """A Bitcoin address"""
+
+class CBech32BitcoinAddress(bitcoin.bech32.CBech32Data, CBitcoinAddress):
+    """A Bech32-encoded Bitcoin address"""
+
+    @classmethod
+    def from_bytes(cls, witver, witprog):
+
+        assert witver == 0
+        self = super(CBech32BitcoinAddress, cls).from_bytes(
+            witver,
+            _tobytes(witprog)
+        )
+
+        if len(self) == 32:
+            self.__class__ = P2WSHBitcoinAddress
+        elif len(self) == 20:
+            self.__class__ = P2WPKHBitcoinAddress
+        else:
+            raise CBitcoinAddressError('witness program does not match any known segwit address format')
+
+        return self
+
+    @classmethod
+    def from_scriptPubKey(cls, scriptPubKey):
+        """Convert a scriptPubKey to a CBech32BitcoinAddress
+
+        Returns a CBech32BitcoinAddress subclass, either P2WSHBitcoinAddress or
+        P2WPKHBitcoinAddress. If the scriptPubKey is not recognized
+        CBitcoinAddressError will be raised.
+        """
+        try:
+            return P2WSHBitcoinAddress.from_scriptPubKey(scriptPubKey)
+        except CBitcoinAddressError:
+            pass
+
+        try:
+            return P2WPKHBitcoinAddress.from_scriptPubKey(scriptPubKey)
+        except CBitcoinAddressError:
+            pass
+
+        raise CBitcoinAddressError('scriptPubKey not a valid bech32-encoded address')
+
+
+class CBase58BitcoinAddress(bitcoin.base58.CBase58Data, CBitcoinAddress):
+    """A Base58-encoded Bitcoin address"""
 
     @classmethod
     def from_bytes(cls, data, nVersion):
-        self = super(CBitcoinAddress, cls).from_bytes(data, nVersion)
+        self = super(CBase58BitcoinAddress, cls).from_bytes(data, nVersion)
 
         if nVersion == bitcoin.params.BASE58_PREFIXES['SCRIPT_ADDR']:
             self.__class__ = P2SHBitcoinAddress
@@ -68,13 +147,10 @@ class CBitcoinAddress(bitcoin.base58.CBase58Data):
         except CBitcoinAddressError:
             pass
 
-        raise CBitcoinAddressError('scriptPubKey not a valid address')
+        raise CBitcoinAddressError('scriptPubKey not a valid base58-encoded address')
 
-    def to_scriptPubKey(self):
-        """Convert an address to a scriptPubKey"""
-        raise NotImplementedError
 
-class P2SHBitcoinAddress(CBitcoinAddress):
+class P2SHBitcoinAddress(CBase58BitcoinAddress):
     @classmethod
     def from_bytes(cls, data, nVersion=None):
         if nVersion is None:
@@ -112,7 +188,11 @@ class P2SHBitcoinAddress(CBitcoinAddress):
         assert self.nVersion == bitcoin.params.BASE58_PREFIXES['SCRIPT_ADDR']
         return script.CScript([script.OP_HASH160, self, script.OP_EQUAL])
 
-class P2PKHBitcoinAddress(CBitcoinAddress):
+    def to_redeemScript(self):
+        return self.to_scriptPubKey()
+
+
+class P2PKHBitcoinAddress(CBase58BitcoinAddress):
     @classmethod
     def from_bytes(cls, data, nVersion=None):
         if nVersion is None:
@@ -204,6 +284,55 @@ class P2PKHBitcoinAddress(CBitcoinAddress):
         assert self.nVersion == bitcoin.params.BASE58_PREFIXES['PUBKEY_ADDR']
         return script.CScript([script.OP_DUP, script.OP_HASH160, self, script.OP_EQUALVERIFY, script.OP_CHECKSIG])
 
+    def to_redeemScript(self):
+        return self.to_scriptPubKey()
+
+
+class P2WSHBitcoinAddress(CBech32BitcoinAddress):
+
+    @classmethod
+    def from_scriptPubKey(cls, scriptPubKey):
+        """Convert a scriptPubKey to a P2WSH address
+
+        Raises CBitcoinAddressError if the scriptPubKey isn't of the correct
+        form.
+        """
+        if scriptPubKey.is_witness_v0_scripthash():
+            return cls.from_bytes(0, scriptPubKey[2:34])
+        else:
+            raise CBitcoinAddressError('not a P2WSH scriptPubKey')
+
+    def to_scriptPubKey(self):
+        """Convert an address to a scriptPubKey"""
+        assert self.witver == 0
+        return script.CScript([0, self])
+
+    def to_redeemScript(self):
+        return NotImplementedError("not enough data in p2wsh address to reconstruct redeem script")
+
+
+class P2WPKHBitcoinAddress(CBech32BitcoinAddress):
+
+    @classmethod
+    def from_scriptPubKey(cls, scriptPubKey):
+        """Convert a scriptPubKey to a P2WSH address
+
+        Raises CBitcoinAddressError if the scriptPubKey isn't of the correct
+        form.
+        """
+        if scriptPubKey.is_witness_v0_keyhash():
+            return cls.from_bytes(0, scriptPubKey[2:22])
+        else:
+            raise CBitcoinAddressError('not a P2WSH scriptPubKey')
+
+    def to_scriptPubKey(self):
+        """Convert an address to a scriptPubKey"""
+        assert self.witver == 0
+        return script.CScript([0, self])
+
+    def to_redeemScript(self):
+        return script.CScript([script.OP_DUP, script.OP_HASH160, self, script.OP_EQUALVERIFY, script.OP_CHECKSIG])
+
 class CKey(object):
     """An encapsulated private key
 
@@ -256,8 +385,12 @@ class CBitcoinSecret(bitcoin.base58.CBase58Data, CKey):
 __all__ = (
         'CBitcoinAddressError',
         'CBitcoinAddress',
+        'CBase58BitcoinAddress',
+        'CBech32BitcoinAddress',
         'P2SHBitcoinAddress',
         'P2PKHBitcoinAddress',
+        'P2WSHBitcoinAddress',
+        'P2WPKHBitcoinAddress',
         'CKey',
         'CBitcoinSecretError',
         'CBitcoinSecret',
