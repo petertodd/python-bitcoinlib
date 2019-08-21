@@ -1,6 +1,6 @@
 # python-bitcoinlib
 
-This Python2/3 library provides an easy interface to the bitcoin data
+This Python3 library provides an easy interface to the bitcoin data
 structures and protocol. The approach is low-level and "ground up", with a
 focus on providing tools to manipulate the internals of how Bitcoin works.
 
@@ -95,9 +95,7 @@ the Satoshi codebase.
 
 Under bitcoin/tests using test data from Bitcoin Core. To run them:
 
-    python -m unittest discover && python3 -m unittest discover
-
-Please run the tests on both Python2 and Python3 for your pull-reqs!
+    python3 -m unittest discover
 
 Alternately, if Tox (see https://tox.readthedocs.org/) is available on your
 system, you can run unit tests for multiple Python versions:
@@ -107,11 +105,9 @@ system, you can run unit tests for multiple Python versions:
 Currently, the following implementations are tried (any not installed are
 skipped):
 
-    * CPython 2.7
     * CPython 3.3
     * CPython 3.4
     * CPython 3.5
-    * PyPy
     * PyPy3
 
 HTML coverage reports can then be found in the htmlcov/ subdirectory.

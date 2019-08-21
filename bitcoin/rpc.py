@@ -42,13 +42,6 @@ try:
 except ImportError:
     import urlparse
 
-# needed for python2 compatibility
-if sys.version < '3':
-    try:
-        FileNotFoundError
-    except NameError:
-        FileNotFoundError = IOError
-
 import bitcoin
 from bitcoin.core import COIN, x, lx, b2lx, CBlock, CBlockHeader, CTransaction, COutPoint, CTxOut
 from bitcoin.core.script import CScript
