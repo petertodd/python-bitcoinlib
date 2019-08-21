@@ -102,14 +102,6 @@ system, you can run unit tests for multiple Python versions:
 
     ./runtests.sh
 
-Currently, the following implementations are tried (any not installed are
-skipped):
-
-    * CPython 3.3
-    * CPython 3.4
-    * CPython 3.5
-    * PyPy3
-
 HTML coverage reports can then be found in the htmlcov/ subdirectory.
 
 ## Documentation
