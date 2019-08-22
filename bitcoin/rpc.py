@@ -719,6 +719,18 @@ class Proxy(BaseProxy):
         del r['hex']
         return r
 
+    def signrawtransactionwithwallet(self, tx, *args):
+        """Sign inputs for transaction
+            bicoincore >= 0.17.x
+
+        FIXME: implement options
+        """
+        hextx = hexlify(tx.serialize())
+        r = self._call('signrawtransactionwithwallet', hextx, *args)
+        r['tx'] = CTransaction.deserialize(unhexlify(r['hex']))
+        del r['hex']
+        return r
+
     def submitblock(self, block, params=None):
         """Submit a new block to the network.
 
