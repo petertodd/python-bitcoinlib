@@ -130,8 +130,9 @@ while padded_lines:
         redeemScript = []
         for chunk in reversed(lines):
             if len(chunk) > MAX_SCRIPT_ELEMENT_SIZE:
-                parser.exit('Lines must be less than %d characters; got %d characters' %\
-                                    (MAX_SCRIPT_ELEMENT_SIZE, len(chunk)))
+                parser.exit(status=-1,
+                            message=('Lines must be less than %d characters; got %d characters\n' %\
+                                     (MAX_SCRIPT_ELEMENT_SIZE, len(chunk))))
             redeemScript.extend([OP_HASH160, Hash160(chunk), OP_EQUALVERIFY])
         redeemScript = CScript(redeemScript +
                                [args.privkey.pub, OP_CHECKSIGVERIFY,
