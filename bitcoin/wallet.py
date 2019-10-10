@@ -323,7 +323,7 @@ class P2WPKHBitcoinAddress(CBech32BitcoinAddress):
         if scriptPubKey.is_witness_v0_keyhash():
             return cls.from_bytes(0, scriptPubKey[2:22])
         else:
-            raise CBitcoinAddressError('not a P2WSH scriptPubKey')
+            raise CBitcoinAddressError('not a P2WPKH scriptPubKey')
 
     def to_scriptPubKey(self):
         """Convert an address to a scriptPubKey"""
