@@ -516,6 +516,10 @@ class Proxy(BaseProxy):
         if 'paytxfee' in r:
             r['paytxfee'] = int(r['paytxfee'] * COIN)
         return r
+    
+    def getnetworkinfo(self):
+        """Return a JSON object containing various state info"""
+        return self._call('getnetworkinfo')
 
     def getmininginfo(self):
         """Return a JSON object containing mining-related information"""
