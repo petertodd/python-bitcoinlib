@@ -509,13 +509,17 @@ class Proxy(BaseProxy):
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
 
     def getinfo(self):
-        """Return a JSON object containing various state info"""
-        r = self._call('getinfo')
-        if 'balance' in r:
-            r['balance'] = int(r['balance'] * COIN)
-        if 'paytxfee' in r:
-            r['paytxfee'] = int(r['paytxfee'] * COIN)
-        return r
+        try:
+           """Return a JSON object containing various state info"""
+           r = self._call('getinfo')
+           if 'balance' in r:
+              r['balance'] = int(r['balance'] * COIN)
+           if 'paytxfee' in r:
+              r['paytxfee'] = int(r['paytxfee'] * COIN)
+           return r
+        except:
+           print("getnetworkinfo replaces getinfo on versions > 0.16.0, please use getnetworkinfo()")
+           return self._call('getnetworkinfo')
     
     def getnetworkinfo(self):
         """Return a JSON object containing various state info"""
