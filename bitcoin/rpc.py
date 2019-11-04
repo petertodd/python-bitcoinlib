@@ -37,6 +37,7 @@ import json
 import os
 import platform
 import sys
+import warnings
 try:
     import urllib.parse as urlparse
 except ImportError:
@@ -510,16 +511,18 @@ class Proxy(BaseProxy):
 
     def getinfo(self):
         try:
-           """Return a JSON object containing various state info"""
-           r = self._call('getinfo')
-           if 'balance' in r:
-              r['balance'] = int(r['balance'] * COIN)
-           if 'paytxfee' in r:
-              r['paytxfee'] = int(r['paytxfee'] * COIN)
-           return r
+            """Return a JSON object containing various state info"""
+            r = self._call('getinfo')
+            if 'balance' in r:
+               r['balance'] = int(r['balance'] * COIN)
+            if 'paytxfee' in r:
+               r['paytxfee'] = int(r['paytxfee'] * COIN)
+            return r
         except:
-           print("getnetworkinfo replaces getinfo on versions > 0.16.0, please use getnetworkinfo()")
-           return self._call('getnetworkinfo')
+            warnings.warn(
+               "getinfo is deprecated from version 0.16.0, use getnetworkinfoinstead",
+               DeprecationWarning
+             )
     
     def getnetworkinfo(self):
         """Return a JSON object containing various state info"""
