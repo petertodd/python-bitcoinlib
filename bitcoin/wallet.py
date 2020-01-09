@@ -315,7 +315,7 @@ class P2WPKHBitcoinAddress(CBech32BitcoinAddress):
 
     @classmethod
     def from_scriptPubKey(cls, scriptPubKey):
-        """Convert a scriptPubKey to a P2WSH address
+        """Convert a scriptPubKey to a P2WPKH address
 
         Raises CBitcoinAddressError if the scriptPubKey isn't of the correct
         form.
