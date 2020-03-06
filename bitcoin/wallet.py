@@ -308,7 +308,7 @@ class P2WSHBitcoinAddress(CBech32BitcoinAddress):
         return script.CScript([0, self])
 
     def to_redeemScript(self):
-        return NotImplementedError("not enough data in p2wsh address to reconstruct redeem script")
+        raise NotImplementedError("Not enough data in p2wsh address to reconstruct redeem script")
 
 
 class P2WPKHBitcoinAddress(CBech32BitcoinAddress):
