@@ -1,5 +1,14 @@
 # python-bitcoinlib release notes
 
+## v0.11.0
+
+* Bech32 implementation
+* Segwit implementation (for P2WSH and P2WPKH transactions) and examples
+* Use libsecp256k1 for signing
+* Implement OP_CHECKSEQUENCEVERIFY
+
+New maintainer: Bryan Bishop <kanzure@gmail.com>
+
 ## v0.10.2
 
 Note: this will be the last release of python-bitcoinlib with Python 2.7
