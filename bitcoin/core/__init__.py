@@ -308,7 +308,7 @@ class CMutableTxOut(CTxOut):
 
     @classmethod
     def from_txout(cls, txout):
-        """Create a fullly mutable copy of an existing TxOut"""
+        """Create a fully mutable copy of an existing TxOut"""
         return cls(txout.nValue, txout.scriptPubKey)
 
 

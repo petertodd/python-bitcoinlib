@@ -165,16 +165,16 @@ class Test_RPC(unittest.TestCase):
     #     else:
     #         pass
 
-    def test_gettxout(self):
-        """Txout disappears if spent, so difficult to set static test"""
-        if self._IS_ACTIVE:
-            proxy = bitcoin.rpc.Proxy()
-            txo = COutPoint(lx("2700507d971a25728a257ed208ba409e7510f861dec928a478ee92f5ef2b4527"), 0)
-            r = proxy.gettxout(txo)
-            script = CScript.fromhex("76a9147179f4af7439435720637ee3276aabed1440719188ac")
-            self.assertEqual(r['txout'].scriptPubKey, script)
-        else:
-            pass
+    # def test_gettxout(self):
+    #     """Txout disappears if spent, so difficult to set static test"""
+    #     if self._IS_ACTIVE:
+    #         proxy = bitcoin.rpc.Proxy()
+    #         txo = COutPoint(lx("2700507d971a25728a257ed208ba409e7510f861dec928a478ee92f5ef2b4527"), 0)
+    #         r = proxy.gettxout(txo)
+    #         script = CScript.fromhex("76a9147179f4af7439435720637ee3276aabed1440719188ac")
+    #         self.assertEqual(r['txout'].scriptPubKey, script)
+    #     else:
+    #         pass
 
 
     def test_getmininginfo(self):

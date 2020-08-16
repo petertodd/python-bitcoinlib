@@ -383,11 +383,11 @@ class Proxy(BaseProxy):
 
         Raises IndexError if block_hash is not valid.
         """
-        if type(block_hash) != str:
+        if not isinstance(block_hash, str):
             try:
                 block_hash = b2lx(block_hash)
             except TypeError:
-                raise TypeError('%s.getblockheader(): block_hash must be bytes; got %r instance' %
+                raise TypeError('%s.getblockheader(): block_hash must be bytes or str; got %r instance' %
                         (self.__class__.__name__, block_hash.__class__))
         try:
             r = self._call('getblockheader', block_hash, verbose)
@@ -418,8 +418,7 @@ class Proxy(BaseProxy):
         Default filter_type must be changed
         #UNTESTED
         """
-        # ALLOWED FOR str blockhash as well
-        if type(block_hash) != str:
+        if not isinstance(block_hash, str):
             try:
                 block_hash = b2lx(block_hash)
             except TypeError:
@@ -441,7 +440,7 @@ class Proxy(BaseProxy):
 
         Raises IndexError if block_hash is not valid.
         """
-        if type(block_hash) != str:
+        if not isinstance(block_hash, str):
             try:
                 block_hash = b2lx(block_hash)
             except TypeError:
@@ -476,9 +475,9 @@ class Proxy(BaseProxy):
         # On clients before PR #17831, passing hash as bytes will result in Block not found
         """Return a JSON object containing block stats"""
 
-        try:
+        if isinstance(hash_or_height, bytes): 
             hval = b2lx(hash_or_height)
-        except TypeError:
+        else: #int or str of block_hash or height
             hval = hash_or_height
         try:
             r = self._call('getblockstats', hval, args)
@@ -494,7 +493,7 @@ class Proxy(BaseProxy):
     def getchaintxstats(self, nblocks=None, block_hash=None):
         """Compute stats about transactions in chain"""
         if block_hash is not None:
-            if type(block_hash) != str:
+            if not isinstance(block_hash, str):
                 block_hash = b2lx(block_hash)
         return self._call('getchaintxstats', nblocks, block_hash)
 
@@ -503,7 +502,7 @@ class Proxy(BaseProxy):
 
     def getmempoolancestors(self, txid, verbose=False):
         """Returns a list of txids for ancestor transactions"""
-        if type(txid) != str:
+        if not isinstance(txid, str):
             try:
                 txid = b2lx(txid)
             except TypeError:
@@ -517,8 +516,7 @@ class Proxy(BaseProxy):
 
     def getmempooldescendants(self, txid, verbose=False):
         """Returns a list of txids for descendant transactions"""
-        # Added str capacity
-        if type(txid) != str:
+        if not isinstance(txid, str):
             try:
                 txid = b2lx(txid)
             except TypeError:
@@ -532,7 +530,7 @@ class Proxy(BaseProxy):
 
     def getmempoolentry(self, txid):
         """Returns a JSON object for mempool transaction"""
-        if type(txid) != str:
+        if not isinstance(txid, str):
             try:
                 txid = b2lx(txid)
             except TypeError:
@@ -561,12 +559,11 @@ class Proxy(BaseProxy):
 
     def gettxout(self, outpoint, includemempool=True):
         """Return details about an unspent transaction output.
-
+        outpoint - COutPoint or tuple (<txid>, n)
         Raises IndexError if outpoint is not found or was spent.
 
         includemempool - Include mempool txouts
         """
-        # CHANGED TO ALLOW TUPLE (str(<txid>), n)
         if isinstance(outpoint, COutPoint): 
             r = self._call('gettxout', b2lx(outpoint.hash), outpoint.n, includemempool)
         else:
@@ -583,9 +580,9 @@ class Proxy(BaseProxy):
 
     def gettxoutproof(self, txids, block_hash=None):
         """Returns a hex string object of proof of inclusion in block"""
-        if type(txids[0]) != str:
+        if not isinstance(txids[0], str):
             txids = [b2lx(txid) for txid in txids]
-        if type(block_hash) != str:
+        if not isinstance(block_hash, str):
             block_hash = b2lx(block_hash)
         return self._call('gettxoutproof', txids, block_hash)
 
@@ -597,7 +594,7 @@ class Proxy(BaseProxy):
     #Untested
     def preciousblock(self, block_hash):
         """Marks a block as precious. No return"""
-        if type(block_hash) != str:
+        if not isinstance(block_hash, str):
             block_hash = b2lx(block_hash)
         self._call('preciousblock', block_hash)
 
@@ -633,7 +630,7 @@ class Proxy(BaseProxy):
         returns [] on fail
         """
         #Had several timeouts on this function. Might be natural
-        if type(proof) != str:
+        if not isinstance(proof,str):
             proof = proof.hex()
         r = self._call('verifytxoutproof', proof)
         return [lx(txid) for txid in r]
@@ -727,7 +724,7 @@ class Proxy(BaseProxy):
 
     def prioritisetransaction(self, txid, fee_delta, dummy=""):
         """Returns true. Prioritises transaction for mining"""
-        if type(txid) != str:
+        if not isinstance(txid, str):
             txid = b2lx(txid)
         return self._call('prioritisetransaction', txid, dummy, fee_delta)
 
@@ -737,8 +734,7 @@ class Proxy(BaseProxy):
         params is optional and is currently ignored by bitcoind. See
         https://en.bitcoin.it/wiki/BIP_0022 for full specification.
         """
-        # Allow for hex directly
-        if type(block) == str:
+        if not isinstance(block, str):
             hexblock = block
         else:
             hexblock = hexlify(block.serialize())
@@ -838,7 +834,7 @@ class Proxy(BaseProxy):
 
     def converttopsbt(self, tx, permitsigdata=None, iswitness=None):
         """Returns a base64 encoded PSBT"""
-        if type(tx) != str:
+        if not isinstance(tx, str):
             tx = hexlify(tx.serialize())
         return self._call('converttopsbt', tx, permitsigdata, iswitness)
 
@@ -858,7 +854,7 @@ class Proxy(BaseProxy):
                 vout = i.prevout.n
                 sequence = i.nSequence
                 ins.append({"txid": txid, "vout": vout, "sequence": sequence})
-            vins = ins #Allow for JSON data to be passed straight to vins
+            vins = ins
         if isinstance(vouts[0], COutPoint):
             outs = []
             for o in vouts:
@@ -908,7 +904,7 @@ class Proxy(BaseProxy):
     #RAW TX
     def combinerawtransaction(self, hextxs):
         """Return raw hex of combined transaction"""
-        if type(hextxs[0]) != str:
+        if not isinstance(hextxs[0], str):
             hextxs = [hexlify(tx.serialize()) for tx in hextxs]
         return self._call('combinerawtransaction', hextxs)
 
@@ -931,10 +927,9 @@ class Proxy(BaseProxy):
         enabled the transaction may not be available.
         """
         #Timeout issues depending on tx / machine
-        # Allow handling strings. Desirable?
-        if type(txid) != str:
+        if not isinstance(txid, str):
             txid = b2lx(txid)
-        if type(block_hash) != str:
+        if not isinstance(block_hash, str):
             block_hash = b2lx(block_hash)
         try:
             r = self._call('getrawtransaction', txid, 1 if verbose else 0, block_hash)
@@ -973,7 +968,7 @@ class Proxy(BaseProxy):
 
         maxfeerate - numeric or string for max fee rate
         """
-        if type(tx) != str:
+        if not isinstance(tx, str):
             tx = hexlify(tx.serialize())
         r = self._call('sendrawtransaction', tx, maxfeerate)
         return lx(r)
@@ -1029,7 +1024,7 @@ class Proxy(BaseProxy):
          'changepos': Position of added change output, or -1,
         }
         """
-        if type(tx) != str:
+        if not isinstance(tx, str):
             tx = hexlify(tx.serialize())
         r = self._call('fundrawtransaction', tx, options, iswitness)
         r['tx'] = CTransaction.deserialize(unhexlify(r['hex']))
@@ -1043,12 +1038,11 @@ class Proxy(BaseProxy):
         prevtxs - JSON object containing info
         sighashtype - numeric sighashtype default=SIGHASH_ALL
         """
-        # THIS ALLOWS FOR str, bytes, and CBitcoinSecret. desirable?
-        if type(tx) != str:
+        if not isinstance(tx, str):
             tx = hexlify(tx.serialize())
-        if isinstance(privkeys[0], CBitcoinSecret): # IS THIS CORRECT
+        if isinstance(privkeys[0], CBitcoinSecret):
             privkeys = [str(sk) for sk in privkeys]
-        elif isinstance(privkeys[0], bytes): # ALLOW FOR BYTES
+        elif isinstance(privkeys[0], bytes):
             privkeys = [sk.hex() for sk in privkeys]
         r = self._call('signrawtransactionwithkey', privkeys, prevtxs, )
         r['tx'] = CTransaction.deserialize(unhexlify(r['hex']))
@@ -1057,7 +1051,7 @@ class Proxy(BaseProxy):
 
     def testmempoolaccept(self, txs, maxfeerate=None):
         """Return a JSON object of each transaction's acceptance info"""
-        if type(txs[0]) != str:
+        if not isinstance(txs[0],str):
             txs = [hexlify(tx.serialize()) for tx in txs]
         return self._call('testmempoolaccept', txs, maxfeerate)
 
@@ -1085,7 +1079,7 @@ class Proxy(BaseProxy):
         }
 
         """
-        if type(keys[0]) != str:
+        if not isinstance(keys[0], str):
             keys = [str(k) for k in keys]
         r = self._call('createmultisig', nrequired, keys, address_type)
         # PLEASE CHECK
@@ -1098,12 +1092,11 @@ class Proxy(BaseProxy):
         """Returns addresses from descriptor
 
         """
-        #TODODescriptors need Implementing
+        #TODO Descriptors need Implementing
         return self._call('deriveaddresses', descriptor, _range)
     
     def estimatesmartfee(self, conf_target, estimate_mode=None):
         """Returns a JSON object with feerate, errors, and block estimate
-        #Fix description?
         conf_target - attempted number of blocks from current tip to place tx
         estimate_mode:
         "UNSET"
@@ -1150,7 +1143,6 @@ class Proxy(BaseProxy):
         #TODO see if CPubKey.__str__() is used elsewhere or can be changed.
         if isinstance(keys[0], CBitcoinAddress): 
             keys = [str(k) for k in keys]
-        #included CPubKey for clarity. Could possibly remove
         elif isinstance(keys[0], (CPubKey, bytes)):  
             keys = [k.hex() for k in keys]
         r = self._call('addmultisigaddress', nrequired, keys, label, address_type)
@@ -1166,7 +1158,7 @@ class Proxy(BaseProxy):
 
     def bumpfee(self, txid, options=None):
         """Bump fee of transation in mempool"""
-        if type(txid) != str:
+        if not isinstance(txid, str):
             txid = b2lx(txid)
         return self._call('bumpfee', txid, options)
 
@@ -1215,8 +1207,7 @@ class Proxy(BaseProxy):
 
     def getaddressinfo(self, address):
         """Return a JSON object of info about address"""
-        if type(address) != str:
-            address = str(address)
+        address = str(address)
         r = self._call('getaddressinfo', address)
         if r['script'] == 'scripthash':
             r['redeemScript'] = CScript.fromhex(r['hex'])
@@ -1362,13 +1353,13 @@ class Proxy(BaseProxy):
 
         #TODO should txout_proof be an obj?
         """
-        if type(tx) != str:
+        if not isinstance(tx, str):
             tx = hexlify(tx.serialize())
         return self._call('importprunedfunds', tx, txout_proof)
 
     def importpubkey(self, pubkey, label=None, rescan=None):
         """Import pubkey as watchonly"""
-        if type(pubkey) != str:
+        if not isinstance(pubkey, str):
             pubkey = pubkey.hex()
         self._call('importpubkey', pubkey, label, rescan)
 
@@ -1527,7 +1518,7 @@ class Proxy(BaseProxy):
 
     def removeprunedfunds(self, txid):
         """Remove pruned utxos from wallet"""
-        if type(txid) != str:
+        if not isinstance(txid, str):
             txid = b2lx(txid)
         self._call('removeprunedfunds', txid)
 
