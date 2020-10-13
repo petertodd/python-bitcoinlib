@@ -20,14 +20,6 @@
 
 """Reference implementation for Bech32 and segwit addresses."""
 
-import sys
-_bchr = chr
-_bord = lambda x: ord(x) if isinstance(x, str) else x
-if sys.version > '3':
-    long = int
-    _bchr = lambda x: bytes([x])
-    _bord = lambda x: x
-
 CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 
 
@@ -92,7 +84,6 @@ def convertbits(data, frombits, tobits, pad=True):
     maxv = (1 << tobits) - 1
     max_acc = (1 << (frombits + tobits - 1)) - 1
     for value in data:
-        value = _bord(value)
         if value < 0 or (value >> frombits):
             return None
         acc = ((acc << frombits) | value) & max_acc

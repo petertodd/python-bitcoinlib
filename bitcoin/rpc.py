@@ -23,24 +23,14 @@ a different implementation can be used instead, at your own risk:
 thus better optimized but perhaps less stable.)
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-import ssl
-
-try:
-    import http.client as httplib
-except ImportError:
-    import httplib
+import http.client as httplib
 import base64
 import binascii
 import decimal
 import json
 import os
 import platform
-import sys
-try:
-    import urllib.parse as urlparse
-except ImportError:
-    import urlparse
+import urllib.parse as urlparse
 
 import bitcoin
 from bitcoin.core import COIN, x, lx, b2lx, CBlock, CBlockHeader, CTransaction, COutPoint, CTxOut
@@ -51,12 +41,8 @@ DEFAULT_USER_AGENT = "AuthServiceProxy/0.1"
 
 DEFAULT_HTTP_TIMEOUT = 30
 
-# (un)hexlify to/from unicode, needed for Python3
-unhexlify = binascii.unhexlify
-hexlify = binascii.hexlify
-if sys.version > '3':
-    unhexlify = lambda h: binascii.unhexlify(h.encode('utf8'))
-    hexlify = lambda b: binascii.hexlify(b).decode('utf8')
+unhexlify = lambda h: binascii.unhexlify(h.encode('utf8'))
+hexlify = lambda b: binascii.hexlify(b).decode('utf8')
 
 
 class JSONRPCError(Exception):
@@ -392,7 +378,7 @@ class Proxy(BaseProxy):
     def generate(self, numblocks):
         """
         DEPRECATED (will be removed in bitcoin-core v0.19)
-        
+
         Mine blocks immediately (before the RPC call returns)
 
         numblocks - How many blocks are generated immediately.
@@ -401,10 +387,10 @@ class Proxy(BaseProxy):
         """
         r = self._call('generate', numblocks)
         return (lx(blk_hash) for blk_hash in r)
-    
+
     def generatetoaddress(self, numblocks, addr):
         """Mine blocks immediately (before the RPC call returns) and
-        allocate block reward to passed address. Replaces deprecated 
+        allocate block reward to passed address. Replaces deprecated
         "generate(self,numblocks)" method.
 
         numblocks - How many blocks are generated immediately.

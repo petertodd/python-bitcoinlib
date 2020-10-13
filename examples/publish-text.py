@@ -28,13 +28,7 @@
 #
 # https://github.com/petertodd/python-bitcoinlib/commit/6a0a2b9429edea318bea7b65a68a950cae536790
 
-import sys
-if sys.version_info.major < 3:
-    sys.stderr.write('Sorry, Python 3.x required by this example.\n')
-    sys.exit(1)
-
 import argparse
-import hashlib
 import logging
 import sys
 import os

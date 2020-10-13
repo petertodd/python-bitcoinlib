@@ -13,13 +13,7 @@ import unittest
 
 from bitcoin.net import CAddress, CAlert, CUnsignedAlert, CInv
 
-# Py3 compatibility
-import sys
-
-if sys.version > '3':
-    from io import BytesIO as _BytesIO
-else:
-    from cStringIO import StringIO as _BytesIO
+from io import BytesIO
 
 
 class TestUnsignedAlert(unittest.TestCase):
@@ -27,10 +21,10 @@ class TestUnsignedAlert(unittest.TestCase):
         alert = CUnsignedAlert()
         alert.setCancel = [1, 2, 3]
         alert.strComment = b"Comment"
-        stream = _BytesIO()
+        stream = BytesIO()
 
         alert.stream_serialize(stream)
-        serialized = _BytesIO(stream.getvalue())
+        serialized = BytesIO(stream.getvalue())
 
         deserialized = CUnsignedAlert.stream_deserialize(serialized)
         self.assertEqual(deserialized, alert)
@@ -41,10 +35,10 @@ class TestCAlert(unittest.TestCase):
         alert = CAlert()
         alert.setCancel = [1, 2, 3]
         alert.strComment = b"Comment"
-        stream = _BytesIO()
+        stream = BytesIO()
 
         alert.stream_serialize(stream)
-        serialized = _BytesIO(stream.getvalue())
+        serialized = BytesIO(stream.getvalue())
 
         deserialized = CAlert.stream_deserialize(serialized)
         self.assertEqual(deserialized, alert)
@@ -55,10 +49,10 @@ class TestCInv(unittest.TestCase):
         inv = CInv()
         inv.type = 123
         inv.hash = b"0" * 32
-        stream = _BytesIO()
+        stream = BytesIO()
 
         inv.stream_serialize(stream)
-        serialized = _BytesIO(stream.getvalue())
+        serialized = BytesIO(stream.getvalue())
 
         deserialized = CInv.stream_deserialize(serialized)
         self.assertEqual(deserialized, inv)

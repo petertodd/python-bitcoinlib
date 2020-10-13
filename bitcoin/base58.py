@@ -12,15 +12,6 @@
 
 """Base58 encoding and decoding"""
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import sys
-_bchr = chr
-_bord = ord
-if sys.version > '3':
-    long = int
-    _bchr = lambda x: bytes([x])
-    _bord = lambda x: x
 
 import binascii
 
@@ -52,10 +43,7 @@ def encode(b):
     res = ''.join(res[::-1])
 
     # Encode leading zeros as base58 zeros
-    czero = b'\x00'
-    if sys.version > '3':
-        # In Python3 indexing a bytes returns numbers, not characters.
-        czero = 0
+    czero = 0
     pad = 0
     for c in b:
         if c == czero:
@@ -108,7 +96,7 @@ class CBase58Data(bytes):
         if check0 != check1:
             raise Base58ChecksumError('Checksum mismatch: expected %r, calculated %r' % (check0, check1))
 
-        return cls.from_bytes(data, _bord(verbyte[0]))
+        return cls.from_bytes(data, verbyte[0])
 
     def __init__(self, s):
         """Initialize from base58-encoded string
@@ -138,7 +126,7 @@ class CBase58Data(bytes):
 
     def __str__(self):
         """Convert to string"""
-        vs = _bchr(self.nVersion) + self
+        vs = bytes([self.nVersion]) + self
         check = bitcoin.core.Hash(vs)[0:4]
         return encode(vs + check)
 

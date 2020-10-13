@@ -9,28 +9,22 @@
 # propagated, or distributed except according to the terms contained in the
 # LICENSE file.
 
-from __future__ import absolute_import, division, print_function
 
 import binascii
 import struct
-import sys
 import time
 
-from .script import CScript, CScriptWitness, CScriptOp, OP_RETURN
+from . import script
+from .script import CScript, CScriptWitness, OP_RETURN
 
 from .serialize import *
-
-if sys.version > '3':
-    _bytes = bytes
-else:
-    _bytes = lambda x: bytes(bytearray(x))
 
 # Core definitions
 COIN = 100000000
 MAX_BLOCK_SIZE = 1000000
 MAX_BLOCK_WEIGHT = 4000000
 MAX_BLOCK_SIGOPS = MAX_BLOCK_SIZE/50
-WITNESS_COINBASE_SCRIPTPUBKEY_MAGIC = _bytes([OP_RETURN, 0x24, 0xaa, 0x21, 0xa9, 0xed])
+WITNESS_COINBASE_SCRIPTPUBKEY_MAGIC = bytes([OP_RETURN, 0x24, 0xaa, 0x21, 0xa9, 0xed])
 
 def MoneyRange(nValue, params=None):
     global coreparams
@@ -39,29 +33,13 @@ def MoneyRange(nValue, params=None):
 
     return 0 <= nValue <= params.MAX_MONEY
 
-def _py2_x(h):
-    """Convert a hex string to bytes"""
-    return binascii.unhexlify(h)
-
 def x(h):
     """Convert a hex string to bytes"""
     return binascii.unhexlify(h.encode('utf8'))
 
-def _py2_b2x(b):
-    """Convert bytes to a hex string"""
-    return binascii.hexlify(b)
-
 def b2x(b):
     """Convert bytes to a hex string"""
     return binascii.hexlify(b).decode('utf8')
-
-def _py2_lx(h):
-    """Convert a little-endian hex string to bytes
-
-    Lets you write uint256's and uint160's the way the Satoshi codebase shows
-    them.
-    """
-    return binascii.unhexlify(h)[::-1]
 
 def lx(h):
     """Convert a little-endian hex string to bytes
@@ -71,14 +49,6 @@ def lx(h):
     """
     return binascii.unhexlify(h.encode('utf8'))[::-1]
 
-def _py2_b2lx(b):
-    """Convert bytes to a little-endian hex string
-
-    Lets you show uint256's and uint160's the way the Satoshi codebase shows
-    them.
-    """
-    return binascii.hexlify(b[::-1])
-
 def b2lx(b):
     """Convert bytes to a little-endian hex string
 
@@ -86,18 +56,6 @@ def b2lx(b):
     them.
     """
     return binascii.hexlify(b[::-1]).decode('utf8')
-
-if not (sys.version > '3'):
-    x = _py2_x
-    b2x = _py2_b2x
-    lx = _py2_lx
-    b2lx = _py2_b2lx
-
-del _py2_x
-del _py2_b2x
-del _py2_lx
-del _py2_b2lx
-
 
 def str_money_value(value):
     """Convert an integer money value to a fixed point string"""
