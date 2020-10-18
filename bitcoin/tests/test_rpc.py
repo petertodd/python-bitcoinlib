@@ -25,6 +25,7 @@ def is_active():
     """
     try:
         p = bitcoin.rpc.Proxy()
+        p.help()
         return True
     except ValueError: 
         return False
@@ -35,7 +36,7 @@ class Test_RPC(unittest.TestCase):
     # "Looks like your unit tests won't work if Bitcoin Core isn't running;
     # maybe they in turn need to check that and disable the test if core isn't available?"
     # https://github.com/petertodd/python-bitcoinlib/pull/10
-    # Sachin Meier: "I've changed it so each test checks against the "
+    # Sachin Meier: "I've changed it so each test checks against the _IS_ACTIVE variable "
     #pass
 
     def test_getbestblockhash_and_header(self):
