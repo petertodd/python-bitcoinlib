@@ -1209,11 +1209,12 @@ class Proxy(BaseProxy):
         """Return a JSON object of info about address"""
         address = str(address)
         r = self._call('getaddressinfo', address)
-        if r['script'] == 'scripthash':
-            r['redeemScript'] = CScript.fromhex(r['hex'])
-            # Keeping with previous style. why not CPubKey?
-            r['pubkey'] = unhexlify(r['pubkey']) 
-            # PERHAPS ALSO CHANGE ScriptPubKey to CScript?
+        if r['isscript']:
+            if r['script'] == 'scripthash':
+                r['redeemScript'] = CScript.fromhex(r['hex'])
+                # Keeping with previous style. why not CPubKey?
+                r['pubkey'] = unhexlify(r['pubkey']) 
+                # PERHAPS ALSO CHANGE ScriptPubKey to CScript?
         return r
 
     def getbalance(self, account='*', minconf=1, include_watchonly=False):
