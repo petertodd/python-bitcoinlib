@@ -30,7 +30,7 @@ def load_test_vectors(name):
 
             prevouts = {}
             for json_prevout in test_case[0]:
-                assert len(json_prevout) == 3
+                assert len(json_prevout) >= 3
                 n = json_prevout[1]
                 if n == -1:
                     n = 0xffffffff
