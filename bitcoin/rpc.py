@@ -446,7 +446,6 @@ class Proxy(BaseProxy):
         verbose - If true a dict is returned with the values returned by
                   getblockheader that are not in the block header itself
                   (height, nextblockhash, etc.)
-        e[0][0]['code'] + e[0][0]['message']
         Raises IndexError if block_hash is not valid.
         """
         try:
