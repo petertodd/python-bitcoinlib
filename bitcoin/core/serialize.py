@@ -11,7 +11,7 @@
 
 """Serialization routines
 
-You probabably don't need to use these directly.
+You probably don't need to use these directly.
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
