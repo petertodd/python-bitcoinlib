@@ -128,6 +128,14 @@ class InWarmupError(JSONRPCError):
     RPC_ERROR_CODE = -28
 
 
+def default_btc_dir():
+    if platform.system() == 'Darwin':
+        return os.path.expanduser('~/Library/Application Support/Bitcoin/')
+    elif platform.system() == 'Windows':
+        return os.path.join(os.environ['APPDATA'], 'Bitcoin')
+    return os.path.expanduser('~/.bitcoin')
+
+
 class BaseProxy(object):
     """Base JSON-RPC proxy class. Contains only private methods; do not use
     directly."""
@@ -148,13 +156,7 @@ class BaseProxy(object):
         if service_url is None:
             # Figure out the path to the bitcoin.conf file
             if btc_conf_file is None:
-                if platform.system() == 'Darwin':
-                    btc_conf_file = os.path.expanduser('~/Library/Application Support/Bitcoin/')
-                elif platform.system() == 'Windows':
-                    btc_conf_file = os.path.join(os.environ['APPDATA'], 'Bitcoin')
-                else:
-                    btc_conf_file = os.path.expanduser('~/.bitcoin')
-                btc_conf_file = os.path.join(btc_conf_file, 'bitcoin.conf')
+                btc_conf_file = os.path.join(default_btc_dir(), 'bitcoin.conf')
 
             # Bitcoin Core accepts empty rpcuser, not specified in btc_conf_file
             conf = {'rpcuser': ""}
