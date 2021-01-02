@@ -237,14 +237,8 @@ class BaseProxy(object):
             self.__conn = httplib.HTTPConnection(self.__url.hostname, port=port,
                                                  timeout=timeout)
 
-    def _call(self, service_name, *args):
-        self.__id_count += 1
-
-        postdata = json.dumps({'version': '1.1',
-                               'method': service_name,
-                               'params': args,
-                               'id': self.__id_count})
-
+    @property
+    def _headers(self):
         headers = {
             'Host': self.__url.hostname,
             'User-Agent': DEFAULT_USER_AGENT,
@@ -254,7 +248,18 @@ class BaseProxy(object):
         if self.__auth_header is not None:
             headers['Authorization'] = self.__auth_header
 
-        self.__conn.request('POST', self.__url.path, postdata, headers)
+        return headers
+
+    def _call(self, service_name, *args):
+        self.__id_count += 1
+
+        postdata = json.dumps({'version': '1.1',
+                               'method': service_name,
+                               'params': args,
+                               'id': self.__id_count})
+
+
+        self.__conn.request('POST', self.__url.path, postdata, self._headers)
 
         response = self._get_response()
         err = response.get('error')
@@ -272,17 +277,7 @@ class BaseProxy(object):
 
     def _batch(self, rpc_call_list):
         postdata = json.dumps(list(rpc_call_list))
-
-        headers = {
-            'Host': self.__url.hostname,
-            'User-Agent': DEFAULT_USER_AGENT,
-            'Content-type': 'application/json',
-        }
-
-        if self.__auth_header is not None:
-            headers['Authorization'] = self.__auth_header
-
-        self.__conn.request('POST', self.__url.path, postdata, headers)
+        self.__conn.request('POST', self.__url.path, postdata, self._headers)
         return self._get_response()
 
     def _get_response(self):
