@@ -11,8 +11,38 @@
 
 
 import unittest
+import tempfile
+from bitcoin.rpc import Proxy, parse_conf_file, get_authpair
 
-from bitcoin.rpc import Proxy
+
+class TestConfigFileparser(unittest.TestCase):
+    def test_parse(self):
+        with tempfile.TemporaryFile("w+") as fd:
+            fd.write("""
+datadir = /home/user/.bitcoin
+# Comment
+dbcache = 300 # in MB # Inline comment
+""")
+            fd.seek(0)
+            self.assertEqual(parse_conf_file(fd), {
+                "datadir": "/home/user/.bitcoin",
+                "dbcache": "300"
+            })
+
+    def test_authpair_from_conf(self):
+        self.assertEqual(
+            "user:insecure_youll_be_robed",
+            get_authpair(
+                {
+                    "rpcuser": "user",
+                    "rpcpassword": "insecure_youll_be_robed"
+                }, "mainnet", "dummy.file"))
+
+    def test_authpair_fail(self):
+        with self.assertRaises(ValueError):
+            get_authpair({}, "testnet", "ou/conf")
+
+
 
 class Test_RPC(unittest.TestCase):
     # Tests disabled, see discussion below.

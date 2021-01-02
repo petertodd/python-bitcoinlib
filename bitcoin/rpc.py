@@ -136,6 +136,36 @@ def default_btc_dir():
     return os.path.expanduser('~/.bitcoin')
 
 
+def parse_conf_file(file_object):
+    conf = {}
+    for line in file_object.readlines():
+        if '#' in line:
+            line = line[:line.index('#')]
+        if '=' not in line:
+            continue
+        k, v = line.split('=', 1)
+        conf[k.strip()] = v.strip()
+    return conf
+
+
+def get_authpair(conf, network, btc_conf_file):
+    cookie_dir = conf.get('datadir', os.path.dirname(btc_conf_file))
+    if network != "mainnet":
+        cookie_dir = os.path.join(cookie_dir, network)
+    cookie_file = os.path.join(cookie_dir, ".cookie")
+
+    try:
+        with open(cookie_file, 'r') as fd:
+            return fd.read()
+    except IOError as err:
+        if 'rpcpassword' in conf:
+            return "%s:%s" % (conf['rpcuser'], conf['rpcpassword'])
+
+        raise ValueError('Cookie file unusable (%s) and rpcpassword '
+                         'not specified in the configuration file: %r'
+                         % (err, btc_conf_file))
+
+
 class BaseProxy(object):
     """Base JSON-RPC proxy class. Contains only private methods; do not use
     directly."""
@@ -164,14 +194,7 @@ class BaseProxy(object):
             # Extract contents of bitcoin.conf to build service_url
             try:
                 with open(btc_conf_file, 'r') as fd:
-                    for line in fd.readlines():
-                        if '#' in line:
-                            line = line[:line.index('#')]
-                        if '=' not in line:
-                            continue
-                        k, v = line.split('=', 1)
-                        conf[k.strip()] = v.strip()
-
+                    conf.update(parse_conf_file(fd))
             # Treat a missing bitcoin.conf as though it were empty
             except FileNotFoundError:
                 pass
@@ -184,19 +207,7 @@ class BaseProxy(object):
             service_url = ('%s://%s:%d' %
                 ('http', conf['rpchost'], conf['rpcport']))
 
-            cookie_dir = conf.get('datadir', os.path.dirname(btc_conf_file))
-            if bitcoin.params.NAME != "mainnet":
-                cookie_dir = os.path.join(cookie_dir, bitcoin.params.NAME)
-            cookie_file = os.path.join(cookie_dir, ".cookie")
-            try:
-                with open(cookie_file, 'r') as fd:
-                    authpair = fd.read()
-            except IOError as err:
-                if 'rpcpassword' in conf:
-                    authpair = "%s:%s" % (conf['rpcuser'], conf['rpcpassword'])
-
-                else:
-                    raise ValueError('Cookie file unusable (%s) and rpcpassword not specified in the configuration file: %r' % (err, btc_conf_file))
+            authpair = get_authpair(conf, bitcoin.params.NAME, btc_conf_file)
 
         else:
             url = urlparse.urlparse(service_url)
