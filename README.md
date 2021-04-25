@@ -75,7 +75,7 @@ appropriately.
 See `examples/` directory. For instance this example creates a transaction
 spending a pay-to-script-hash transaction output:
 
-    $ PYTHONPATH=. examples/spend-pay-to-script-hash-txout.py
+    $ PYTHONPATH=. examples/spend-p2sh-txout.py
     <hex-encoded transaction>
 
 
