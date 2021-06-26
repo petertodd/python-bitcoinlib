@@ -69,8 +69,7 @@ txout = CMutableTxOut(amount_less_fee, destination_address)
 # Create the unsigned transaction.
 tx = CMutableTransaction([txin], [txout])
 
-# Calculate the signature hash for that transaction. Note how the script we use
-# is the witnessScript, not the redeemScript.
+# Calculate the signature hash for that transaction.
 sighash = SignatureHash(script=txin_redeemScript, txTo=tx, inIdx=0,
                         hashtype=SIGHASH_ALL, amount=amount, sigversion=SIGVERSION_WITNESS_V0)
 
