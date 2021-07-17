@@ -33,14 +33,14 @@ seckey = CBitcoinSecret.from_secret_bytes(h)
 
 # Create a witnessScript and corresponding redeemScript. Similar to a scriptPubKey
 # the redeemScript must be satisfied for the funds to be spent.
-txin_witnessScript = CScript([seckey.pub, OP_CHECKSIG])
-txin_scriptHash = hashlib.sha256(txin_witnessScript).digest()
-txin_redeemScript = CScript([OP_0, txin_scriptHash])
+txin_redeemScript = CScript([seckey.pub, OP_CHECKSIG])
+txin_scriptHash = hashlib.sha256(txin_redeemScript).digest()
+txin_scriptPubKey = CScript([OP_0, txin_scriptHash])
 
 
 # Convert the P2WSH scriptPubKey to a base58 Bitcoin address and print it.
 # You'll need to send some funds to it to create a txout to spend.
-txin_p2wsh_address = P2WSHBitcoinAddress.from_scriptPubKey(txin_redeemScript)
+txin_p2wsh_address = P2WSHBitcoinAddress.from_scriptPubKey(txin_scriptPubKey)
 print('Pay to:', str(txin_p2wsh_address))
 
 # Same as the txid:vout the createrawtransaction RPC call requires
@@ -69,9 +69,8 @@ txout = CMutableTxOut(amount_less_fee, destination_address)
 # Create the unsigned transaction.
 tx = CMutableTransaction([txin], [txout])
 
-# Calculate the signature hash for that transaction. Note how the script we use
-# is the witnessScript, not the redeemScript.
-sighash = SignatureHash(script=txin_witnessScript, txTo=tx, inIdx=0,
+# Calculate the signature hash for that transaction.
+sighash = SignatureHash(script=txin_redeemScript, txTo=tx, inIdx=0,
                         hashtype=SIGHASH_ALL, amount=amount, sigversion=SIGVERSION_WITNESS_V0)
 
 # Now sign it. We have to append the type of signature we want to the end, in
@@ -80,7 +79,7 @@ sig = seckey.sign(sighash) + bytes([SIGHASH_ALL])
 
 
 # # Construct a witness for this P2WSH transaction and add to tx.
-witness = CScriptWitness([sig, txin_witnessScript])
+witness = CScriptWitness([sig, txin_redeemScript])
 tx.wit = CTxWitness([CTxInWitness(witness)])
 
 # TODO: upgrade VerifyScript to support Segregated Witness and place verify the witness program here.
