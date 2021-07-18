@@ -37,6 +37,7 @@ import json
 import os
 import platform
 import sys
+import warnings
 try:
     import urllib.parse as urlparse
 except ImportError:
@@ -509,13 +510,23 @@ class Proxy(BaseProxy):
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
 
     def getinfo(self):
+        try:
+            """Return a JSON object containing various state info"""
+            r = self._call('getinfo')
+            if 'balance' in r:
+               r['balance'] = int(r['balance'] * COIN)
+            if 'paytxfee' in r:
+               r['paytxfee'] = int(r['paytxfee'] * COIN)
+            return r
+        except:
+            warnings.warn(
+               "getinfo is deprecated from version 0.16.0, use getnetworkinfoinstead",
+               DeprecationWarning
+             )
+    
+    def getnetworkinfo(self):
         """Return a JSON object containing various state info"""
-        r = self._call('getinfo')
-        if 'balance' in r:
-            r['balance'] = int(r['balance'] * COIN)
-        if 'paytxfee' in r:
-            r['paytxfee'] = int(r['paytxfee'] * COIN)
-        return r
+        return self._call('getnetworkinfo')
 
     def getmininginfo(self):
         """Return a JSON object containing mining-related information"""
