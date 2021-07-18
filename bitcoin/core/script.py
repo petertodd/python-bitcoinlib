@@ -375,12 +375,14 @@ OPCODE_NAMES.update({
 
 OPCODES_BY_NAME = {
     'OP_0': OP_0,
+    'OP_FALSE': OP_0,
     'OP_PUSHDATA1': OP_PUSHDATA1,
     'OP_PUSHDATA2': OP_PUSHDATA2,
     'OP_PUSHDATA4': OP_PUSHDATA4,
     'OP_1NEGATE': OP_1NEGATE,
     'OP_RESERVED': OP_RESERVED,
     'OP_1': OP_1,
+    'OP_TRUE': OP_1,
     'OP_2': OP_2,
     'OP_3': OP_3,
     'OP_4': OP_4,
