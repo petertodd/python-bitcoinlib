@@ -446,7 +446,6 @@ class Proxy(BaseProxy):
         verbose - If true a dict is returned with the values returned by
                   getblockheader that are not in the block header itself
                   (height, nextblockhash, etc.)
-
         Raises IndexError if block_hash is not valid.
         """
         try:
@@ -458,7 +457,7 @@ class Proxy(BaseProxy):
             r = self._call('getblockheader', block_hash, verbose)
         except InvalidAddressOrKeyError as ex:
             raise IndexError('%s.getblockheader(): %s (%d)' %
-                    (self.__class__.__name__, ex.error['message'], ex.error['code']))
+                    (self.__class__.__name__, ex, ex.RPC_ERROR_CODE ))
 
         if verbose:
             nextblockhash = None
@@ -490,7 +489,7 @@ class Proxy(BaseProxy):
             r = self._call('getblock', block_hash, False)
         except InvalidAddressOrKeyError as ex:
             raise IndexError('%s.getblock(): %s (%d)' %
-                    (self.__class__.__name__, ex.error['message'], ex.error['code']))
+                    (self.__class__.__name__, ex, ex.RPC_ERROR_CODE))
         return CBlock.deserialize(unhexlify(r))
 
     def getblockcount(self):
@@ -506,7 +505,7 @@ class Proxy(BaseProxy):
             return lx(self._call('getblockhash', height))
         except InvalidParameterError as ex:
             raise IndexError('%s.getblockhash(): %s (%d)' %
-                    (self.__class__.__name__, ex.error['message'], ex.error['code']))
+                    (self.__class__.__name__, ex, ex.RPC_ERROR_CODE))
 
     def getinfo(self):
         """Return a JSON object containing various state info"""
@@ -516,10 +515,27 @@ class Proxy(BaseProxy):
         if 'paytxfee' in r:
             r['paytxfee'] = int(r['paytxfee'] * COIN)
         return r
+    
+    def getnetworkinfo(self):
+        """Return a JSON object containing information about the network"""
+        return self._call('getnetworkinfo')
+        
+    def getwalletinfo(self):
+        """Return a JSON object containing information about the wallet"""
+        r = self._call('getwalletinfo')
+        if 'balance' in r:
+            r['balance'] = int(r['balance'] * COIN)
+        if 'paytxfee' in r:
+            r['paytxfee'] = int(r['paytxfee'] * COIN)
+        return r
 
     def getmininginfo(self):
         """Return a JSON object containing mining-related information"""
         return self._call('getmininginfo')
+
+    def getblockchaininfo(self):
+        """Return a JSON object containing Blockchain-related information"""
+        return self._call('getblockchaininfo')
 
     def getnewaddress(self, account=None):
         """Return a new Bitcoin address for receiving payments.
@@ -568,7 +584,7 @@ class Proxy(BaseProxy):
             r = self._call('getrawtransaction', b2lx(txid), 1 if verbose else 0)
         except InvalidAddressOrKeyError as ex:
             raise IndexError('%s.getrawtransaction(): %s (%d)' %
-                    (self.__class__.__name__, ex.error['message'], ex.error['code']))
+                    (self.__class__.__name__,ex, ex.RPC_ERROR_CODE))
         if verbose:
             r['tx'] = CTransaction.deserialize(unhexlify(r['hex']))
             del r['hex']
@@ -611,7 +627,7 @@ class Proxy(BaseProxy):
             r = self._call('gettransaction', b2lx(txid))
         except InvalidAddressOrKeyError as ex:
             raise IndexError('%s.getrawtransaction(): %s (%d)' %
-                    (self.__class__.__name__, ex.error['message'], ex.error['code']))
+                    (self.__class__.__name__, ex, ex.RPC_ERROR_CODE))
         return r
 
     def gettxout(self, outpoint, includemempool=True):
