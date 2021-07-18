@@ -58,11 +58,13 @@ class MsgSerializable(Serializable):
     def msg_deser(cls, f, protover=PROTO_VERSION):
         raise NotImplementedError
 
-    def to_bytes(self):
+    def to_bytes(self, params=None):
+        if params is None:
+            params = bitcoin.params
         f = _BytesIO()
         self.msg_ser(f)
         body = f.getvalue()
-        res = bitcoin.params.MESSAGE_START
+        res = params.MESSAGE_START
         res += self.command
         res += b"\x00" * (12 - len(self.command))
         res += struct.pack(b"<I", len(body))
@@ -81,13 +83,15 @@ class MsgSerializable(Serializable):
         return MsgSerializable.stream_deserialize(f, protover=protover)
 
     @classmethod
-    def stream_deserialize(cls, f, protover=PROTO_VERSION):
+    def stream_deserialize(cls, f, params=None, protover=PROTO_VERSION):
+        if params is None:
+            params = bitcoin.params
         recvbuf = ser_read(f, 4 + 12 + 4 + 4)
 
         # check magic
-        if recvbuf[:4] != bitcoin.params.MESSAGE_START:
+        if recvbuf[:4] != params.MESSAGE_START:
             raise ValueError("Invalid message start '%s', expected '%s'" %
-                             (b2x(recvbuf[:4]), b2x(bitcoin.params.MESSAGE_START)))
+                             (b2x(recvbuf[:4]), b2x(params.MESSAGE_START)))
 
         # remaining header fields: command, msg length, checksum
         command = recvbuf[4:4+12].split(b"\x00", 1)[0]
