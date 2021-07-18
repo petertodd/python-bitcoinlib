@@ -44,30 +44,45 @@ class Test_VarIntSerializer(unittest.TestCase):
     def test(self):
         def T(value, expected):
             expected = unhexlify(expected)
+            expected_int = VarIntSerializer.deserialize(expected)
+            self.assertEqual(value, expected_int)
             actual = VarIntSerializer.serialize(value)
             self.assertEqual(actual, expected)
             roundtrip = VarIntSerializer.deserialize(actual)
             self.assertEqual(value, roundtrip)
+
         T(0x0, b'00')
         T(0xfc, b'fc')
         T(0xfd, b'fdfd00')
         T(0xffff, b'fdffff')
+        T(0x1234, b'fd3412')
         T(0x10000, b'fe00000100')
-        T(0xffffffff, b'feffffffff')
-        T(0x100000000, b'ff0000000001000000')
-        T(0xffffffffffffffff, b'ffffffffffffffffff')
+        T(0x1234567, b'fe67452301')
+        T(0x2000000, b'fe00000002')
 
-    def test_non_optimal(self):
-        def T(serialized, expected_value):
-            serialized = unhexlify(serialized)
-            actual_value = VarIntSerializer.deserialize(serialized)
-            self.assertEqual(actual_value, expected_value)
-        T(b'fd0000', 0)
-        T(b'fd3412', 0x1234)
-        T(b'fe00000000', 0)
-        T(b'fe67452301', 0x1234567)
-        T(b'ff0000000000000000', 0)
-        T(b'ffefcdab8967452301', 0x123456789abcdef)
+        with self.assertRaises(DeserializationValueBoundsError):
+            T(0x2000001, b'fe01000002')
+
+        with self.assertRaises(DeserializationValueBoundsError):
+            T(0xffffffff, b'feffffffff')
+
+        with self.assertRaises(DeserializationValueBoundsError):
+            T(0x100000000, b'ff0000000001000000')
+
+        with self.assertRaises(DeserializationValueBoundsError):
+            T(0xffffffffffffffff, b'ffffffffffffffffff')
+
+        with self.assertRaises(DeserializationValueBoundsError):
+            T(0, b'fd0000')
+
+        with self.assertRaises(DeserializationValueBoundsError):
+            T(0, b'fe00000000')
+
+        with self.assertRaises(DeserializationValueBoundsError):
+            T(0, b'ff0000000000000000')
+
+        with self.assertRaises(DeserializationValueBoundsError):
+            T(0x123456789abcdef, b'ffefcdab8967452301')
 
     def test_truncated(self):
         def T(serialized):

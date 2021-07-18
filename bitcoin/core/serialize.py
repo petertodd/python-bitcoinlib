@@ -67,6 +67,23 @@ class DeserializationExtraDataError(SerializationError):
         self.obj = obj
         self.padding = padding
 
+
+class DeserializationValueBoundsError(SerializationError):
+    """Deserialized value out of bounds
+
+    Thrown by deserialize() when a deserialized value turns out to be out
+    of allowed bounds
+    """
+
+    def __init__(self, msg, klass=None, value=None,
+                 upper_bound=None, lower_bound=None):
+        super().__init__(msg)
+        self.klass = klass
+        self.value = value
+        self.upper_bound = upper_bound
+        self.lower_bound = lower_bound
+
+
 def ser_read(f, n):
     """Read from a stream safely
 
@@ -211,14 +228,49 @@ class VarIntSerializer(Serializer):
     @classmethod
     def stream_deserialize(cls, f):
         r = _bord(ser_read(f, 1))
+
         if r < 0xfd:
             return r
-        elif r == 0xfd:
-            return struct.unpack(b'<H', ser_read(f, 2))[0]
+
+        if r == 0xfd:
+            v = int(struct.unpack(b'<H', ser_read(f, 2))[0])
+            lower_bound = 0xfd
+            if v < lower_bound:
+                raise DeserializationValueBoundsError(
+                    "non-canonical 3-byte compact size for variable integer",
+                    klass=cls, value=v, lower_bound=lower_bound,
+                    upper_bound=0xFFFF)
         elif r == 0xfe:
-            return struct.unpack(b'<I', ser_read(f, 4))[0]
+            v = int(struct.unpack(b'<I', ser_read(f, 4))[0])
+
+            lower_bound = 0x10000
+            if v < lower_bound:
+                raise DeserializationValueBoundsError(
+                    "non-canonical 5-byte compact size for variable integer",
+                    klass=cls, value=v, lower_bound=lower_bound,
+                    upper_bound=0xFFFFFFFF)
         else:
-            return struct.unpack(b'<Q', ser_read(f, 8))[0]
+            v = int(struct.unpack(b'<Q', ser_read(f, 8))[0])
+
+            lower_bound = 0x100000000
+            if v < lower_bound:
+                raise DeserializationValueBoundsError(
+                    "non-canonical 9-byte compact size for variable integer",
+                    klass=cls, value=v, lower_bound=lower_bound,
+                    upper_bound=MAX_SIZE)
+
+        # With MAX_SIZE being defined as less than 32-bit max value,
+        # this means that any canonically encoded 64-bit value will be
+        # more than MAX_SIZE. This also means that upper_bound supplied
+        # to the exception may happen to be less than lower bound.
+        if v > MAX_SIZE:
+            raise DeserializationValueBoundsError(
+                "non-canonical compact size for variable integer: "
+                "value too large",
+                klass=cls, value=v, lower_bound=lower_bound,
+                upper_bound=MAX_SIZE)
+
+        return v
 
 
 class BytesSerializer(Serializer):
@@ -363,6 +415,7 @@ __all__ = (
         'SerializationError',
         'SerializationTruncationError',
         'DeserializationExtraDataError',
+        'DeserializationValueBoundsError',
         'ser_read',
         'Serializable',
         'ImmutableSerializable',
