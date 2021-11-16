@@ -23,24 +23,14 @@ a different implementation can be used instead, at your own risk:
 thus better optimized but perhaps less stable.)
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-import ssl
-
-try:
-    import http.client as httplib
-except ImportError:
-    import httplib
+import http.client as httplib
 import base64
 import binascii
 import decimal
 import json
 import os
 import platform
-import sys
-try:
-    import urllib.parse as urlparse
-except ImportError:
-    import urlparse
+import urllib.parse as urlparse
 
 import bitcoin
 from bitcoin.core import COIN, x, lx, b2lx, CBlock, CBlockHeader, CTransaction, COutPoint, CTxOut
@@ -51,12 +41,35 @@ DEFAULT_USER_AGENT = "AuthServiceProxy/0.1"
 
 DEFAULT_HTTP_TIMEOUT = 30
 
-# (un)hexlify to/from unicode, needed for Python3
-unhexlify = binascii.unhexlify
-hexlify = binascii.hexlify
-if sys.version > '3':
-    unhexlify = lambda h: binascii.unhexlify(h.encode('utf8'))
-    hexlify = lambda b: binascii.hexlify(b).decode('utf8')
+def unhexlify_str(h):
+    """
+    Converts a string containing hexadecimal encoding into a bytes-object.
+
+    It works by encoding the given string h as ASCII, then interpreting each of
+    its two-character ASCII tuples as bytes:
+        - "00" to byte 0
+        - "ff" to byte 255
+        - "FF" also to byte 255
+
+    The string must only contain characters in the ranges 0-9, a-f and A-F.
+
+    If the string contains characters not in ASCII,
+        UnicodeEncodeError is raised.
+    If the string contains out-of-range ASCII characters,
+        binascii.Error is raised.
+    If number of encoded ASCII bytes is odd,
+        binascii.Error is raised.
+    """
+    return binascii.unhexlify(h.encode('ascii'))
+
+def hexlify_str(b):
+    """
+    Given an arbitrary bytes-like object, returns a string (that would encode
+    as ASCII) containing the hex-representation of the bytes-like object.
+
+    Always succeeds.
+    """
+    return binascii.hexlify(b).decode('ascii')
 
 
 class JSONRPCError(Exception):
@@ -379,10 +392,10 @@ class Proxy(BaseProxy):
          'changepos': Position of added change output, or -1,
         }
         """
-        hextx = hexlify(tx.serialize())
+        hextx = hexlify_str(tx.serialize())
         r = self._call('fundrawtransaction', hextx, include_watching)
 
-        r['tx'] = CTransaction.deserialize(unhexlify(r['hex']))
+        r['tx'] = CTransaction.deserialize(unhexlify_str(r['hex']))
         del r['hex']
 
         r['fee'] = int(r['fee'] * COIN)
@@ -392,7 +405,7 @@ class Proxy(BaseProxy):
     def generate(self, numblocks):
         """
         DEPRECATED (will be removed in bitcoin-core v0.19)
-        
+
         Mine blocks immediately (before the RPC call returns)
 
         numblocks - How many blocks are generated immediately.
@@ -401,10 +414,10 @@ class Proxy(BaseProxy):
         """
         r = self._call('generate', numblocks)
         return (lx(blk_hash) for blk_hash in r)
-    
+
     def generatetoaddress(self, numblocks, addr):
         """Mine blocks immediately (before the RPC call returns) and
-        allocate block reward to passed address. Replaces deprecated 
+        allocate block reward to passed address. Replaces deprecated
         "generate(self,numblocks)" method.
 
         numblocks - How many blocks are generated immediately.
@@ -470,7 +483,7 @@ class Proxy(BaseProxy):
                     'nextblockhash':nextblockhash,
                     'chainwork':x(r['chainwork'])}
         else:
-            return CBlockHeader.deserialize(unhexlify(r))
+            return CBlockHeader.deserialize(unhexlify_str(r))
 
 
     def getblock(self, block_hash):
@@ -491,7 +504,7 @@ class Proxy(BaseProxy):
         except InvalidAddressOrKeyError as ex:
             raise IndexError('%s.getblock(): %s (%d)' %
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
-        return CBlock.deserialize(unhexlify(r))
+        return CBlock.deserialize(unhexlify_str(r))
 
     def getblockcount(self):
         """Return the number of blocks in the longest block chain"""
@@ -570,7 +583,7 @@ class Proxy(BaseProxy):
             raise IndexError('%s.getrawtransaction(): %s (%d)' %
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
         if verbose:
-            r['tx'] = CTransaction.deserialize(unhexlify(r['hex']))
+            r['tx'] = CTransaction.deserialize(unhexlify_str(r['hex']))
             del r['hex']
             del r['txid']
             del r['version']
@@ -579,7 +592,7 @@ class Proxy(BaseProxy):
             del r['vout']
             r['blockhash'] = lx(r['blockhash']) if 'blockhash' in r else None
         else:
-            r = CTransaction.deserialize(unhexlify(r))
+            r = CTransaction.deserialize(unhexlify_str(r))
 
         return r
 
@@ -627,7 +640,7 @@ class Proxy(BaseProxy):
             raise IndexError('%s.gettxout(): unspent txout %r not found' % (self.__class__.__name__, outpoint))
 
         r['txout'] = CTxOut(int(r['value'] * COIN),
-                            CScript(unhexlify(r['scriptPubKey']['hex'])))
+                            CScript(unhexlify_str(r['scriptPubKey']['hex'])))
         del r['value']
         del r['scriptPubKey']
         r['bestblock'] = lx(r['bestblock'])
@@ -667,7 +680,7 @@ class Proxy(BaseProxy):
                 unspent['address'] = CBitcoinAddress(unspent['address'])
             except KeyError:
                 pass
-            unspent['scriptPubKey'] = CScript(unhexlify(unspent['scriptPubKey']))
+            unspent['scriptPubKey'] = CScript(unhexlify_str(unspent['scriptPubKey']))
             unspent['amount'] = int(unspent['amount'] * COIN)
             r2.append(unspent)
         return r2
@@ -683,7 +696,7 @@ class Proxy(BaseProxy):
 
         allowhighfees - Allow even if fees are unreasonably high.
         """
-        hextx = hexlify(tx.serialize())
+        hextx = hexlify_str(tx.serialize())
         r = None
         if allowhighfees:
             r = self._call('sendrawtransaction', hextx, True)
@@ -713,9 +726,9 @@ class Proxy(BaseProxy):
 
         FIXME: implement options
         """
-        hextx = hexlify(tx.serialize())
+        hextx = hexlify_str(tx.serialize())
         r = self._call('signrawtransaction', hextx, *args)
-        r['tx'] = CTransaction.deserialize(unhexlify(r['hex']))
+        r['tx'] = CTransaction.deserialize(unhexlify_str(r['hex']))
         del r['hex']
         return r
 
@@ -725,9 +738,9 @@ class Proxy(BaseProxy):
 
         FIXME: implement options
         """
-        hextx = hexlify(tx.serialize())
+        hextx = hexlify_str(tx.serialize())
         r = self._call('signrawtransactionwithwallet', hextx, *args)
-        r['tx'] = CTransaction.deserialize(unhexlify(r['hex']))
+        r['tx'] = CTransaction.deserialize(unhexlify_str(r['hex']))
         del r['hex']
         return r
 
@@ -737,7 +750,7 @@ class Proxy(BaseProxy):
         params is optional and is currently ignored by bitcoind. See
         https://en.bitcoin.it/wiki/BIP_0022 for full specification.
         """
-        hexblock = hexlify(block.serialize())
+        hexblock = hexlify_str(block.serialize())
         if params is not None:
             return self._call('submitblock', hexblock, params)
         else:
@@ -749,7 +762,7 @@ class Proxy(BaseProxy):
         if r['isvalid']:
             r['address'] = CBitcoinAddress(r['address'])
         if 'pubkey' in r:
-            r['pubkey'] = unhexlify(r['pubkey'])
+            r['pubkey'] = unhexlify_str(r['pubkey'])
         return r
 
     def unlockwallet(self, password, timeout=60):

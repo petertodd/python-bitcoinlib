@@ -9,21 +9,12 @@
 # propagated, or distributed except according to the terms contained in the
 # LICENSE file.
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from bitcoin.core.key import CPubKey
 from bitcoin.core.serialize import ImmutableSerializable
 from bitcoin.wallet import P2PKHBitcoinAddress
 import bitcoin
 import base64
-import sys
-
-_bchr = chr
-_bord = ord
-if sys.version > '3':
-    long = int
-    _bchr = lambda x: bytes([x])
-    _bord = lambda x: x
 
 
 def VerifyMessage(address, message, sig):
@@ -42,7 +33,7 @@ def SignMessage(key, message):
     if key.is_compressed:
         meta += 4
 
-    return base64.b64encode(_bchr(meta) + sig)
+    return base64.b64encode(bytes([meta]) + sig)
 
 
 class BitcoinMessage(ImmutableSerializable):

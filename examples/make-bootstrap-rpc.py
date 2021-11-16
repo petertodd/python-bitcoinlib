@@ -13,11 +13,6 @@
 
 """Make a boostrap.dat file by getting the blocks from the RPC interface."""
 
-import sys
-if sys.version_info.major < 3:
-    sys.stderr.write('Sorry, Python 3.x required by this example.\n')
-    sys.exit(1)
-
 import bitcoin
 import bitcoin.rpc
 

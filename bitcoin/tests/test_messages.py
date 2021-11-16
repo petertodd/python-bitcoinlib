@@ -16,11 +16,7 @@ from bitcoin.messages import msg_version, msg_verack, msg_addr, msg_alert, \
     msg_block, msg_getaddr, msg_ping, msg_pong, msg_mempool, MsgSerializable, \
     msg_notfound, msg_reject
 
-import sys
-if sys.version > '3':
-    from io import BytesIO
-else:
-    from cStringIO import StringIO as BytesIO
+from io import BytesIO
 
 
 class MessageTestCase(unittest.TestCase):

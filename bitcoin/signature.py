@@ -9,17 +9,13 @@
 # propagated, or distributed except according to the terms contained in the
 # LICENSE file.
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from bitcoin.core.serialize import *
 
 # Py3 compatibility
 import sys
 
-if sys.version > '3':
-    from io import BytesIO as _BytesIO
-else:
-    from cStringIO import StringIO as _BytesIO
+from io import BytesIO
 
 
 class DERSignature(ImmutableSerializable):
@@ -34,7 +30,7 @@ class DERSignature(ImmutableSerializable):
     def stream_deserialize(cls, f):
         assert ser_read(f, 1) == b"\x30"
         rs = BytesSerializer.stream_deserialize(f)
-        f = _BytesIO(rs)
+        f = BytesIO(rs)
         assert ser_read(f, 1) == b"\x02"
         r = BytesSerializer.stream_deserialize(f)
         assert ser_read(f, 1) == b"\x02"

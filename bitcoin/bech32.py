@@ -11,14 +11,6 @@
 
 """Bech32 encoding and decoding"""
 
-import sys
-_bchr = chr
-_bord = ord
-if sys.version > '3':
-    long = int
-    _bchr = lambda x: bytes([x])
-    _bord = lambda x: x
-
 from bitcoin.segwit_addr import encode, decode
 import bitcoin
 

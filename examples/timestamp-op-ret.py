@@ -13,12 +13,6 @@
 
 """Example of timestamping a file via OP_RETURN"""
 
-import sys
-if sys.version_info.major < 3:
-    sys.stderr.write('Sorry, Python 3.x required by this example.\n')
-    sys.exit(1)
-
-import hashlib
 import bitcoin.rpc
 import sys
 

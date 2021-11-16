@@ -9,7 +9,6 @@
 # propagated, or distributed except according to the terms contained in the
 # LICENSE file.
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import unittest
 import random
@@ -19,11 +18,6 @@ import bitcoin
 from bitcoin.core import *
 from bitcoin.core.script import *
 from bitcoin.wallet import *
-
-if sys.version > '3':
-    _bytes = bytes
-else:
-    _bytes = lambda x: bytes(bytearray(x))
 
 # Test serialization
 
@@ -122,7 +116,7 @@ class Test_Segwit(unittest.TestCase):
         str_tx = '0100000001e3d0c1d051a3abe79d5951dcab86f71d8926aff5caed5ff9bd72cb593e4ebaf5010000006b483045022100a28e1c57e160296953e1af85c5034bb1b907c12c50367da75ba547874a8a8c52022040682e888ddce7fd5c72519a9f28f22f5164c8af864d33332bbc7f65596ad4ae012102db30394fd5cc8288bed607b9382338240c014a98c9c0febbfb380db74ceb30a3ffffffff020d920000000000001976a914ad781c8ffcc18b2155433cba2da4601180a66eef88aca3170000000000001976a914bacb1c4b0725e61e385c7093b4260533953c8e1688ac00000000'
         # SegWit transaction
         str_w_tx = '0100000000010115e180dc28a2327e687facc33f10f2a20da717e5548406f7ae8b4c811072f8560100000000ffffffff0100b4f505000000001976a9141d7cd6c75c2e86f4cbf98eaed221b30bd9a0b92888ac02483045022100df7b7e5cda14ddf91290e02ea10786e03eb11ee36ec02dd862fe9a326bbcb7fd02203f5b4496b667e6e281cc654a2da9e4f08660c620a1051337fa8965f727eb19190121038262a6c6cec93c2d3ecd6c6072efea86d02ff8e3328bbd0242b20af3425990ac00000000'
-        witness_nonce = _bytes(random.getrandbits(8) for _ in range(32))
+        witness_nonce = bytes(random.getrandbits(8) for _ in range(32))
 
         coinbase = CMutableTransaction.deserialize(x(str_coinbase))
         coinbase.wit = CTxWitness([CTxInWitness(CScriptWitness([witness_nonce]))])

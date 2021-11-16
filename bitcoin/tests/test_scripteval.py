@@ -9,15 +9,10 @@
 # propagated, or distributed except according to the terms contained in the
 # LICENSE file.
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import json
 import os
 import unittest
-
-import sys
-if sys.version > '3':
-    long = int
 
 from binascii import unhexlify
 
@@ -40,7 +35,7 @@ def parse_script(s):
 
     for word in s.split():
         if word.isdigit() or (word[0] == '-' and word[1:].isdigit()):
-            r.append(CScript([long(word)]))
+            r.append(CScript([int(word)]))
         elif word.startswith('0x') and ishex(word[2:]):
             # Raw ex data, inserted NOT pushed onto stack:
             r.append(unhexlify(word[2:].encode('utf8')))
