@@ -45,6 +45,12 @@ class TestNetParams(bitcoin.core.CoreTestNetParams):
                        'SECRET_KEY' :239}
     BECH32_HRP = 'tb'
 
+class SigNetParams(bitcoin.core.CoreSigNetParams):
+    MESSAGE_START = b'\x0a\x03\xcf\x40'
+    DEFAULT_PORT = 38333
+    RPC_PORT = 38332
+    DNS_SEEDS = (("signet.bitcoin.sprovoost.nl", "seed.signet.bitcoin.sprovoost.nl"))
+
 class RegTestParams(bitcoin.core.CoreRegTestParams):
     MESSAGE_START = b'\xfa\xbf\xb5\xda'
     DEFAULT_PORT = 18444
