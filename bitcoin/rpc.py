@@ -566,7 +566,7 @@ class Proxy(BaseProxy):
             r = [lx(txid) for txid in r]
             return r
 
-    def getrawtransaction(self, txid, verbose=False):
+    def getrawtransaction(self, txid, verbose=False, block_hash=None):
         """Return transaction with hash txid
 
         Raises IndexError if transaction not found.
@@ -574,16 +574,22 @@ class Proxy(BaseProxy):
         verbose - If true a dict is returned instead with additional
         information on the transaction.
 
+        block_hash - Hash of the block containing the transaction
+        (required when transaction not currently indexed by Bitcoin Core)
+
         Note that if all txouts are spent and the transaction index is not
         enabled the transaction may not be available.
         """
         try:
-            r = self._call('getrawtransaction', b2lx(txid), 1 if verbose else 0)
+            if block_hash is None:
+                r = self._call('getrawtransaction', b2lx(txid), 1 if verbose else 0)
+            else:
+                r = self._call('getrawtransaction', b2lx(txid), 1 if verbose else 0, b2lx(block_hash))
         except InvalidAddressOrKeyError as ex:
             raise IndexError('%s.getrawtransaction(): %s (%d)' %
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
         if verbose:
-            r['tx'] = CTransaction.deserialize(unhexlify_str(r['hex']))
+            r['tx'] = CTransaction.deserialize(unhexlify(r['hex']))
             del r['hex']
             del r['txid']
             del r['version']
@@ -592,8 +598,7 @@ class Proxy(BaseProxy):
             del r['vout']
             r['blockhash'] = lx(r['blockhash']) if 'blockhash' in r else None
         else:
-            r = CTransaction.deserialize(unhexlify_str(r))
-
+            r = CTransaction.deserialize(unhexlify(r))
         return r
 
     def getreceivedbyaddress(self, addr, minconf=1):
