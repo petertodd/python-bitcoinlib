@@ -50,6 +50,11 @@ class SigNetParams(bitcoin.core.CoreSigNetParams):
     DEFAULT_PORT = 38333
     RPC_PORT = 38332
     DNS_SEEDS = (("signet.bitcoin.sprovoost.nl", "seed.signet.bitcoin.sprovoost.nl"))
+    BASE58_PREFIXES = {'PUBKEY_ADDR':111,
+                       'SCRIPT_ADDR':196,
+                       'SECRET_KEY' :239}
+
+    BECH32_HRP = 'tb'
 
 class RegTestParams(bitcoin.core.CoreRegTestParams):
     MESSAGE_START = b'\xfa\xbf\xb5\xda'
@@ -84,5 +89,7 @@ def SelectParams(name):
         params = bitcoin.core.coreparams = TestNetParams()
     elif name == 'regtest':
         params = bitcoin.core.coreparams = RegTestParams()
+    elif name == 'signet':
+        params = bitcoin.core.coreparams = SigNetParams()
     else:
         raise ValueError('Unknown chain %r' % name)
