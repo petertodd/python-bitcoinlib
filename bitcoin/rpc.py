@@ -380,6 +380,12 @@ class Proxy(BaseProxy):
 
         return CBitcoinSecret(r)
 
+    def getaddressinfo(self, addr):
+        """Return information about the given bitcoin address. Some information requires the address to be in the wallet."""
+        r = self._call('getaddressinfo', str(addr))
+        r['address'] = CBitcoinAddress(r['address'])
+        return r
+
     def fundrawtransaction(self, tx, include_watching=False):
         """Add inputs to a transaction until it has enough in value to meet its out value.
 
