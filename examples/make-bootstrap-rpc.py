@@ -29,7 +29,7 @@ try:
     if len(sys.argv) == 3:
         bitcoin.SelectParams(sys.argv[2])
 except Exception as ex:
-    print('Usage: %s <block-height> [network=(mainnet|testnet|regtest)] > bootstrap.dat' % sys.argv[0], file=sys.stderr)
+    print('Usage: %s <block-height> [network=(mainnet|testnet|regtest|signet)] > bootstrap.dat' % sys.argv[0], file=sys.stderr)
     sys.exit(1)
 
 

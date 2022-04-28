@@ -86,7 +86,7 @@ Do the following:
     import bitcoin
     bitcoin.SelectParams(NAME)
 
-Where NAME is one of 'testnet', 'mainnet', or 'regtest'. The chain currently
+Where NAME is one of 'testnet', 'mainnet', 'signet', or 'regtest'. The chain currently
 selected is a global variable that changes behavior everywhere, just like in
 the Satoshi codebase.
 

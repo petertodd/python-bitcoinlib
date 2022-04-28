@@ -355,7 +355,7 @@ class Proxy(BaseProxy):
         out of the file ``btc_conf_file``. If ``btc_conf_file`` is not
         specified, ``~/.bitcoin/bitcoin.conf`` or equivalent is used by
         default.  The default port is set according to the chain parameters in
-        use: mainnet, testnet, or regtest.
+        use: mainnet, testnet, signet, or regtest.
 
         Usually no arguments to ``Proxy()`` are needed; the local bitcoind will
         be used.
