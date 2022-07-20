@@ -20,6 +20,8 @@ import struct
 
 from io import BytesIO
 
+from ._ripemd160 import ripemd160
+
 MAX_SIZE = 0x02000000
 
 
@@ -29,9 +31,7 @@ def Hash(msg):
 
 def Hash160(msg):
     """RIPEME160(SHA256(msg)) -> bytes"""
-    h = hashlib.new('ripemd160')
-    h.update(hashlib.sha256(msg).digest())
-    return h.digest()
+    return ripemd160(hashlib.sha256(msg).digest())
 
 
 class SerializationError(Exception):
