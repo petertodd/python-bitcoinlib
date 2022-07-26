@@ -29,10 +29,18 @@ def Hash(msg):
 
 def Hash160(msg):
     """RIPEME160(SHA256(msg)) -> bytes"""
-    h = hashlib.new('ripemd160')
-    h.update(hashlib.sha256(msg).digest())
-    return h.digest()
+    try:
+        # This will fail with newer versions of OpenSSL such as included in
+        # Ubuntu 22.04 as OpenSSL no longer includes ripemd160 by default.
+        hashlib.new('ripemd160')
+        def ripemd160(msg):
+            return hashlib.new('ripemd160', msg).digest()
+    except:
+        # If OpenSSL ripemd160 provided by hashlib fails, use the pure
+        # python implementation instead
+        from bitcoin.core.contrib.ripemd160 import ripemd160
 
+    return ripemd160(hashlib.sha256(msg).digest())
 
 class SerializationError(Exception):
     """Base class for serialization errors"""
