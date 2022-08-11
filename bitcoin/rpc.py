@@ -355,7 +355,7 @@ class Proxy(BaseProxy):
         out of the file ``btc_conf_file``. If ``btc_conf_file`` is not
         specified, ``~/.bitcoin/bitcoin.conf`` or equivalent is used by
         default.  The default port is set according to the chain parameters in
-        use: mainnet, testnet, or regtest.
+        use: mainnet, testnet, signet, or regtest.
 
         Usually no arguments to ``Proxy()`` are needed; the local bitcoind will
         be used.
@@ -595,7 +595,7 @@ class Proxy(BaseProxy):
             raise IndexError('%s.getrawtransaction(): %s (%d)' %
                     (self.__class__.__name__, ex.error['message'], ex.error['code']))
         if verbose:
-            r['tx'] = CTransaction.deserialize(unhexlify(r['hex']))
+            r['tx'] = CTransaction.deserialize(unhexlify_str(r['hex']))
             del r['hex']
             del r['txid']
             del r['version']
@@ -604,7 +604,7 @@ class Proxy(BaseProxy):
             del r['vout']
             r['blockhash'] = lx(r['blockhash']) if 'blockhash' in r else None
         else:
-            r = CTransaction.deserialize(unhexlify(r))
+            r = CTransaction.deserialize(unhexlify_str(r))
         return r
 
     def getreceivedbyaddress(self, addr, minconf=1):

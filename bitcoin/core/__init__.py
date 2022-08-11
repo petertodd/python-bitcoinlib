@@ -736,6 +736,8 @@ def _SelectCoreParams(name):
         coreparams = CoreTestNetParams()
     elif name == 'regtest':
         coreparams = CoreRegTestParams()
+    elif name == 'signet':
+        coreparams = CoreSigNetParams()
     else:
         raise ValueError('Unknown chain %r' % name)
 
