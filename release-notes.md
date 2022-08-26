@@ -1,5 +1,11 @@
 # python-bitcoinlib release notes
 
+## v0.11.1
+
+* Pure-python RIPEMD-160, for newer versions of OpenSSL without RIPEMD-160
+  support.
+* Signet support
+
 ## v0.11.0
 
 * Bech32 implementation
