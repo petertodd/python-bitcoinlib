@@ -23,6 +23,7 @@ import bitcoin.core
 import bitcoin.core._bignum
 import bitcoin.core.key
 import bitcoin.core.serialize
+from bitcoin.core.contrib.ripemd160 import ripemd160
 
 # Importing everything for simplicity; note that we use __all__ at the end so
 # we're not exporting the whole contents of the script module.
@@ -624,9 +625,7 @@ def _EvalScript(stack, scriptIn, txTo, inIdx, flags=()):
             elif sop == OP_RIPEMD160:
                 check_args(1)
 
-                h = hashlib.new('ripemd160')
-                h.update(stack.pop())
-                stack.append(h.digest())
+                stack.append(ripemd160(stack.pop()))
 
             elif sop == OP_ROT:
                 check_args(3)
