@@ -257,6 +257,8 @@ class CECKey:
         self.k = None
 
     def set_secretbytes(self, secret):
+        if(len(secret) != 32):
+            raise ValueError("Secret bytes must be exactly 32 bytes")
         priv_key = _ssl.BN_bin2bn(secret, 32, None)
         group = _ssl.EC_KEY_get0_group(self.k)
         pub_key = _ssl.EC_POINT_new(group)
