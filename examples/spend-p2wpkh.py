@@ -87,8 +87,8 @@ signature = seckey.sign(sighash) + bytes([SIGHASH_ALL])
 # the witness so that the appropriate redeem_script can be calculated by
 # anyone. The original scriptPubKey had only the Hash160 hash of the public
 # key, not the public key itself, and the redeem script can be entirely
-# re-constructed (from implicit template) if given just the public key. So the
-# public key is added to the witness. This is P2WPKH in bip141.
+# re-constructed  if given just the public key. So the public key is added to
+# the witness. This is P2WPKH in bip141.
 witness = [signature, public_key]
 
 # Aggregate all of the witnesses together, and then assign them to the
