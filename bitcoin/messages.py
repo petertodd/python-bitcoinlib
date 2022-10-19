@@ -160,7 +160,7 @@ class msg_version(MsgSerializable):
         self.addrTo.stream_serialize(f, True)
         self.addrFrom.stream_serialize(f, True)
         f.write(struct.pack(b"<Q", self.nNonce))
-        VarStringSerializer.stream_serialize(self.strSubVer, f)
+        VarStringSerializer.stream_serialize(self.strSubVer.encode(), f)
         f.write(struct.pack(b"<i", self.nStartingHeight))
         f.write(struct.pack(b"<B", self.fRelay))
 
