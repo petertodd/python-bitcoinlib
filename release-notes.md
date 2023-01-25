@@ -1,8 +1,12 @@
 # python-bitcoinlib release notes
 
-## v0.12.0-pending
+## v0.12.0
 
 * `CECKey` now rejects secrets that aren't exactly 32 bytes
+* Now compatible with OpenSSL v3; broke compatibility with certain script edge
+  cases around malformed signatures. This is acceptable because
+  python-bitcoinlib doesn't claim to have consensus compatibility and no-one
+  should use it for script/tx validation.
 
 ## v0.11.2
 
