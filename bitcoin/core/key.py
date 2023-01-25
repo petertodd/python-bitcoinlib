@@ -434,6 +434,12 @@ class CECKey:
         norm_sig = ctypes.c_void_p(0)
         _ssl.d2i_ECDSA_SIG(ctypes.byref(norm_sig), ctypes.byref(ctypes.c_char_p(sig)), len(sig))
 
+        # Newer versions of OpenSSL (>3.0.0?) seem to fail here, leaving a null
+        # pointer in norm_sig
+        if not norm_sig:
+            return False
+
+        # Older versions (<3.0.0?) seem to fail here, with a empty derlen
         derlen = _ssl.i2d_ECDSA_SIG(norm_sig, 0)
         if derlen == 0:
             _ssl.ECDSA_SIG_free(norm_sig)
