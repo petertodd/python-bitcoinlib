@@ -434,9 +434,11 @@ class CTransaction(ImmutableSerializable):
             return cls(tx.vin, tx.vout, tx.nLockTime, tx.nVersion, tx.wit)
 
     def GetTxid(self):
-        """Get the transaction ID.  This differs from the transactions hash as
-            given by GetHash.  GetTxid excludes witness data, while GetHash
-            includes it. """
+        """Get the transaction ID.
+
+        This differs from the transactions hash as given by GetHash. GetTxid
+        excludes witness data, while GetHash includes it.
+        """
         if self.wit != CTxWitness():
             txid = Hash(CTransaction(self.vin, self.vout, self.nLockTime,
                 self.nVersion).serialize())
