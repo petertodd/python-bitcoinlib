@@ -446,6 +446,24 @@ class CTransaction(ImmutableSerializable):
             txid = Hash(self.serialize())
         return txid
 
+    def calc_weight(self):
+        """Calculate the transaction weight, as defined by BIP141.
+
+        The transaction must contain at least one input and one output.
+        """
+        # Not clear how calc_weight() should be defined for the zero vin/vout
+        # cases, so punting on that decision for now.
+        assert len(self.vin) > 0
+        assert len(self.vout) > 0
+
+        # This special case isn't strictly necessary. But saves on serializing
+        # the transaction twice in the no-witness case.
+        if self.wit.is_null():
+            return len(self.serialize()) * 4
+        else:
+            stripped = CTransaction(self.vin, self.vout, self.nLockTime, self.nVersion)
+            return len(stripped.serialize()) * 3 + len(self.serialize())
+
 @__make_mutable
 class CMutableTransaction(CTransaction):
     """A mutable transaction"""
