@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2015 The python-bitcoinlib developers
+# Copyright (C) The python-bitcoinlib developers
 #
 # This file is part of python-bitcoinlib.
 #
