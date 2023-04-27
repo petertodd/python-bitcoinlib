@@ -1,5 +1,10 @@
 # python-bitcoinlib release notes
 
+## v0.12.1
+
+* Added `calc_weight()` method.
+* (Hopefully) resolved failure to find `libeay32` on Windows.
+
 ## v0.12.0
 
 * `CECKey` now rejects secrets that aren't exactly 32 bytes
