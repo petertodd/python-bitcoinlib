@@ -128,6 +128,44 @@ class InWarmupError(JSONRPCError):
     RPC_ERROR_CODE = -28
 
 
+def default_btc_dir():
+    if platform.system() == 'Darwin':
+        return os.path.expanduser('~/Library/Application Support/Bitcoin/')
+    elif platform.system() == 'Windows':
+        return os.path.join(os.environ['APPDATA'], 'Bitcoin')
+    return os.path.expanduser('~/.bitcoin')
+
+
+def parse_conf_file(file_object):
+    conf = {}
+    for line in file_object.readlines():
+        if '#' in line:
+            line = line[:line.index('#')]
+        if '=' not in line:
+            continue
+        k, v = line.split('=', 1)
+        conf[k.strip()] = v.strip()
+    return conf
+
+
+def get_authpair(conf, network, btc_conf_file):
+    cookie_dir = conf.get('datadir', os.path.dirname(btc_conf_file))
+    if network != "mainnet":
+        cookie_dir = os.path.join(cookie_dir, network)
+    cookie_file = os.path.join(cookie_dir, ".cookie")
+
+    try:
+        with open(cookie_file, 'r') as fd:
+            return fd.read()
+    except IOError as err:
+        if 'rpcpassword' in conf:
+            return "%s:%s" % (conf['rpcuser'], conf['rpcpassword'])
+
+        raise ValueError('Cookie file unusable (%s) and rpcpassword '
+                         'not specified in the configuration file: %r'
+                         % (err, btc_conf_file))
+
+
 class BaseProxy(object):
     """Base JSON-RPC proxy class. Contains only private methods; do not use
     directly."""
@@ -148,13 +186,7 @@ class BaseProxy(object):
         if service_url is None:
             # Figure out the path to the bitcoin.conf file
             if btc_conf_file is None:
-                if platform.system() == 'Darwin':
-                    btc_conf_file = os.path.expanduser('~/Library/Application Support/Bitcoin/')
-                elif platform.system() == 'Windows':
-                    btc_conf_file = os.path.join(os.environ['APPDATA'], 'Bitcoin')
-                else:
-                    btc_conf_file = os.path.expanduser('~/.bitcoin')
-                btc_conf_file = os.path.join(btc_conf_file, 'bitcoin.conf')
+                btc_conf_file = os.path.join(default_btc_dir(), 'bitcoin.conf')
 
             # Bitcoin Core accepts empty rpcuser, not specified in btc_conf_file
             conf = {'rpcuser': ""}
@@ -162,14 +194,7 @@ class BaseProxy(object):
             # Extract contents of bitcoin.conf to build service_url
             try:
                 with open(btc_conf_file, 'r') as fd:
-                    for line in fd.readlines():
-                        if '#' in line:
-                            line = line[:line.index('#')]
-                        if '=' not in line:
-                            continue
-                        k, v = line.split('=', 1)
-                        conf[k.strip()] = v.strip()
-
+                    conf.update(parse_conf_file(fd))
             # Treat a missing bitcoin.conf as though it were empty
             except FileNotFoundError:
                 pass
@@ -182,19 +207,7 @@ class BaseProxy(object):
             service_url = ('%s://%s:%d' %
                 ('http', conf['rpchost'], conf['rpcport']))
 
-            cookie_dir = conf.get('datadir', os.path.dirname(btc_conf_file))
-            if bitcoin.params.NAME != "mainnet":
-                cookie_dir = os.path.join(cookie_dir, bitcoin.params.NAME)
-            cookie_file = os.path.join(cookie_dir, ".cookie")
-            try:
-                with open(cookie_file, 'r') as fd:
-                    authpair = fd.read()
-            except IOError as err:
-                if 'rpcpassword' in conf:
-                    authpair = "%s:%s" % (conf['rpcuser'], conf['rpcpassword'])
-
-                else:
-                    raise ValueError('Cookie file unusable (%s) and rpcpassword not specified in the configuration file: %r' % (err, btc_conf_file))
+            authpair = get_authpair(conf, bitcoin.params.NAME, btc_conf_file)
 
         else:
             url = urlparse.urlparse(service_url)
@@ -224,14 +237,8 @@ class BaseProxy(object):
             self.__conn = httplib.HTTPConnection(self.__url.hostname, port=port,
                                                  timeout=timeout)
 
-    def _call(self, service_name, *args):
-        self.__id_count += 1
-
-        postdata = json.dumps({'version': '1.1',
-                               'method': service_name,
-                               'params': args,
-                               'id': self.__id_count})
-
+    @property
+    def _headers(self):
         headers = {
             'Host': self.__url.hostname,
             'User-Agent': DEFAULT_USER_AGENT,
@@ -241,7 +248,18 @@ class BaseProxy(object):
         if self.__auth_header is not None:
             headers['Authorization'] = self.__auth_header
 
-        self.__conn.request('POST', self.__url.path, postdata, headers)
+        return headers
+
+    def _call(self, service_name, *args):
+        self.__id_count += 1
+
+        postdata = json.dumps({'version': '1.1',
+                               'method': service_name,
+                               'params': args,
+                               'id': self.__id_count})
+
+
+        self.__conn.request('POST', self.__url.path, postdata, self._headers)
 
         response = self._get_response()
         err = response.get('error')
@@ -259,17 +277,7 @@ class BaseProxy(object):
 
     def _batch(self, rpc_call_list):
         postdata = json.dumps(list(rpc_call_list))
-
-        headers = {
-            'Host': self.__url.hostname,
-            'User-Agent': DEFAULT_USER_AGENT,
-            'Content-type': 'application/json',
-        }
-
-        if self.__auth_header is not None:
-            headers['Authorization'] = self.__auth_header
-
-        self.__conn.request('POST', self.__url.path, postdata, headers)
+        self.__conn.request('POST', self.__url.path, postdata, self._headers)
         return self._get_response()
 
     def _get_response(self):
