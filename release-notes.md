@@ -1,5 +1,9 @@
 # python-bitcoinlib release notes
 
+## v0.12.2
+
+* Fixed RPC cookie location for testnet
+
 ## v0.12.1
 
 * Added `calc_weight()` method.
