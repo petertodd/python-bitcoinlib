@@ -183,7 +183,9 @@ class BaseProxy(object):
                 ('http', conf['rpchost'], conf['rpcport']))
 
             cookie_dir = conf.get('datadir', os.path.dirname(btc_conf_file))
-            if bitcoin.params.NAME != "mainnet":
+            if bitcoin.params.NAME == 'testnet':
+                cookie_dir = os.path.join(cookie_dir, 'testnet3')
+            elif bitcoin.params.NAME == 'regtest':
                 cookie_dir = os.path.join(cookie_dir, bitcoin.params.NAME)
             cookie_file = os.path.join(cookie_dir, ".cookie")
             try:
