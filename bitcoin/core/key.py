@@ -30,6 +30,7 @@ _ssl = ctypes.cdll.LoadLibrary(
 
 _libsecp256k1_path = ctypes.util.find_library('secp256k1')
 _libsecp256k1_enable_signing = False
+_libsecp256k1_use_low_r = False
 _libsecp256k1_context = None
 _libsecp256k1 = None
 
@@ -207,10 +208,11 @@ def is_libsec256k1_available():
     return _libsecp256k1_path is not None
 
 
-def use_libsecp256k1_for_signing(do_use):
+def use_libsecp256k1_for_signing(do_use, use_low_r=False):
     global _libsecp256k1
     global _libsecp256k1_context
     global _libsecp256k1_enable_signing
+    global _libsecp256k1_use_low_r
 
     if not do_use:
         _libsecp256k1_enable_signing = False
@@ -231,10 +233,19 @@ def use_libsecp256k1_for_signing(do_use):
         result = _libsecp256k1.secp256k1_context_randomize(_libsecp256k1_context, seed)
         assert 1 == result
 
+    if use_low_r:
+        _libsecp256k1_use_low_r = True
 
 
     _libsecp256k1_enable_signing = True
 
+def sig_has_low_r(sig):
+    compact_sig = ctypes.create_string_buffer(64)
+    _libsecp256k1.secp256k1_ecdsa_signature_serialize_compact(
+        _libsecp256k1_context, compact_sig, sig
+    )
+
+    return compact_sig[0] < b"\x80"
 
 
 # From openssl/ecdsa.h
@@ -318,6 +329,22 @@ class CECKey:
         raw_sig = ctypes.create_string_buffer(64)
         result = _libsecp256k1.secp256k1_ecdsa_sign(
             _libsecp256k1_context, raw_sig, hash, self.get_raw_privkey(), None, None)
+
+        if _libsecp256k1_use_low_r:
+            # grind for low R value https://github.com/bitcoin/bitcoin/pull/13666
+            counter = 0
+            while not sig_has_low_r(raw_sig):
+                counter += 1
+                extra_entropy = counter.to_bytes(32, byteorder="little")
+                result = _libsecp256k1.secp256k1_ecdsa_sign(
+                    _libsecp256k1_context,
+                    raw_sig,
+                    hash,
+                    self.get_raw_privkey(),
+                    None,
+                    extra_entropy,
+                )
+
         assert 1 == result
         sig_size0 = ctypes.c_size_t()
         sig_size0.value = 75
