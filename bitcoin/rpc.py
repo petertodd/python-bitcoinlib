@@ -202,6 +202,7 @@ class BaseProxy(object):
             url = urlparse.urlparse(service_url)
             authpair = "%s:%s" % (url.username, url.password)
 
+        self.__base_url = service_url # Store the base URL in the propriety
         self.__service_url = service_url
         self.__url = urlparse.urlparse(service_url)
 
@@ -225,6 +226,24 @@ class BaseProxy(object):
         else:
             self.__conn = httplib.HTTPConnection(self.__url.hostname, port=port,
                                                  timeout=timeout)
+
+    @property
+    def base_url(self):
+        return self.__base_url
+
+    @property
+    def service_url(self):
+        return self.__service_url
+
+    @service_url.setter
+    def service_url(self, new_service_url):
+        """
+        Change the service url to perform the request to the bitcoin node
+        Particular useful when the user want use different wallet in the
+        same node.
+        """
+        self.__service_url = new_service_url
+        self.__url = urlparse.urlparse(self.__service_url)
 
     def _call(self, service_name, *args):
         self.__id_count += 1
