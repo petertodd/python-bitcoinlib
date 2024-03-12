@@ -54,6 +54,7 @@ class Test_CScriptOp(unittest.TestCase):
             self.assertEqual(actual, n)
             self.assertTrue(isinstance(actual, int))
 
+        t(-1, OP_1NEGATE)
         t(0, OP_0)
         t(1, OP_1)
         t(2, OP_2)
@@ -108,7 +109,7 @@ class Test_CScript(unittest.TestCase):
 
         # numbers
         T('00', [0x0])
-        T('4f', [OP_1NEGATE])
+        T('4f', [-1])
         T('51', [0x1])
         T('52', [0x2])
         T('53', [0x3])
