@@ -205,11 +205,14 @@ class BaseProxy(object):
         self.__service_url = service_url
         self.__url = urlparse.urlparse(service_url)
 
-        if self.__url.scheme not in ('http',):
+        if self.__url.scheme not in ('http', 'https'):
             raise ValueError('Unsupported URL scheme %r' % self.__url.scheme)
 
         if self.__url.port is None:
-            port = httplib.HTTP_PORT
+            if self.__url.scheme == 'https':
+                port = httplib.HTTPS_PORT
+            else:
+                port = httplib.HTTP_PORT
         else:
             port = self.__url.port
         self.__id_count = 0
@@ -223,8 +226,12 @@ class BaseProxy(object):
         if connection:
             self.__conn = connection
         else:
-            self.__conn = httplib.HTTPConnection(self.__url.hostname, port=port,
-                                                 timeout=timeout)
+            if self.__url.scheme == 'https':
+                self.__conn = httplib.HTTPSConnection(self.__url.hostname, port=port,
+                                                      timeout=timeout)
+            else:
+                self.__conn = httplib.HTTPConnection(self.__url.hostname, port=port,
+                                                     timeout=timeout)
 
     def _call(self, service_name, *args):
         self.__id_count += 1
