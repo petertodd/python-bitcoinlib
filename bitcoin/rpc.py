@@ -790,6 +790,17 @@ class Proxy(BaseProxy):
         r = self._call('walletpassphrase', password, timeout)
         return r
 
+    def getblocktemplate(self, params=None):
+        """return a candidate block
+        this implementation (and parameter) implements the the bitcoin-cli getblocktemplate
+        default behavior
+        FIXME: implement options
+        """
+        if params is None:
+            params = {"rules": ["segwit"]}
+        r = self._call("getblocktemplate", params)
+        return r
+ 
     def _addnode(self, node, arg):
         r = self._call('addnode', node, arg)
         return r
