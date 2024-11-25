@@ -790,6 +790,15 @@ class Proxy(BaseProxy):
         r = self._call('walletpassphrase', password, timeout)
         return r
 
+    def createwallet(self, name):
+        """create a new wallet.
+
+        name - The wallet name.
+
+        """
+        r = self._call('createwallet', name)
+        return r
+
     def _addnode(self, node, arg):
         r = self._call('addnode', node, arg)
         return r
