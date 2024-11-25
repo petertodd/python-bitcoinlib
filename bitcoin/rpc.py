@@ -799,6 +799,16 @@ class Proxy(BaseProxy):
         r = self._call('createwallet', name)
         return r
 
+    def loadwallet(self, name, load_on_startup=False):
+        """load a wallet.
+
+        name - The wallet name.
+        load_on_startup - whether to remember to load it automatically next time bitcoind starts.
+
+        """
+        r = self._call('loadwallet', name, load_on_startup)
+        return r
+
     def _addnode(self, node, arg):
         r = self._call('addnode', node, arg)
         return r
