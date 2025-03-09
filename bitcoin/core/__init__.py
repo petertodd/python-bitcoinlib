@@ -345,9 +345,9 @@ class CTxWitness(ImmutableSerializable):
 
 class CTransaction(ImmutableSerializable):
     """A transaction"""
-    __slots__ = ['nVersion', 'vin', 'vout', 'nLockTime', 'wit']
+    __slots__ = ['nVersion', 'vin', 'vout', 'nLockTime', 'wit', 'flagbyte']
 
-    def __init__(self, vin=(), vout=(), nLockTime=0, nVersion=1, witness=CTxWitness()):
+    def __init__(self, vin=(), vout=(), nLockTime=0, nVersion=1, witness=CTxWitness(), flagbyte=0):
         """Create a new transaction
 
         vin and vout are iterables of transaction inputs and outputs
@@ -361,6 +361,7 @@ class CTransaction(ImmutableSerializable):
         object.__setattr__(self, 'vin', tuple(CTxIn.from_txin(txin) for txin in vin))
         object.__setattr__(self, 'vout', tuple(CTxOut.from_txout(txout) for txout in vout))
         object.__setattr__(self, 'wit', CTxWitness.from_txwitness(witness))
+        object.__setattr__(self, 'flagbyte', flagbyte)
 
     @classmethod
     def stream_deserialize(cls, f):
@@ -386,8 +387,19 @@ class CTransaction(ImmutableSerializable):
             wit = CTxWitness(tuple(0 for dummy in range(len(vin))))
             wit = wit.stream_deserialize(f)
             nLockTime = struct.unpack(b"<I", ser_read(f,4))[0]
-            return cls(vin, vout, nLockTime, nVersion, wit)
+            return cls(vin, vout, nLockTime, nVersion, wit, flagbyte)
         else:
+            try:
+                vin = VectorSerializer.stream_deserialize(CTxIn, f)
+                if(len(vin)>0 and markerbyte ==0 and flagbyte!=1):
+                    vout = VectorSerializer.stream_deserialize(CTxOut, f)
+                    wit = CTxWitness(tuple(0 for dummy in range(len(vin))))
+                    wit = wit.stream_deserialize(f)
+                    nLockTime = struct.unpack(b"<I", ser_read(f,4))[0]
+                    return cls(vin, vout, nLockTime, nVersion, wit, flagbyte)
+            except:
+                #failing here can mean we just need to deserialize a normal tx after setting the cursor in the right position
+                pass
             f.seek(pos) # put marker byte back, since we don't have peek
             vin = VectorSerializer.stream_deserialize(CTxIn, f)
             vout = VectorSerializer.stream_deserialize(CTxOut, f)
@@ -809,6 +821,12 @@ def CheckTransaction(tx):
             if txin.prevout.is_null():
                 raise CheckTransactionError("CheckTransaction() : prevout is null")
 
+    # Check for flagbyte segwit related errors:
+    if(tx.flagbyte!=0 and tx.flagbyte!=1):
+        raise CheckTransactionError("CheckTransaction() : Unknown optional flag")
+
+    if(tx.flagbyte==1 and tx.wit.is_null()):
+        raise CheckTransactionError("CheckTransaction() : Superfluous witnes records")
 
 
 
