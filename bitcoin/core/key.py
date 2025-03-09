@@ -26,7 +26,7 @@ import bitcoin.core.script
 
 _ssl = ctypes.cdll.LoadLibrary(
     ctypes.util.find_library('ssl.35') or ctypes.util.find_library('ssl') or ctypes.util.find_library('libeay32')
-    or ctypes.cdll.LoadLibrary("libcrypto")
+    or ctypes.util.find_library('libcrypto')
 )
 
 _libsecp256k1_path = ctypes.util.find_library('secp256k1')
