@@ -36,6 +36,7 @@ library. Non-consensus critical modules include the following:
     bitcoin.bloom    - Bloom filters (incomplete)
     bitcoin.net      - Network communication (in flux)
     bitcoin.messages - Network messages (in flux)
+    bitcoin.minikey  - Minikey decoding
     bitcoin.rpc      - Bitcoin Core RPC interface support
     bitcoin.wallet   - Wallet-related code, currently Bitcoin address and
                        private key support
