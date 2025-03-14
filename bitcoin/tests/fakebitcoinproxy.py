@@ -97,6 +97,7 @@ def make_blocks_from_blockhashes(blockhashes):
     instantiation.
     """
     blocks = []
+    previousblockhash = None
 
     for (height, blockhash) in enumerate(blockhashes):
         block = {"hash": blockhash, "height": height, "tx": []}
