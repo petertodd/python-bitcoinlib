@@ -1,0 +1,20 @@
+from bitcoinlib.transactions import Transaction, Input, Output
+from bitcoinlib.encoding import address_to_scriptpubkey
+
+# Inputs (UTXOs)
+inputs = [Input('c6cb13db15a71fe9b18e94aea771efef0fa76798d2ab904f25fe926311670619', 0)]
+
+# Outputs
+outputs = [
+    Output(300000000, address_to_scriptpubkey('bc1q59pelcp7z9k208jzh0q6kdxz4md98e8ws2mv2k')),  # 3 Bitcoin in satoshis
+    # You need to add an output for change if the total input amount is more than 3 Bitcoin
+]
+
+# Create the transaction
+tx = Transaction(inputs, outputs)
+
+# Sign the transaction (you need to provide the appropriate private keys)
+# tx.sign(private_keys)
+
+# Broadcast the transaction (use a library or service to broadcast the transaction to the Bitcoin network)
+# broadcast_transaction(tx)
