@@ -396,9 +396,9 @@ class Proxy(BaseProxy):
 
         Returns dict:
 
-        {'tx':        Resulting tx,
-         'fee':       Fee the resulting transaction pays,
-         'changepos': Position of added change output, or -1,
+        {'tx':        Resulting tx,\
+         'fee':       Fee the resulting transaction pays,\
+         'changepos': Position of added change output, or -1,\
         }
         """
         hextx = hexlify_str(tx.serialize())
