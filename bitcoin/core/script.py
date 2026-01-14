@@ -691,7 +691,7 @@ class CScript(bytes):
 
     def witness_version(self):
         """Returns the witness version on [0,16]. """
-        return next(iter(self))
+        return CScriptOp(next(iter(self))).decode_op_n()
 
     def is_witness_v0_keyhash(self):
         """Returns true if this is a scriptpubkey for V0 P2WPKH. """
