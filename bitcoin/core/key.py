@@ -18,15 +18,34 @@ disk in swap! Use with caution!
 import ctypes
 import ctypes.util
 import hashlib
+import os
+import sys
 from os import urandom
 import bitcoin
 import bitcoin.signature
 
 import bitcoin.core.script
 
+
+def _find_bundled_libcrypto():
+    # On Python 3.8+ Windows, sys.{base_,}prefix/DLLs is no longer on the DLL
+    # search path, so find_library can't see the libcrypto-*.dll Python ships.
+    if sys.platform != 'win32':
+        return None
+    for base in (sys.base_prefix, sys.prefix):
+        d = os.path.join(base, 'DLLs')
+        if not os.path.isdir(d):
+            continue
+        for name in os.listdir(d):
+            low = name.lower()
+            if low.startswith('libcrypto-') and low.endswith('.dll'):
+                return os.path.join(d, name)
+    return None
+
+
 _ssl = ctypes.cdll.LoadLibrary(
     ctypes.util.find_library('ssl.35') or ctypes.util.find_library('ssl') or ctypes.util.find_library('libeay32')
-    or ctypes.util.find_library('libcrypto')
+    or ctypes.util.find_library('libcrypto') or _find_bundled_libcrypto()
 )
 
 _libsecp256k1_path = ctypes.util.find_library('secp256k1')
