@@ -340,12 +340,24 @@ class msg_headers(MsgSerializable):
 
     @classmethod
     def msg_deser(cls, f, protover=PROTO_VERSION):
+        # Each entry in a P2P 'headers' message is a CBlockHeader followed by
+        # the block's transaction-count varint (always 0, since blocks-without-
+        # transactions is the whole point of the 'headers' message). The
+        # trailing varint is part of the on-wire format and must be consumed,
+        # or subsequent headers in the same message will be misaligned.
         c = cls()
-        c.headers = VectorSerializer.stream_deserialize(CBlockHeader, f)
+        n = VarIntSerializer.stream_deserialize(f)
+        for _ in range(n):
+            header = CBlockHeader.stream_deserialize(f)
+            VarIntSerializer.stream_deserialize(f)  # discard tx-count varint
+            c.headers.append(header)
         return c
 
     def msg_ser(self, f):
-        VectorSerializer.stream_serialize(CBlockHeader, self.headers, f)
+        VarIntSerializer.stream_serialize(len(self.headers), f)
+        for header in self.headers:
+            header.stream_serialize(f)
+            VarIntSerializer.stream_serialize(0, f)  # tx-count varint
 
     def __repr__(self):
         return "msg_headers(headers=%s)" % (repr(self.headers))
