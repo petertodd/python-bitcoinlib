@@ -23,11 +23,16 @@ import bitcoin
 import bitcoin.signature
 
 import bitcoin.core.script
-
-_ssl = ctypes.cdll.LoadLibrary(
-    ctypes.util.find_library('ssl.35') or ctypes.util.find_library('ssl') or ctypes.util.find_library('libeay32')
-    or ctypes.util.find_library('libcrypto')
+_ssl_library = (
+    ctypes.util.find_library('ssl.35') or ctypes.util.find_library('ssl')
+    or ctypes.util.find_library('libeay32') or ctypes.util.find_library('libcrypto')
 )
+if _ssl_library is None:
+    raise EnvironmentError(
+        "OpenSSL library not found. "
+        "Install OpenSSL and ensure it is on your PATH or system library path."
+    )
+_ssl = ctypes.cdll.LoadLibrary(_ssl_library)
 
 _libsecp256k1_path = ctypes.util.find_library('secp256k1')
 _libsecp256k1_enable_signing = False

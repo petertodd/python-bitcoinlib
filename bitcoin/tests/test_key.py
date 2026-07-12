@@ -10,6 +10,8 @@
 # LICENSE file.
 
 
+import subprocess
+import sys
 import unittest
 
 from bitcoin.core.key import *
@@ -38,3 +40,29 @@ class Test_CPubKey(unittest.TestCase):
 
         T('0478d430274f8c5ec1321338151e9f27f4c676a008bdf8638d07c0b6be9ab35c71a1518063243acd4dfe96b66e3f2ec8013c8e072cd09b3834a19f81f659cc3455',
           True, True, False)
+
+
+class Test_OpenSSLLoading(unittest.TestCase):
+    def test_missing_library_raises_clear_error(self):
+        code = """
+import ctypes.util
+ctypes.util.find_library = lambda name: None
+
+try:
+    import bitcoin.core.key
+except EnvironmentError as exc:
+    assert str(exc) == (
+        "OpenSSL library not found. Install OpenSSL and ensure it is on your "
+        "PATH or system library path."
+    )
+else:
+    raise AssertionError("bitcoin.core.key imported without OpenSSL")
+"""
+
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
