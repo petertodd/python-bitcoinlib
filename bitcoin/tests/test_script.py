@@ -44,6 +44,10 @@ class Test_CScriptOp(unittest.TestCase):
         for i in range(0x0, 0x100):
             self.assertTrue(CScriptOp(i) is CScriptOp(i))
 
+    def test_boolean_aliases_are_available_by_name(self):
+        self.assertIs(OPCODES_BY_NAME['OP_FALSE'], OP_0)
+        self.assertIs(OPCODES_BY_NAME['OP_TRUE'], OP_1)
+
     def test_encode_decode_op_n(self):
         def t(n, op):
             actual = CScriptOp.encode_op_n(n)
