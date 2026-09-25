@@ -17,7 +17,7 @@ from binascii import unhexlify
 
 from bitcoin.core.script import CScript, OP_0, OP_1, OP_16
 from bitcoin.bech32 import *
-from bitcoin.segwit_addr import encode, decode
+from bitcoin.segwit_addr import encode, decode, bech32_encode, convertbits
 
 
 def load_test_vectors(name):
@@ -50,6 +50,15 @@ class Test_bech32(unittest.TestCase):
 
             self.assertEqual(act_bech32.lower(), exp_bech32.lower())
             self.assertEqual(to_scriptPubKey(*act_bin), bytes(exp_bin))
+
+    def test_v1_rejects_bech32_checksum(self):
+        prog = list(range(32))
+        legacy = bech32_encode("bc", [1] + convertbits(prog, 8, 5))
+        self.assertEqual(decode("bc", legacy), (None, None))
+        modern = encode("bc", 1, prog)
+        witver, decoded = decode("bc", modern)
+        self.assertEqual(witver, 1)
+        self.assertEqual(decoded, prog)
 
 class Test_CBech32Data(unittest.TestCase):
     def test_from_data(self):
