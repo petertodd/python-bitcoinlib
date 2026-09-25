@@ -8,5 +8,8 @@
   ["tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sL5k7", "Mixed case"],
   ["bc1zw508d6qejxtdg4y5r3zarvaryvqyzf3du", "zero padding of more than 4 bits"],
   ["tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3pjxtptv", "Non-zero padding in 8-to-5 conversion"],
-  ["bc1gmk9yu", "Empty data section"]
+  ["bc1gmk9yu", "Empty data section"],
+["bc1pw508d6qejxtdg4y5r3zarvary0c5xw7kw508d6qejxtdg4y5r3zarvary0c5xw7k7grplx", "Bech32 checksum on witness version 1"],
+["BC1SW50QA3JX3S", "Bech32 checksum on witness version 16"],
+["bc1zw508d6qejxtdg4y5r3zarvaryvg6kdaj", "Bech32 checksum on witness version 2"]
 ]
