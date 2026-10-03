@@ -27,7 +27,6 @@ MAX_BLOCK_SIGOPS = MAX_BLOCK_SIZE/50
 WITNESS_COINBASE_SCRIPTPUBKEY_MAGIC = bytes([OP_RETURN, 0x24, 0xaa, 0x21, 0xa9, 0xed])
 
 def MoneyRange(nValue, params=None):
-    global coreparams
     if not params:
       params = coreparams
 
@@ -770,7 +769,6 @@ def CheckTransaction(tx):
 
     Raises CheckTransactionError
     """
-    global coreparams
 
     if not tx.vin:
         raise CheckTransactionError("CheckTransaction() : vin empty")
