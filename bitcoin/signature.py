@@ -38,11 +38,13 @@ class DERSignature(ImmutableSerializable):
         return cls(r, s, len(r + s))
 
     def stream_serialize(self, f):
+        rs = BytesIO()
+        rs.write(b"\x02")
+        BytesSerializer.stream_serialize(self.r, rs)
+        rs.write(b"\x02")
+        BytesSerializer.stream_serialize(self.s, rs)
         f.write(b"\x30")
-        f.write(b"\x02")
-        BytesSerializer.stream_serialize(self.r, f)
-        f.write(b"\x30")
-        BytesSerializer.stream_serialize(self.s, f)
+        BytesSerializer.stream_serialize(rs.getvalue(), f)
 
     def __repr__(self):
         return 'DERSignature(%s, %s)' % (self.r, self.s)
