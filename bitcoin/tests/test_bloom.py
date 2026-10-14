@@ -40,6 +40,20 @@ class Test_MurmurHash3(unittest.TestCase):
 
 
 class Test_CBloomFilter(unittest.TestCase):
+    def test_small_and_high_false_positive_rate_filters(self):
+        for elements in (1, 2, 10, 100):
+            for rate in (0.05, 0.1, 0.5, 0.9, 0.9999):
+                filter = CBloomFilter(elements, rate, 0, CBloomFilter.UPDATE_ALL)
+                # An empty filter must not match everything, even when its
+                # calculated storage size or hash count rounds down to zero.
+                self.assertFalse(filter.contains(b'not inserted'))
+                filter.insert(b'inserted')
+                self.assertTrue(filter.contains(b'inserted'))
+                self.assertTrue(filter.IsWithinSizeConstraints())
+                restored = CBloomFilter.deserialize(filter.serialize())
+                self.assertTrue(restored.contains(b'inserted'))
+                self.assertEqual(restored.serialize(), filter.serialize())
+
     def test_create_insert_serialize(self):
         filter = CBloomFilter(3, 0.01, 0, CBloomFilter.UPDATE_ALL)
 

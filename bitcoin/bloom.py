@@ -107,8 +107,9 @@ class CBloomFilter(bitcoin.core.serialize.Serializable):
         """
         LN2SQUARED = 0.4804530139182014246671025263266649717305529515945455
         LN2 = 0.6931471805599453094172321214581765680755001343602552
-        self.vData = bytearray(int(min(-1  / LN2SQUARED * nElements * math.log(nFPRate), self.MAX_BLOOM_FILTER_SIZE * 8) / 8))
-        self.nHashFuncs = int(min(len(self.vData) * 8 / nElements * LN2, self.MAX_HASH_FUNCS))
+        # Rounding must not produce a filter that matches every element.
+        self.vData = bytearray(max(1, int(min(-1  / LN2SQUARED * nElements * math.log(nFPRate), self.MAX_BLOOM_FILTER_SIZE * 8) / 8)))
+        self.nHashFuncs = max(1, int(min(len(self.vData) * 8 / nElements * LN2, self.MAX_HASH_FUNCS)))
         self.nTweak = nTweak
         self.nFlags = nFlags
 
